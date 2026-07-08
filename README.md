@@ -2,6 +2,8 @@
 
 # bartl-app
 
+> Developed on Codeberg: [codeberg.org/bartlapp/bartl-app](https://codeberg.org/bartlapp/bartl-app). The GitHub copy is a read-only mirror - please open issues and pull requests on Codeberg; pull requests opened on the mirror are closed automatically.
+
 Source of the [bartl.app](https://bartl.app) website - the presentation of the Bartl design pattern for application lifecycle.
 
 The thesis text itself is not in this README. It lives in `src/thesis/` and is rendered onto the site (see below).
@@ -36,12 +38,7 @@ The site is fully static and deployed via GitHub Pages.
 
 ## Source of truth
 
-This repository is developed on Codeberg. The GitHub copy is a read-only mirror.
-
-- Development home: https://codeberg.org/bartlapp/bartl-app
-- Please open issues and pull requests on Codeberg. Pull requests opened on the GitHub mirror are closed automatically.
-
-One consequence for maintainers: the mirror cannot push changes to files under `.github/workflows/`. When a workflow file changes on Codeberg, it must be pushed to the GitHub mirror once by hand over SSH. Every other change syncs automatically.
+Development happens on Codeberg; the GitHub repository is a read-only mirror (see the note at the top). One consequence for maintainers: the mirror cannot push changes to files under `.github/workflows/`. When a workflow file changes on Codeberg, it must be pushed to the GitHub mirror once by hand over SSH. Every other change syncs automatically.
 
 ## License
 
