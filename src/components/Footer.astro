@@ -12,38 +12,99 @@ interface Props {
 const { lang, pathname } = Astro.props;
 const t = useTranslations(lang);
 const year = new Date().getFullYear();
+
+const commitRef = __COMMIT_REF__;
+const commitShort = __COMMIT_SHORT__;
+const commitUrl = `https://codeberg.org/bartlapp/bartl-app/commit/${commitRef}`;
 ---
 
-<footer class="mt-auto border-t border-base-300">
-  <div class="max-w-3xl mx-auto px-4 py-8 text-sm text-base-content/60">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+<footer class="border-base-300 mt-auto border-t">
+  <div class="text-base-content/60 mx-auto max-w-3xl px-4 py-8 text-sm">
+    <div
+      class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+    >
       <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <a href={`/${lang}/derivation/`} class="hover:text-base-content">{t("nav.derivation")}</a>
-        <a href={SITE.github} target="_blank" rel="noopener noreferrer" class="hover:text-base-content">GitHub</a>
-        <a href="https://fke.systems/impressum/" target="_blank" rel="noopener noreferrer" class="hover:text-base-content">{t("footer.imprint")}</a>
+        <a href={`/${lang}/derivation/`} class="hover:text-base-content"
+          >{t("nav.derivation")}</a
+        >
+        <a
+          href={SITE.github}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-base-content">GitHub</a
+        >
+        <a
+          href="https://fke.systems/impressum/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-base-content">{t("footer.imprint")}</a
+        >
       </div>
       <details class="dropdown dropdown-top dropdown-end">
-        <summary class="btn btn-ghost btn-xs gap-1 m-0 text-base-content/60" aria-label={t("nav.language")}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3">
-            <circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        <summary
+          class="btn btn-ghost btn-xs text-base-content/60 m-0 gap-1"
+          aria-label={t("nav.language")}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="size-3"
+          >
+            <circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"
+            ></path><path
+              d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+            ></path>
           </svg>
           {languages[lang]}
         </summary>
-        <ul class="dropdown-content menu bg-base-100 rounded-box z-10 w-40 p-2 shadow-md border border-base-300 mb-1">
-          {Object.entries(languages).map(([code, name]) => (
-            <li>
-              <a href={getAlternatePath(pathname, code as Lang)} class:list={[code === lang && "font-semibold"]}>
-                {name}
-              </a>
-            </li>
-          ))}
+        <ul
+          class="dropdown-content menu bg-base-100 rounded-box border-base-300 z-10 mb-1 w-40 border p-2 shadow-md"
+        >
+          {
+            Object.entries(languages).map(([code, name]) => (
+              <li>
+                <a
+                  href={getAlternatePath(pathname, code as Lang)}
+                  class:list={[code === lang && "font-semibold"]}
+                >
+                  {name}
+                </a>
+              </li>
+            ))
+          }
         </ul>
       </details>
     </div>
     <p class="mt-4">
-      &copy; {year} {t("footer.copyright")} &middot;
-      <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener noreferrer" class="underline hover:text-base-content">{t("footer.license.code")}</a> &middot;
-      <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" class="underline hover:text-base-content">{t("footer.license.content")}</a>
+      &copy; {year}
+      {t("footer.copyright")} &middot;
+      <a
+        href="https://www.apache.org/licenses/LICENSE-2.0"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="hover:text-base-content underline">{t("footer.license.code")}</a
+      > &middot;
+      <a
+        href="https://creativecommons.org/licenses/by/4.0/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="hover:text-base-content underline"
+        >{t("footer.license.content")}</a
+      > &middot;
+      <a
+        href={commitUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={commitRef}
+        class="hover:text-base-content font-mono underline">{commitShort}</a
+      >
     </p>
   </div>
 </footer>
