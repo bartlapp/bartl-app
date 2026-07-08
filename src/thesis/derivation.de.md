@@ -1,7 +1,5 @@
 <!-- SPDX-License-Identifier: CC-BY-4.0 -->
 
-_Dies ist eine KI-gestützte Übersetzung. Die [englische Version](README.md) ist maßgeblich._
-
 # Bartl
 
 Ein Entwurfsmuster für den Anwendungslebenszyklus. Eine einzige Startentscheidung auf Grundlage des beobachteten Systemzustands und der Version - der Mechanismus verzweigt anhand dessen, was er vorfindet, nicht anhand der angeforderten Operation.
