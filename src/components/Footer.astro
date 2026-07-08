@@ -33,11 +33,11 @@ const commitUrl = `https://codeberg.org/bartlapp/bartl-app/commit/${commitRef}`;
           rel="noopener noreferrer"
           class="hover:text-base-content">GitHub</a
         >
-        <a
-          href="https://fke.systems/impressum/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="hover:text-base-content">{t("footer.imprint")}</a
+        <a href={`/${lang}/impressum/`} class="hover:text-base-content"
+          >{t("footer.imprint")}</a
+        >
+        <a href={`/${lang}/datenschutz/`} class="hover:text-base-content"
+          >{t("footer.privacy")}</a
         >
       </div>
       <details class="dropdown dropdown-top dropdown-end">

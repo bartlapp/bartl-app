@@ -3,6 +3,7 @@ import { defineConfig } from "astro/config";
 import tailwindcss from "@tailwindcss/vite";
 import sitemap from "@astrojs/sitemap";
 import compressor from "astro-compressor";
+import remarkBreaks from "remark-breaks";
 
 // Commit that produced this build. On GitHub Actions it comes from the
 // environment (which equals the Codeberg source commit, since the mirror
@@ -21,6 +22,11 @@ export default defineConfig({
       prefixDefaultLocale: true,
       redirectToDefaultLocale: true,
     },
+  },
+  // Render a single newline in Markdown as a line break (like GitHub does),
+  // so multi-line blocks such as addresses just work without <br> or markers.
+  markdown: {
+    remarkPlugins: [remarkBreaks],
   },
   integrations: [
     sitemap({

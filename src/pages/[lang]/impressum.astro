@@ -1,0 +1,32 @@
+---
+// SPDX-License-Identifier: Apache-2.0
+import MainLayout from "@/layouts/MainLayout.astro";
+import { languages, type Lang } from "@/i18n/ui";
+
+export function getStaticPaths() {
+  return Object.keys(languages).map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Lang;
+
+// @ts-ignore - markdown imports
+const doc =
+  lang === "de"
+    ? await import("../../legal/impressum.de.md")
+    : await import("../../legal/impressum.en.md");
+const Content = doc.default;
+
+const title = lang === "de" ? "Impressum" : "Legal Notice";
+const description =
+  lang === "de"
+    ? "Impressum und Anbieterkennzeichnung von bartl.app."
+    : "Legal notice and provider identification for bartl.app.";
+---
+
+<MainLayout title={title} lang={lang} description={description}>
+  <article
+    class="prose prose-gray dark:prose-invert mx-auto max-w-3xl px-4 py-12"
+  >
+    <Content />
+  </article>
+</MainLayout>
