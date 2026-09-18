@@ -1,0 +1,100 @@
+---
+// SPDX-License-Identifier: Apache-2.0
+import type { Lang } from "@/i18n/ui";
+
+interface Step {
+  letter: string;
+  word: string;
+  gloss?: string;
+}
+
+interface Props {
+  lang: Lang;
+  steps: readonly Step[];
+  caption: string;
+}
+
+const { steps, caption } = Astro.props;
+
+// The viewBox is wider than the circle itself: side labels (especially the
+// German glosses, e.g. "Wiederherstellen") extend well past the label
+// radius, and a square viewBox sized to the circle clips that text. These
+// margins were measured directly (getBBox on the rendered labels, longest
+// case is the "Bewerten"/"Wiederherstellen" glosses) rather than guessed,
+// so the canvas is as tight as it can be without clipping: the circle
+// stays the dominant shape instead of shrinking into a small island inside
+// a mostly-empty canvas.
+const width = 620;
+const height = 500;
+const centerX = 310;
+const centerY = 260;
+const nodeRadius = 165;
+const labelRadius = 220;
+const dotRadius = 7;
+const gapDeg = 15;
+const step = 360 / steps.length;
+
+const toXY = (angleDeg: number, radius: number) => {
+  const rad = (angleDeg * Math.PI) / 180;
+  return {
+    x: centerX + radius * Math.sin(rad),
+    y: centerY - radius * Math.cos(rad),
+  };
+};
+
+const nodes = steps.map((s, i) => {
+  const angle = step * i;
+  const dot = toXY(angle, nodeRadius);
+  const label = toXY(angle, labelRadius);
+  const anchor =
+    label.x > centerX + 2 ? "start" : label.x < centerX - 2 ? "end" : "middle";
+  return { ...s, dot, label, anchor };
+});
+
+const arcs = steps.map((_, i) => {
+  const start = toXY(step * i + gapDeg, nodeRadius);
+  const end = toXY(step * i + step - gapDeg, nodeRadius);
+  return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${nodeRadius} ${nodeRadius} 0 0 1 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`;
+});
+---
+
+<figure class="bartl-loop mx-auto max-w-2xl">
+  <figcaption class="sr-only">{caption}</figcaption>
+  <svg
+    viewBox={`0 0 ${width} ${height}`}
+    width={width}
+    height={height}
+    role="img"
+    aria-hidden="true"
+    class="block h-auto w-full"
+  >
+    <defs>
+      <marker id="bartl-loop-arrow" viewBox="0 0 10 10" refX="7.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="var(--color-primary)"></path>
+      </marker>
+    </defs>
+
+    <circle cx={centerX} cy={centerY} r={nodeRadius} fill="none" stroke="var(--color-base-300)" stroke-width="1"></circle>
+
+    {arcs.map((d) => (
+      <path d={d} fill="none" stroke="var(--color-primary)" stroke-width="2" marker-end="url(#bartl-loop-arrow)"></path>
+    ))}
+
+    <text x={centerX} y={centerY - 7} text-anchor="middle" class="fill-base-content/40 font-mono" style="font-size: 17px;">until</text>
+    <text x={centerX} y={centerY + 18} text-anchor="middle" class="fill-base-content/40 font-mono" style="font-size: 17px;">serving()</text>
+
+    {nodes.map((n) => (
+      <g>
+        <circle cx={n.dot.x} cy={n.dot.y} r={dotRadius} fill="var(--color-primary)"></circle>
+        <text x={n.label.x} y={n.label.y} text-anchor={n.anchor} class="fill-base-content" style="font-size: 22px;">
+          <tspan font-weight="700" fill="var(--color-primary)">{n.word.slice(0, 1)}</tspan><tspan>{n.word.slice(1)}</tspan>
+        </text>
+        {n.gloss && (
+          <text x={n.label.x} y={n.label.y + 25} text-anchor={n.anchor} class="fill-base-content/60" style="font-size: 17px;">
+            {n.gloss}
+          </text>
+        )}
+      </g>
+    ))}
+  </svg>
+</figure>

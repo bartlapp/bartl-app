@@ -1,5 +1,6 @@
 ---
 // SPDX-License-Identifier: Apache-2.0
+import BartlLoop from "@/components/BartlLoop.astro";
 import InteractivePseudoCode from "@/components/InteractivePseudoCode.astro";
 import { SITE } from "@/data/constants";
 import { landingCopy } from "@/content/landing";
@@ -22,46 +23,56 @@ const c = landingCopy[lang];
 <div class="overflow-hidden">
   <section aria-labelledby="landing-title" class="border-base-300 border-b">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-32">
-      <div class="max-w-4xl">
-        <p class="text-primary mb-6 font-mono text-sm font-semibold tracking-widest uppercase">
-          {c.heroEyebrow}
-        </p>
-        <h1 id="landing-title" class="text-4xl leading-tight font-medium text-balance sm:text-5xl lg:text-6xl">
-          {c.heroTitle}
-        </h1>
-        <p class="text-base-content/70 mt-6 max-w-3xl text-lg leading-relaxed sm:text-xl">
-          {c.heroBody}
-        </p>
-        <div class="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <a
-            href={SITE.reference}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={c.heroPrimaryAria}
-            class="btn btn-primary focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-4"
-          >
-            {c.heroPrimary}
-          </a>
-          <a
-            href="#mechanism"
-            class="btn btn-outline focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-4"
-          >
-            {c.heroSecondary}
-          </a>
+      <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+        <div class="max-w-2xl">
+          <p class="mb-3 font-mono text-sm font-semibold" aria-label={c.wordmarkAria}>
+            <span aria-hidden="true"
+              >From bart<span style="color: var(--color-code-error);">L</span> to bart<span style="color: var(--color-primary);">W</span></span
+            >
+          </p>
+          <p class="text-primary mb-6 font-mono text-sm font-semibold">
+            {c.heroEyebrow}
+          </p>
+          <h1 id="landing-title" class="text-4xl leading-tight font-medium text-balance sm:text-5xl lg:text-6xl">
+            {c.heroTitle}
+          </h1>
+          <p class="text-base-content/70 mt-6 max-w-3xl text-lg leading-relaxed sm:text-xl">
+            {c.heroBody}
+          </p>
+          <div class="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <a
+              href={SITE.reference}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={c.heroPrimaryAria}
+              class="btn btn-primary focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-4"
+            >
+              {c.heroPrimary}
+            </a>
+            <a
+              href="#mechanism"
+              class="btn btn-outline focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-4"
+            >
+              {c.heroSecondary}
+            </a>
+          </div>
+          <div class="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm">
+            <a
+              href={`/${lang}/derivation/`}
+              class="link text-base-content/70 hover:text-base-content focus-visible:outline-primary rounded-sm underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4"
+            >
+              {c.heroDerivation}
+            </a>
+            <a
+              href={`/${lang}/spec/`}
+              class="link text-base-content/70 hover:text-base-content focus-visible:outline-primary rounded-sm underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4"
+            >
+              {c.heroSpec}
+            </a>
+          </div>
         </div>
-        <div class="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-sm">
-          <a
-            href={`/${lang}/derivation/`}
-            class="link text-base-content/70 hover:text-base-content focus-visible:outline-primary rounded-sm underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4"
-          >
-            {c.heroDerivation}
-          </a>
-          <a
-            href={`/${lang}/spec/`}
-            class="link text-base-content/70 hover:text-base-content focus-visible:outline-primary rounded-sm underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4"
-          >
-            {c.heroSpec}
-          </a>
+        <div class="mt-12 lg:mt-0">
+          <BartlLoop lang={lang} steps={c.bartlLoop} caption={c.loopCaption} />
         </div>
       </div>
     </div>
@@ -70,7 +81,7 @@ const c = landingCopy[lang];
   <section aria-labelledby="problem-title" class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
     <div class="grid gap-10 lg:grid-cols-3 lg:gap-16">
       <div>
-        <p class="text-base-content/50 font-mono text-xs font-semibold tracking-widest uppercase">
+        <p class="text-base-content/50 font-mono text-xs font-semibold">
           {c.problemEyebrow}
         </p>
         <h2 id="problem-title" class="mt-3 text-3xl leading-tight sm:text-4xl">
@@ -88,7 +99,7 @@ const c = landingCopy[lang];
   <section id="mechanism" aria-labelledby="mechanism-title" class="bg-base-200/50 border-base-300 scroll-mt-20 border-y">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
       <div class="max-w-3xl">
-        <p class="text-primary font-mono text-xs font-semibold tracking-widest uppercase">
+        <p class="text-primary font-mono text-xs font-semibold">
           {c.mechanismEyebrow}
         </p>
         <h2 id="mechanism-title" class="mt-3 text-3xl leading-tight sm:text-4xl">
@@ -129,7 +140,7 @@ const c = landingCopy[lang];
 
   <section aria-labelledby="inputs-title" class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
     <div class="max-w-3xl">
-      <p class="text-primary font-mono text-xs font-semibold tracking-widest uppercase">
+      <p class="text-primary font-mono text-xs font-semibold">
         {c.inputsEyebrow}
       </p>
       <h2 id="inputs-title" class="mt-3 text-3xl leading-tight sm:text-4xl">
@@ -157,7 +168,7 @@ const c = landingCopy[lang];
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
       <div class="grid gap-12 lg:grid-cols-2 lg:gap-16">
         <div>
-          <p class="text-neutral-content/70 font-mono text-xs font-semibold tracking-widest uppercase">
+          <p class="text-neutral-content/70 font-mono text-xs font-semibold">
             {c.referenceEyebrow}
           </p>
           <h2 id="reference-title" class="mt-3 text-3xl leading-tight sm:text-4xl">
@@ -201,16 +212,16 @@ const c = landingCopy[lang];
   </section>
 
   <section aria-labelledby="scope-title" class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-    <div class="max-w-3xl">
-      <p class="text-primary font-mono text-xs font-semibold tracking-widest uppercase">
+    <div>
+      <p class="text-primary font-mono text-xs font-semibold">
         {c.scopeEyebrow}
       </p>
-      <h2 id="scope-title" class="mt-3 text-3xl leading-tight sm:text-4xl">
+      <h2 id="scope-title" class="mt-3 max-w-3xl text-3xl leading-tight sm:text-4xl">
         {c.scopeTitle}
       </h2>
     </div>
 
-    <div class="border-base-300 mt-10 grid gap-10 border-y py-8 lg:grid-cols-2 lg:gap-16">
+    <div class="mt-10 grid gap-10 lg:grid-cols-2 lg:gap-16">
       <div>
         <h3 class="text-xl">{c.doesTitle}</h3>
         <ul class="mt-5 space-y-3">
@@ -232,11 +243,11 @@ const c = landingCopy[lang];
 
   <section aria-labelledby="fit-title" class="bg-base-200/50 border-base-300 border-y">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-      <div class="max-w-3xl">
-        <p class="text-primary font-mono text-xs font-semibold tracking-widest uppercase">
+      <div>
+        <p class="text-primary font-mono text-xs font-semibold">
           {c.fitEyebrow}
         </p>
-        <h2 id="fit-title" class="mt-3 text-3xl leading-tight sm:text-4xl">{c.fitTitle}</h2>
+        <h2 id="fit-title" class="mt-3 max-w-3xl text-3xl leading-tight sm:text-4xl">{c.fitTitle}</h2>
       </div>
       <div class="mt-10 grid gap-10 lg:grid-cols-2 lg:gap-16">
         <div>
@@ -259,8 +270,96 @@ const c = landingCopy[lang];
     </div>
   </section>
 
-  <section aria-labelledby="cta-title" class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-    <div class="border-base-300 flex flex-col gap-8 border-y py-10 sm:flex-row sm:items-center sm:justify-between">
+  <section aria-labelledby="check-title" class="mx-auto max-w-6xl px-4 pt-16 pb-8 sm:px-6 sm:pt-24 sm:pb-12 lg:px-8">
+    <div>
+      <p class="text-primary font-mono text-xs font-semibold">
+        {c.checkEyebrow}
+      </p>
+      <h2 id="check-title" class="mt-3 max-w-3xl text-3xl leading-tight sm:text-4xl">{c.checkTitle}</h2>
+      <p class="text-base-content/70 mt-4 max-w-4xl text-lg leading-relaxed">{c.checkBody}</p>
+    </div>
+
+    <div class="bartl-check mt-10">
+      <label class="sr-only" for="bartl-check-prompt">{c.checkPromptLabel}</label>
+      <pre id="bartl-check-prompt" class="bg-code-background text-code-foreground border-code-border overflow-x-auto rounded-lg border p-4 text-sm leading-relaxed whitespace-pre-wrap shadow-sm">{c.checkPrompt}</pre>
+
+      <p class="text-base-content/60 mt-4 text-sm">{c.checkStepsLabel}</p>
+      <button
+        type="button"
+        class="bartl-check-copy btn btn-primary btn-sm mt-3 focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-2"
+        data-copied-label={c.checkCopiedLabel}
+        data-failed-label={c.checkFailedLabel}
+      >
+        {c.checkCopyLabel}
+      </button>
+      <p aria-live="polite" class="bartl-check-status text-base-content/70 mt-3 min-h-6 text-sm"></p>
+    </div>
+  </section>
+
+  <script>
+    // The tool links (ChatGPT, Claude, Gemini, GitHub Copilot) are plain,
+    // unmodified <a target="_blank"> navigation on purpose: earlier versions
+    // also tried to copy the prompt on click/pointerdown before navigating,
+    // but that combination turned out to be unreliable across real browsers
+    // (clipboard writes can be silently refused once a new tab starts
+    // stealing focus, or once the underlying event stops counting as a
+    // user gesture for the Clipboard API's permission check). The copy
+    // button below is the one guaranteed-reliable action, since it never
+    // triggers navigation and so never races against a focus change.
+    document.querySelectorAll<HTMLElement>(".bartl-check").forEach((container) => {
+      const pre = container.querySelector<HTMLPreElement>("pre");
+      const status = container.querySelector<HTMLParagraphElement>(".bartl-check-status");
+      const copyBtn = container.querySelector<HTMLButtonElement>(".bartl-check-copy");
+      const promptText = pre?.textContent?.trim() || "";
+      const copiedLabel = copyBtn?.dataset.copiedLabel || "";
+      const failedLabel = copyBtn?.dataset.failedLabel || "";
+      let resetTimer: ReturnType<typeof setTimeout> | undefined;
+
+      const showStatus = (text: string, holdMs: number) => {
+        if (!status) return;
+        status.textContent = text;
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => {
+          status.textContent = "";
+        }, holdMs);
+      };
+
+      // Legacy fallback for browsers/contexts where the async Clipboard API
+      // is unavailable or refuses the write (e.g. an insecure origin).
+      const legacyCopy = () => {
+        const textarea = document.createElement("textarea");
+        textarea.value = promptText;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        let ok = false;
+        try {
+          ok = document.execCommand("copy");
+        } catch {
+          ok = false;
+        }
+        document.body.removeChild(textarea);
+        return ok;
+      };
+
+      const copy = async () => {
+        try {
+          if (!navigator.clipboard) throw new Error("clipboard API unavailable");
+          await navigator.clipboard.writeText(promptText);
+          showStatus(copiedLabel, 2500);
+        } catch {
+          showStatus(legacyCopy() ? copiedLabel : failedLabel, 4000);
+        }
+      };
+
+      copyBtn?.addEventListener("click", copy);
+    });
+  </script>
+
+  <section aria-labelledby="cta-title" class="mx-auto max-w-6xl px-4 pt-8 pb-16 sm:px-6 sm:pt-12 sm:pb-24 lg:px-8">
+    <div class="flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
       <div class="max-w-2xl">
         <h2 id="cta-title" class="text-2xl leading-tight sm:text-3xl">{c.ctaTitle}</h2>
         <p class="text-base-content/70 mt-3 leading-relaxed">{c.ctaBody}</p>

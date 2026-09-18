@@ -117,6 +117,10 @@ export const specCopy = {
     servingTitle: "Bedeutung von serving()",
     servingBody:
       "serving() bedeutet innerhalb des Musters nur, daß Release, Zustand und Zielkonfiguration kompatibel genug sind, um die Anwendung zu starten. Daraus folgt keine Garantie für Erreichbarkeit, Verfügbarkeit oder eine bestimmte Wiederanlaufzeit.",
+    helpTitle: "Hilfe",
+    helpBody:
+      "Wer Bartl in ein bestehendes Produkt einbaut oder unsicher ist, wo die Zustandsgrenze verläuft: Florian Kessler GmbH arbeitet an genau dieser Art von Systemdesign.",
+    helpLinkAria: "fke.systems öffnen, neuer Tab",
     referenceTitle: "Ausführbare WordPress-Referenz",
     referenceIntro:
       "bartl-wordpress zeigt die Spec für eine konkrete WordPress-, MySQL- und Docker-Compose-Konfiguration.",
@@ -270,6 +274,10 @@ export const specCopy = {
     servingTitle: "Meaning of serving()",
     servingBody:
       "Within the pattern, serving() means only that release, state, and target configuration are compatible enough to start the application. It does not guarantee reachability, availability, or a particular restart time.",
+    helpTitle: "Need help",
+    helpBody:
+      "If you are implementing bartl in an existing product, or unsure where to draw the state boundary, Florian Kessler GmbH works on this kind of system design.",
+    helpLinkAria: "Open fke.systems, new tab",
     referenceTitle: "Executable WordPress reference",
     referenceIntro:
       "bartl-wordpress demonstrates the spec for one concrete WordPress, MySQL, and Docker Compose configuration.",

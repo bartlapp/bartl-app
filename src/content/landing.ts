@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: CC-BY-4.0
 export const landingCopy = {
   de: {
+    wordmarkAria: "Von bartl, Verlust, zu bartl, Sieg.",
     heroEyebrow: "Ein Startpfad. Mehrere Zustände.",
     heroTitle:
       "Installieren, wiederherstellen, aktualisieren: ein gemeinsamer Startpfad.",
@@ -12,6 +13,15 @@ export const landingCopy = {
     heroSecondary: "Entscheidungslogik ansehen",
     heroDerivation: "Herleitung lesen",
     heroSpec: "Technische Spec lesen",
+    bartlLoop: [
+      { letter: "B", word: "Backup", gloss: "Sicherung" },
+      { letter: "A", word: "Assess", gloss: "Bewerten" },
+      { letter: "R", word: "Restore", gloss: "Wiederherstellen" },
+      { letter: "T", word: "Transform", gloss: "Migrieren" },
+      { letter: "L", word: "Launch", gloss: "Starten" },
+    ],
+    loopCaption:
+      "Diagramm des Bartl-Kreislaufs im Uhrzeigersinn: Backup (Sicherung), Assess (Bewerten), Restore (Wiederherstellen), Transform (Migrieren), Launch (Starten), danach wieder Backup.",
     problemEyebrow: "Das konkrete Problem",
     problemTitle: "Operationsnamen sind kein Zustand.",
     problemBody: [
@@ -114,6 +124,18 @@ export const landingCopy = {
       "Release und Laufzeitzustand nicht voneinander getrennt werden können",
       "der Startmechanismus externe Betriebsaufgaben vollständig übernehmen soll",
     ],
+    checkEyebrow: "Selbsttest",
+    checkTitle: "Are we bartl yet?",
+    checkBody:
+      "Bartl ist eine Art zu entwerfen und zu denken, keine Checkliste zum mechanischen Abarbeiten. Füge diesen Prompt in einen Assistenten ein, den du bereits nutzt, und beschreibe deine eigene Start-, Wiederherstellungs- und Update-Logik. Er zeigt dir, wo deine Anwendung dem Muster schon folgt und wo sie noch nach Operationsname statt nach beobachtetem Zustand entscheidet. Behandle die Antwort als Ausgangspunkt für die eigene Beurteilung, nicht als automatisiertes Urteil, dem man blind vertrauen sollte.",
+    checkPromptLabel: "Prompt zum Einfügen in einen KI-Assistenten",
+    checkStepsLabel: "Kopiere den Prompt und füge ihn dann in einen Assistenten ein.",
+    checkPrompt:
+      "Ich prüfe, ob die Start-, Wiederherstellungs- und Update-Logik meiner Anwendung dem Bartl-Muster folgt (https://bartl.app). Das Muster beobachtet lokalen Zustand, einen verfügbaren Sicherungsstand sowie Engine- und Zustandsversion und entscheidet daraus allein, ob bedient, migriert, wiederhergestellt, initialisiert oder abgebrochen wird, nie nach dem Namen des aufgerufenen Befehls. So verhält sich meine Anwendung derzeit bei Start, Wiederherstellung und Update: [Beschreibe deine aktuelle Logik]. Folgt das bereits dem Muster? Was fehlt, und was ist die kleinste Änderung, die die Lücke schließt?",
+    checkCopyLabel: "Prompt kopieren",
+    checkCopiedLabel: "Kopiert",
+    checkFailedLabel:
+      "Automatisches Kopieren hat nicht geklappt. Markiere den Text oben und kopiere ihn.",
     ctaTitle: "Den Mechanismus am laufenden Beispiel prüfen.",
     ctaBody:
       "Die Referenz ausführen, einen Sicherungsstand erzeugen und den Start auf einem leeren kompatiblen Ziel beobachten. Die Spec beschreibt den engen Vertrag dahinter.",
@@ -122,6 +144,7 @@ export const landingCopy = {
     ctaSecondary: "Technische Spec lesen",
   },
   en: {
+    wordmarkAria: "From bartl, loss, to bartl, win.",
     heroEyebrow: "One startup path. Multiple states.",
     heroTitle: "Install, restore, upgrade: one shared startup path.",
     heroBody:
@@ -132,6 +155,15 @@ export const landingCopy = {
     heroSecondary: "See the decision logic",
     heroDerivation: "Read the derivation",
     heroSpec: "Read the technical spec",
+    bartlLoop: [
+      { letter: "B", word: "Backup" },
+      { letter: "A", word: "Assess" },
+      { letter: "R", word: "Restore" },
+      { letter: "T", word: "Transform" },
+      { letter: "L", word: "Launch" },
+    ],
+    loopCaption:
+      "Diagram showing the Bartl cycle as a clockwise loop: Backup, Assess, Restore, Transform, Launch, then back to Backup.",
     problemEyebrow: "The concrete problem",
     problemTitle: "Operation names are not state.",
     problemBody: [
@@ -234,6 +266,17 @@ export const landingCopy = {
       "release and runtime state cannot be separated",
       "the startup mechanism is expected to perform every external operating task",
     ],
+    checkEyebrow: "Self check",
+    checkTitle: "Are we bartl yet?",
+    checkBody:
+      "Bartl is a way to design and think, not a checklist to run mechanically. Paste this prompt into an assistant you already use and describe your own startup, restore, and upgrade logic. It will point out where your application matches the pattern and where it still decides by operation name instead of observed state. Treat the answer as a starting point for your own judgment, not as an automated verdict to trust blindly.",
+    checkPromptLabel: "Prompt to paste into an AI assistant",
+    checkStepsLabel: "Copy the prompt, then open an assistant and paste it in.",
+    checkPrompt:
+      "I am checking whether my application's startup, restore, and upgrade logic follows the Bartl pattern (https://bartl.app). The pattern observes local state, an available backup, and the engine and state versions, then decides to serve, migrate, restore, initialize, or abort based only on those observations, never based on which command was invoked. Here is how my app currently handles startup, restore, and upgrade: [describe your current logic]. Does this already follow the pattern? What is missing, and what is the smallest change that would close the gap?",
+    checkCopyLabel: "Copy prompt",
+    checkCopiedLabel: "Copied",
+    checkFailedLabel: "Could not copy automatically. Select the text above and copy it.",
     ctaTitle: "Inspect the mechanism in a running example.",
     ctaBody:
       "Run the reference, publish a backup, and observe startup on an empty compatible target. The spec describes the narrow contract behind it.",

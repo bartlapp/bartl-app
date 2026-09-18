@@ -51,24 +51,77 @@
   --color-limed-spruce-900: #324347;
   --color-limed-spruce-950: #1e2a2e;
 
-  --color-code-background: #2e3440;
-  --color-code-foreground: #d8dee9;
-  --color-code-border: #4c566a;
-  --color-code-keyword: #88c0d0;
-  --color-code-error: #bf616a;
-  --color-code-muted: #aab3c5;
+  --color-code-background: var(--color-limed-spruce-950);
+  --color-code-foreground: var(--color-limed-spruce-100);
+  --color-code-border: var(--color-limed-spruce-800);
+  --color-code-keyword: var(--color-limed-spruce-300);
+  --color-code-error: #e0737d;
+  --color-code-muted: var(--color-limed-spruce-500);
 
   --font-sans: "Inter Variable", "Helvetica Neue", system-ui, sans-serif;
   --font-mono: "Fira Code", "Fira Mono", "SF Mono", Menlo, monospace;
 }
 
-[data-theme="dark"] {
-  --color-code-background: #f6f8fa;
-  --color-code-foreground: #1f2328;
-  --color-code-border: #d0d7de;
-  --color-code-keyword: #0969da;
+/*
+ * Theme accent: reuse the limed-spruce slate-teal scale (already declared
+ * above) as the daisyui primary/neutral, replacing daisyui's stock indigo.
+ * A desaturated instrument-panel teal fits a spec about observed state and
+ * signal, rather than a generic SaaS brand color.
+ */
+:root,
+:root:has(input.theme-controller[value="light"]:checked),
+[data-theme="light"] {
+  --color-base-100: #fbfbf9;
+  --color-base-200: #f1f4f3;
+  --color-base-300: #dde4e3;
+  --color-base-content: #172120;
+  --color-primary: var(--color-limed-spruce-700);
+  --color-primary-content: var(--color-limed-spruce-50);
+  --color-neutral: var(--color-limed-spruce-950);
+  --color-neutral-content: var(--color-limed-spruce-100);
+}
+
+[data-theme="dark"],
+:root:has(input.theme-controller[value="dark"]:checked) {
+  --color-base-100: #12191b;
+  --color-base-200: #16201f;
+  --color-base-300: #26302f;
+  --color-base-content: #e7eeee;
+  --color-primary: var(--color-limed-spruce-400);
+  --color-primary-content: #0e1516;
+  --color-neutral: #1c2729;
+  --color-neutral-content: var(--color-limed-spruce-100);
+
+  --color-code-background: var(--color-limed-spruce-50);
+  --color-code-foreground: #172120;
+  --color-code-border: var(--color-limed-spruce-200);
+  --color-code-keyword: var(--color-limed-spruce-700);
   --color-code-error: #cf222e;
-  --color-code-muted: #656d76;
+  --color-code-muted: var(--color-limed-spruce-500);
+}
+
+/* Mirror the explicit dark toggle for visitors whose OS prefers dark and
+   who have not clicked the toggle yet (daisyui applies its bundled "dark"
+   theme here by default; without this, that group would still see the
+   stock indigo). */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-base-100: #12191b;
+    --color-base-200: #16201f;
+    --color-base-300: #26302f;
+    --color-base-content: #e7eeee;
+    --color-primary: var(--color-limed-spruce-400);
+    --color-primary-content: #0e1516;
+    --color-neutral: #1c2729;
+    --color-neutral-content: var(--color-limed-spruce-100);
+
+    --color-code-background: var(--color-limed-spruce-50);
+    --color-code-foreground: #172120;
+    --color-code-border: var(--color-limed-spruce-200);
+    --color-code-keyword: var(--color-limed-spruce-700);
+    --color-code-error: #cf222e;
+    --color-code-muted: var(--color-limed-spruce-500);
+  }
 }
 
 @layer base {
@@ -83,6 +136,11 @@
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
+  }
+
+  ::selection {
+    background-color: var(--color-primary);
+    color: var(--color-primary-content);
   }
 
   body {

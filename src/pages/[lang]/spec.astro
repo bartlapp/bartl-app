@@ -37,7 +37,7 @@ const c = specCopy[lang];
 
     <article class="min-w-0 lg:col-span-3">
       <header class="border-base-300 border-b pb-10">
-        <p class="text-primary font-mono text-xs font-semibold tracking-widest uppercase">{c.eyebrow}</p>
+        <p class="text-primary font-mono text-xs font-semibold">{c.eyebrow}</p>
         <h1 class="mt-3 text-4xl leading-tight font-medium sm:text-5xl">{c.title}</h1>
         <p class="text-base-content/70 mt-5 max-w-3xl text-lg leading-relaxed sm:text-xl">{c.lead}</p>
         <p class="border-primary mt-8 border-l-2 pl-5 text-lg leading-relaxed">{c.principle}</p>
@@ -172,6 +172,19 @@ const c = specCopy[lang];
         >
           {c.back}
         </a>
+        <div class="border-primary mt-10 border-l-2 pl-5">
+          <h3 class="text-lg">{c.helpTitle}</h3>
+          <p class="text-base-content/70 mt-2 text-sm leading-relaxed">{c.helpBody}</p>
+          <a
+            href="https://fke.systems"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={c.helpLinkAria}
+            class="link text-base-content/70 hover:text-base-content focus-visible:outline-primary mt-2 inline-block rounded-sm text-sm underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4"
+          >
+            fke.systems
+          </a>
+        </div>
       </section>
     </article>
   </div>
