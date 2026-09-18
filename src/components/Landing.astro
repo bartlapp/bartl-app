@@ -297,15 +297,6 @@ const c = landingCopy[lang];
   </section>
 
   <script>
-    // The tool links (ChatGPT, Claude, Gemini, GitHub Copilot) are plain,
-    // unmodified <a target="_blank"> navigation on purpose: earlier versions
-    // also tried to copy the prompt on click/pointerdown before navigating,
-    // but that combination turned out to be unreliable across real browsers
-    // (clipboard writes can be silently refused once a new tab starts
-    // stealing focus, or once the underlying event stops counting as a
-    // user gesture for the Clipboard API's permission check). The copy
-    // button below is the one guaranteed-reliable action, since it never
-    // triggers navigation and so never races against a focus change.
     document.querySelectorAll<HTMLElement>(".bartl-check").forEach((container) => {
       const pre = container.querySelector<HTMLPreElement>("pre");
       const status = container.querySelector<HTMLParagraphElement>(".bartl-check-status");
