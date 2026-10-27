@@ -2,26 +2,13 @@
 
 A lightweight record of non-obvious choices for this repo. Not formal ADRs - a few lines each, enough that a recurring "why not X?" has a written answer.
 
-## The spec defines Bartl; the derivation explains the design
+## One philosophy and one normative application contract
 
-The narrow technical contract lives in `src/content/spec.ts` and is rendered by `src/pages/[lang]/spec.astro`. It defines Bartl as an observed-state startup mechanism for a stateful application. The landing page summarizes that contract and links to the executable WordPress reference. The derivation explains the operating observations, design pressure, history, and compositions that led to the mechanism. It does not add requirements to the pattern.
+[The philosophy](philosophy.md) explains Bartl's complete-service scope across application, infrastructure and operating responsibility. The [README](../README.md#application-contract-and-qualification) owns the normative application contract; its service-recovery sections define the broader recovery obligations.
 
-The public definition is limited to:
+`src/content/spec.ts`, rendered by `src/pages/[lang]/spec.astro`, explains the application contract for website readers. It is neither a runtime implementation nor a second normative source. The startup mechanism is one contribution to Bartl, not its complete definition.
 
-- a versioned release;
-- fully declared state;
-- a valid backup;
-- target configuration;
-- the decision to initialize, restore, invoke product-specific migration, serve, or abort.
-
-Target provisioning and external operating processes remain outside the pattern. A reference demonstrates only its own pinned product configuration.
-
-The public information architecture has one canonical answer per question:
-
-- landing page: what Bartl is and where to try it;
-- derivation: why the mechanism has this form and what it may enable;
-- technical spec: what an implementation must satisfy;
-- executable reference: evidence for one pinned WordPress configuration.
+The landing page currently concentrates on that mechanism and the WordPress example. The derivation explains its reasoning and history. Neither page adds requirements to the canonical contracts. Website changes must preserve that distinction; a reference demonstrates only its stated product configuration.
 
 Historical talks and product contexts provide provenance. They do not define a second version of Bartl.
 
