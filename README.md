@@ -12,9 +12,9 @@ Start with [Bartl: retaining the ability to act](docs/philosophy.md), the canoni
 
 Bartl is an operating philosophy for making resilience and sovereignty capabilities we can actually exercise, through how we build applications, provide infrastructure and organize responsibility. Its scope is the complete service, not only the application startup mechanism.
 
-People authorize the outcome and accepted risks. Each bartlized application executes its supported application procedures without manual technical intervention, verifies the result and reports success or stops safely. Unexpected conditions can require a new decision; routine execution must not depend on an operator supplying missing application machinery.
+People authorize the outcome and accepted risks. Each bartlized application executes its supported application procedures without manual technical intervention, verifies the result and reports success or stops safely. Unexpected conditions can require a new decision; routine execution must not depend on an installation administrator supplying missing application machinery.
 
-A human operator may install and maintain a customer installation by copying and executing the documented commands with the configuration held in its versioned customer repository and checking the documented results. This is a supported operating model, not a failure to meet the application contract. Automating that operator's work across the customer's clusters and subscribed applications is the long-term goal, outside the current implementation scope. A Kubernetes Company Operator is one possible implementation, not a selected or required component. Automatic incident detection and autonomous failover decisions remain separate choices.
+An installation administrator is the human responsible for operating a customer installation across its clusters and applications. They may install and maintain it by copying and executing the documented commands with the configuration held in its versioned customer repository and checking the documented results. This is a supported operating model, not a failure to meet the application contract. Automating that work with an installation controller is the long-term goal, outside the current implementation scope. Such a controller could be implemented as a Kubernetes operator; neither that implementation nor Kubernetes is required by this general contract. Automatic incident detection and autonomous failover decisions remain separate choices.
 
 Application recovery depends on an explicit target-environment contract rather than a particular provider. Provider-specific provisioning establishes that contract; it does not redefine application recovery. Any environment satisfying the contract can be a target, provided access, capacity and required dependencies are actually usable. The complete recovery path, including its execution and inputs, must remain available without help from the provider whose loss or withdrawal it is intended to withstand.
 
@@ -82,11 +82,11 @@ until serving():
 - `observe_backup()` returns the latest verified backup for this customer/application, or absence when no store is configured or the configured store contains no backup for it. Lookup or integrity errors stop execution rather than masquerading as absence. Existing local state does not require backup access.
 - `init()`, `restore()` and `migrate()` use application-native procedures. Failure stops execution; success returns to observation. Unsupported migrations fail. `serving()` starts the native application with its normal readiness behavior.
 
-Installing the customer's application invokes this procedure. The operator supplies the selected release and installation configuration, not an initialization permission, a recovery mode or a second command to release successful reconstruction. The package also supplies native capture and publication into the configured backup store so another installation can use that history.
+Installing the customer's application invokes this procedure. The installation administrator supplies the selected release and installation configuration, not an initialization permission, a recovery mode or a second command to release successful reconstruction. The package also supplies native capture and publication into the configured backup store so another installation can use that history.
 
 ### Application responsibilities
 
-Each application implements the decision within its owned state and supported configuration. No shared runtime, operator, sidecar or Kubernetes dependency is prescribed.
+Each application implements the decision within its owned state and supported configuration. No shared runtime, application controller, sidecar or Kubernetes dependency is prescribed.
 
 | Obligation | Required application contribution |
 | --- | --- |
@@ -144,7 +144,7 @@ Required backup-system capabilities:
 - Protection against deletion and overwrite even when production is compromised.
 - Independence from production's failure and administrative domain.
 - Encryption and independently available keys.
-- Restore without the source installation; complete handover to another operator.
+- Restore without the source installation; complete handover to a successor service provider.
 - Automatable interfaces; detectable incomplete backups and failures.
 
 Desired backup-system capabilities:
@@ -154,7 +154,7 @@ Desired backup-system capabilities:
 - Low operating effort and predictable total cost.
 - Ability to change storage providers without losing the required backup history.
 
-The recovery artifact includes the required mutable state, an inventory, state-format and release-compatibility information, and integrity information. Database exports are ingredients of this artifact, not independently selected recovery points that an operator must match later. Prefer supported native application procedures; supplement only their demonstrated gaps.
+The recovery artifact includes the required mutable state, an inventory, state-format and release-compatibility information, and integrity information. Database exports are ingredients of this artifact, not independently selected recovery points that an installation administrator must match later. Prefer supported native application procedures; supplement only their demonstrated gaps.
 
 Only complete, verified publication makes a recovery point eligible. Interrupted uploads or missing members must not be mistaken for a usable backup. The application reconstructs from the artifact without the original installation or provider. Its compatible immutable release remains separately identified and independently available; target-specific configuration is supplied separately. Required application identity is preserved, while decryption keys must remain independently usable and must not be available only inside the encrypted artifact.
 
