@@ -12,7 +12,9 @@ Start with [Bartl: retaining the ability to act](docs/philosophy.md), the canoni
 
 Bartl is an operating philosophy for making resilience and sovereignty capabilities we can actually exercise, through how we build applications, provide infrastructure and organize responsibility. Its scope is the complete service, not only the application startup mechanism.
 
-People authorize the outcome and accepted risks. Within the supported operating contract, the maintained procedure executes without manual technical intervention, verifies the result and reports success or stops safely. Unexpected conditions can require a new decision; routine execution must not depend on an operator supplying missing technical machinery. Automatic execution after an authorized recovery decision is the baseline, not a requirement for autonomous incident detection and failover decisions.
+People authorize the outcome and accepted risks. Each bartlized application executes its supported application procedures without manual technical intervention, verifies the result and reports success or stops safely. Unexpected conditions can require a new decision; routine execution must not depend on an operator supplying missing application machinery.
+
+A human operator may install and maintain a customer installation by copying and executing the documented commands with the configuration held in its versioned customer repository and checking the documented results. This is a supported operating model, not a failure to meet the application contract. Automating that operator's work across the customer's clusters and subscribed applications is the long-term goal, outside the current implementation scope. A Kubernetes Company Operator is one possible implementation, not a selected or required component. Automatic incident detection and autonomous failover decisions remain separate choices.
 
 Application recovery depends on an explicit target-environment contract rather than a particular provider. Provider-specific provisioning establishes that contract; it does not redefine application recovery. Any environment satisfying the contract can be a target, provided access, capacity and required dependencies are actually usable. The complete recovery path, including its execution and inputs, must remain available without help from the provider whose loss or withdrawal it is intended to withstand.
 
@@ -120,7 +122,7 @@ These are common evidence requirements, not a mandate for a universal test runne
 
 ## Provider-independent recovery execution contract
 
-This is a design contract for supported service recovery, not a claim that the startup specification or WordPress reference implements the whole path.
+This is the design contract for the long-term goal of automated service recovery, beyond the current application-package scope. It does not require the current human-operated customer installation to automate the complete sequence, nor claim that the startup specification or WordPress reference implements it. Its end-to-end obligations apply when claiming this automated recovery capability; the application contract above applies to each bartlized application now.
 
 > Recover this installation from the authorized recovery point into the authorized target environment, verify the required service and establish exclusive production authority without manual technical intervention.
 
