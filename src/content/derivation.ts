@@ -108,33 +108,12 @@ export const derivationCopy = {
     designObjective:
       "Zustandsänderung und Wiederherstellung mit möglichst wenigen unterschiedlichen Mechanismen ausführen. Normalstart und Recovery dürfen dabei keine getrennten Wahrheiten entwickeln.",
     discoveryEyebrow: "Die Entdeckung",
-    discoveryTitle: "Fünf Operationsnamen, eine Zustandsentscheidung.",
-    discoveryLead:
-      "Install, Restore, Upgrade, Reboot und Migration beschreiben unterschiedliche Absichten. Am Ziel wiederholen sich jedoch dieselben technischen Tatsachen.",
-    facts: [
-      "Ist gültiger lokaler Zustand vorhanden?",
-      "Nur ohne lokalen Zustand wird ein gültiger Sicherungsstand abgefragt.",
-      "Wie verhalten sich Engine- und Zustandsversion?",
-    ],
-    discoveryBody:
-      "Diese Beobachtungen wählen initialisieren, wiederherstellen, produktspezifisch migrieren, bedienen oder kontrolliert abbrechen. Jede zustandsverändernde Aktion führt zurück zur Beobachtung. Nicht der aufgerufene Operationsname, sondern der danach tatsächlich vorliegende Zustand entscheidet.",
+    discoveryTitle: "Wie die Anwendung startet.",
     decisionLink: "Entscheidungslogik interaktiv ausprobieren",
     effectsEyebrow: "Was direkt folgt",
     effectsTitle: "Der gemeinsame Pfad verändert die Form des Betriebs.",
-    structuralTitle: "Strukturelle Folgen",
-    structural: [
-      "ein gemeinsamer Startpfad für Normalstart, Initialisierung und Restore",
-      "beobachteter Zustand statt eines angeforderten Operationsnamens",
-      "produktspezifische Migration am fachlich richtigen Entscheidungspunkt",
-      "kontrollierter Abbruch bei Downgrade, Inkonsistenz oder fehlenden Eingaben",
-      "derselbe ausführbare Vertrag für regelmäßig ausgeführten Start und Wiederherstellung",
-    ],
-    expectedTitle: "Erwartete Wirkungen",
-    expectedIntro:
-      "Wenn ein Produkt den Vertrag vollständig umsetzt, werden diese Wirkungen möglich. Ein normaler Wiederanlauf oder ein In-place-Update prüft jedoch keinen Restore. Der Wiederaufbau auf leerem Zustand aus einer Sicherung mit Prüfung und gegebenenfalls Migration übt diesen Pfad aus; In-place-Updates bleiben möglich.",
     expected: [
       "weniger unterschiedliche Betriebsprozeduren und geringere kognitive Last",
-      "bei regelmäßigem Wiederaufbau aus Sicherungen häufiger ausgeführte Recovery-Logik",
       "Sicherungsstände, die vor ihrer Verwendung technisch geprüft werden",
       "Migrationen, deren Entscheidung und Ergebnis beobachtbar bleiben",
     ],
@@ -296,33 +275,12 @@ export const derivationCopy = {
     designObjective:
       "Perform state changes and recovery with as few distinct mechanisms as possible. Normal startup and recovery must not develop separate truths.",
     discoveryEyebrow: "The discovery",
-    discoveryTitle: "Five operation names, one state decision.",
-    discoveryLead:
-      "Install, restore, upgrade, reboot, and migration describe different intentions. The same technical facts recur at the target.",
-    facts: [
-      "Is valid local state present?",
-      "Only without local state is a valid backup queried.",
-      "How do the engine and state versions compare?",
-    ],
-    discoveryBody:
-      "Those observations select initialize, restore, product-specific migration, serve, or controlled abort. Every state-changing action returns to observation. The operation name that was invoked does not decide. The state that actually exists afterwards does.",
+    discoveryTitle: "How the application starts.",
     decisionLink: "Try the decision logic interactively",
     effectsEyebrow: "What follows directly",
     effectsTitle: "The shared path changes the shape of operations.",
-    structuralTitle: "Structural consequences",
-    structural: [
-      "one shared startup path for normal startup, initialization, and restore",
-      "observed state instead of a requested operation name",
-      "product-specific migration at the correct domain decision point",
-      "controlled abort on downgrade, inconsistency, or missing inputs",
-      "the same executable contract for routinely exercised startup and recovery",
-    ],
-    expectedTitle: "Expected effects",
-    expectedIntro:
-      "A product implementing the complete contract can enable these effects. A normal restart or in-place upgrade does not test restore. Reconstruction from a backup into empty state, with verification and migration when needed, exercises that path; in-place upgrades remain possible.",
     expected: [
       "fewer distinct operating procedures and lower cognitive load",
-      "recovery logic exercised more often through routine reconstruction from backups",
       "backups that are checked technically before use",
       "migrations whose decision and result remain observable",
     ],

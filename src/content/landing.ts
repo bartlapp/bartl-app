@@ -12,29 +12,10 @@ export const landingCopy = {
     heroSecondary: "Entscheidungslogik ansehen",
     heroDerivation: "Herleitung lesen",
     heroSpec: "Technische Spec lesen",
-    problemEyebrow: "Das konkrete Problem",
-    problemTitle: "Operationsnamen sind kein Zustand.",
-    problemBody: [
-      "Erstinstallation, Wiederherstellung und Update werden oft als getrennte Prozeduren modelliert. Dann entscheidet der aufgerufene Befehl, obwohl dieselben Tatsachen am Ziel maßgeblich sind.",
-      "Der Startmechanismus beobachtet zuerst lokalen Zustand und Versionen. Nur wenn lokaler Zustand fehlt, wird ein Sicherungsstand abgefragt. Diese Antworten bestimmen die Aktion; vorhandener gültiger Zustand benötigt keinen Backup-Zugriff.",
-    ],
     mechanismEyebrow: "Entscheidungslogik",
-    mechanismTitle:
-      "Der Zustand wählt den Pfad, nicht der Name einer angeforderten Operation.",
+    mechanismTitle: "Wie die Anwendung startet",
     mechanismBody:
       "Wähle unter dem Pseudocode einen beobachteten Fall. Die Darstellung folgt dem Anwendungsvertrag in README.md. Fehler bei der Beobachtung oder Integritätsprüfung stoppen den Start, statt einen leeren Zustand anzunehmen.",
-    tableTitle: "Zustand und Aktion",
-    tableState: "Beobachtung",
-    tableAction: "Aktion",
-    tableCaption: "Zuordnung von beobachtetem Zustand und Startaktion",
-    decisionRows: [
-      ["Lokaler Zustand, Versionen gleich", "bedienen"],
-      ["Lokaler Zustand, Engine neuer", "produktspezifisch migrieren, erneut beobachten"],
-      ["Lokaler Zustand, Engine älter", "als Downgrade kontrolliert abbrechen"],
-      ["Kein lokaler Zustand, gültiger Sicherungsstand", "Backup prüfen, wiederherstellen, erneut beobachten"],
-      ["Kein lokaler Zustand, kein konfigurierter Store oder keine Sicherung", "nativ initialisieren, erneut beobachten"],
-      ["Widersprüchliche oder unvollständige Eingaben", "kontrolliert abbrechen"],
-    ],
     inputsEyebrow: "Technischer Vertrag",
     inputsTitle: "Release, Zustand und Konfiguration trennen. Sicherung optional nutzen.",
     inputsBody:
@@ -132,29 +113,10 @@ export const landingCopy = {
     heroSecondary: "See the decision logic",
     heroDerivation: "Read the derivation",
     heroSpec: "Read the technical spec",
-    problemEyebrow: "The concrete problem",
-    problemTitle: "Operation names are not state.",
-    problemBody: [
-      "Fresh installation, restore, and upgrade are often modeled as separate procedures. The requested command then determines the path even though the same facts at the target are what matter.",
-      "The startup mechanism observes local state and versions first. It queries backups only when local state is absent. Those answers determine the action; valid existing state needs no backup access.",
-    ],
     mechanismEyebrow: "Decision logic",
-    mechanismTitle:
-      "State selects the path, not the name of a requested operation.",
+    mechanismTitle: "How the application starts",
     mechanismBody:
       "Select an observed case below the pseudocode. The presentation follows the application contract in README.md. Observation or integrity errors stop startup rather than assuming empty state.",
-    tableTitle: "State and action",
-    tableState: "Observation",
-    tableAction: "Action",
-    tableCaption: "Mapping of observed state to startup action",
-    decisionRows: [
-      ["Local state, versions equal", "serve"],
-      ["Local state, newer engine", "run product-specific migration, observe again"],
-      ["Local state, older engine", "abort the downgrade in a controlled way"],
-      ["No local state, valid backup", "verify the backup, restore, observe again"],
-      ["No local state, no configured store or no backup", "initialize natively, observe again"],
-      ["Contradictory or incomplete inputs", "abort in a controlled way"],
-    ],
     inputsEyebrow: "Technical contract",
     inputsTitle: "Separate release, state and configuration. Use backups when available.",
     inputsBody:

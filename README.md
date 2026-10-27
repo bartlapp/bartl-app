@@ -22,6 +22,44 @@ The application startup pattern is one technical expression of this philosophy. 
 
 This section is the canonical application contract. The website specification presents it; Kubernetes designs and application packages implement it without redefining the decision. Bartl's broader purpose remains in the [philosophy](docs/philosophy.md).
 
+### How the application starts
+
+<!-- startup-explanation:en -->
+You install or start the application. It works out what needs doing:
+
+- If its data is already there, it uses it.
+- Otherwise, it restores the latest backup.
+- If no backup store is configured, or there is no backup yet, it starts with the application's initial data.
+- If the software is newer than the data, it performs the necessary update.
+
+You do not have to choose or manually perform those internal steps.
+
+For routine upgrades, we can install the newer version as a replacement rather than change the running installation. The replacement restores the backup and updates the data through that same procedure. Each such upgrade therefore also exercises recovery.
+
+This is an operating choice, not a different application mechanism: we select the version and where it should run; the application determines the steps.
+
+Choosing a replacement changes the destination and requires switching service to it, but does not introduce another initialization/recovery interface.
+<!-- /startup-explanation:en -->
+
+### Wie die Anwendung startet
+
+<!-- startup-explanation:de -->
+Du installierst oder startest die Anwendung. Sie stellt selbst fest, was zu tun ist:
+
+- Sind ihre Daten bereits vorhanden, verwendet sie diese.
+- Andernfalls stellt sie die neueste Sicherung wieder her.
+- Ist kein Backup-Speicher konfiguriert oder gibt es noch keine Sicherung, startet sie mit den Ausgangsdaten der Anwendung.
+- Ist die Software neuer als die Daten, führt sie die notwendige Aktualisierung durch.
+
+Du mußt diese internen Schritte weder auswählen noch von Hand ausführen.
+
+Für regelmäßige Updates können wir die neuere Version als Ersatzinstallation aufbauen, statt die laufende Installation zu verändern. Der Ersatz stellt die Sicherung wieder her und aktualisiert die Daten mit demselben Verfahren. Jedes solche Update übt damit auch die Wiederherstellung.
+
+Das ist eine Betriebsentscheidung, kein anderer Anwendungsmechanismus. Wir wählen die Version und den Ort, an dem sie laufen soll; die Anwendung bestimmt die Schritte.
+
+Die Ersatzinstallation ändert das Ziel und erfordert die Umschaltung des Dienstes darauf, aber keine weitere Schnittstelle für Initialisierung oder Wiederherstellung.
+<!-- /startup-explanation:de -->
+
 ### Startup decision
 
 ```text

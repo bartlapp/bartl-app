@@ -1,6 +1,7 @@
 ---
 // SPDX-License-Identifier: Apache-2.0
 import InteractivePseudoCode from "@/components/InteractivePseudoCode.astro";
+import StartupExplanation from "@/components/StartupExplanation.astro";
 import { SITE } from "@/data/constants";
 import { landingCopy } from "@/content/landing";
 import type { Lang } from "@/i18n/ui";
@@ -73,24 +74,6 @@ const c = landingCopy[lang];
     </div>
   </section>
 
-  <section aria-labelledby="problem-title" class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-    <div class="grid gap-10 lg:grid-cols-3 lg:gap-16">
-      <div>
-        <p class="text-base-content/50 font-mono text-xs font-semibold tracking-widest uppercase">
-          {c.problemEyebrow}
-        </p>
-        <h2 id="problem-title" class="mt-3 text-3xl leading-tight sm:text-4xl">
-          {c.problemTitle}
-        </h2>
-      </div>
-      <div class="space-y-6 text-lg leading-relaxed lg:col-span-2">
-        {c.problemBody.map((paragraph, index) => (
-          <p class:list={[index === 1 && "text-base-content/70"]}>{paragraph}</p>
-        ))}
-      </div>
-    </div>
-  </section>
-
   <section id="mechanism" aria-labelledby="mechanism-title" class="bg-base-200/50 border-base-300 scroll-mt-20 border-y">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
       <div class="max-w-3xl">
@@ -100,35 +83,16 @@ const c = landingCopy[lang];
         <h2 id="mechanism-title" class="mt-3 text-3xl leading-tight sm:text-4xl">
           {c.mechanismTitle}
         </h2>
-        <p class="text-base-content/70 mt-4 text-lg leading-relaxed">
-          {c.mechanismBody}
-        </p>
+        <div class="mt-6">
+          <StartupExplanation lang={lang} />
+        </div>
       </div>
 
-      <div class="mt-10 grid items-start gap-10 lg:grid-cols-2 lg:gap-12">
+      <div class="mt-10 max-w-3xl">
+        <p class="text-base-content/70 mb-6 text-lg leading-relaxed">
+          {c.mechanismBody}
+        </p>
         <InteractivePseudoCode lang={lang} />
-        <div>
-          <h3 class="text-xl">{c.tableTitle}</h3>
-          <div class="border-base-300 mt-4 overflow-x-auto border-y">
-            <table class="table table-sm w-full">
-              <caption class="sr-only">{c.tableCaption}</caption>
-              <thead>
-                <tr>
-                  <th scope="col">{c.tableState}</th>
-                  <th scope="col">{c.tableAction}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {c.decisionRows.map(([state, action]) => (
-                  <tr>
-                    <th scope="row" class="font-normal">{state}</th>
-                    <td class="text-base-content/70">{action}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
     </div>
   </section>
