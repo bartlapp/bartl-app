@@ -14,7 +14,7 @@ Bartl works backwards from that outcome. It connects what the application, infra
 
 The application must know its complete state, how to capture it consistently, how to reconstruct it and which migrations it supports. It must distinguish what needs preserving from what can be rebuilt or discarded, and check the result. That knowledge belongs in executable procedures, not in instructions that someone must reinterpret for each installation.
 
-Prefer one self-contained recovery blob with inventory, compatibility information and integrity checks. Database exports are ingredients, not separate backups an operator must match later. Additional objects need a technical justification and declared dependencies. The immutable release and target-specific configuration remain separate; required application identity must survive recovery.
+A recovery point contains the application's complete, consistent state, with inventory, compatibility information and integrity checks. Its components form one explicitly identified set and are restored together; an operator must not have to match separate database and file backups. Preserve native formats. Additional packaging needs a concrete benefit, not merely fewer files. The immutable release and target-specific configuration remain separate; required application identity must survive recovery.
 
 The application also declares what its environment must supply: runtime, storage semantics, connectivity and dependencies. Its recovery mechanism should consume that contract rather than depend on a particular provider's implementation.
 
