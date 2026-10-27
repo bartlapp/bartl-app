@@ -97,6 +97,10 @@ Each application implements the decision within its owned state and supported co
 
 Collaborating components may implement the loop through an entrypoint or an explicit protocol. Keep transition ownership and completion unambiguous. Let native initialization and migration do their work; add only the observation and coordination the product does not supply. A stateless application declares an empty owned persistence inventory rather than inventing backup work.
 
+The contract applies to a logical application instance, not to an independent installation per process or replica. Additional replicas join that instance through the product's supported state-sharing or replication mechanisms; they do not independently initialize or restore shared application state. Explicitly assigned components own state transitions and exclude conflicting execution. Restarting a process must preserve the required state and compatibility checks without repeating the complete recovery procedure in every process.
+
+Preserve native application and platform capabilities for scaling, restart and supported updates rather than imposing a uniform topology. Document product limitations and justify restrictions introduced by the operating package. Supported profiles still require qualification; this principle does not promise arbitrary replica counts, high availability or uninterrupted upgrades.
+
 ### Supported configuration and catalogue evidence
 
 Each application records its supported releases and transitions, persistence choices, target requirements and operating limits in its own maintained documentation. Start with one justified configuration, not a speculative matrix. Catalogue inclusion requires executable evidence for that configuration, with exact artifacts, outcomes and limitations:
