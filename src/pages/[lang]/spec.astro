@@ -40,6 +40,12 @@ const c = specCopy[lang];
         <p class="text-primary font-mono text-xs font-semibold tracking-widest uppercase">{c.eyebrow}</p>
         <h1 class="mt-3 text-4xl leading-tight font-medium sm:text-5xl">{c.title}</h1>
         <p class="text-base-content/70 mt-5 max-w-3xl text-lg leading-relaxed sm:text-xl">{c.lead}</p>
+        <a
+          href="https://codeberg.org/bartlapp/bartl-app#application-contract-and-qualification"
+          class="link text-primary mt-4 inline-block underline-offset-4"
+        >
+          {lang === "de" ? "Normativen Anwendungsvertrag öffnen" : "Open the normative application contract"}
+        </a>
         <p class="border-primary mt-8 border-l-2 pl-5 text-lg leading-relaxed">{c.principle}</p>
       </header>
 
@@ -120,6 +126,16 @@ const c = specCopy[lang];
           <h3 class="text-xl">{c.servingTitle}</h3>
           <p class="text-base-content/70 mt-3 leading-relaxed">{c.servingBody}</p>
         </div>
+      </section>
+
+      <section id="qualification" aria-labelledby="qualification-title" class="border-base-300 scroll-mt-24 border-t py-12 sm:py-16">
+        <h2 id="qualification-title" class="text-3xl leading-tight">{c.qualificationTitle}</h2>
+        <p class="text-base-content/70 mt-4 max-w-3xl leading-relaxed">{c.qualificationIntro}</p>
+        <ul class="mt-8 space-y-4">
+          {c.qualificationCases.map((item) => (
+            <li class="border-primary border-l-2 pl-4 leading-relaxed">{item}</li>
+          ))}
+        </ul>
       </section>
 
       <section id="reference" aria-labelledby="reference-title" class="border-base-300 scroll-mt-24 border-t py-12 sm:py-16">

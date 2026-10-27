@@ -56,7 +56,7 @@ export const derivationCopy = {
       {
         year: "2026",
         title: "Der offene Schnitt",
-        body: "Der Mechanismus wurde als Bartl benannt, auf den Startpfad begrenzt und mit einer ausführbaren WordPress-Referenz von seinem ursprünglichen Produktkontext gelöst.",
+        body: "Der Anwendungs-Startpfad wurde als technischer Baustein von Bartl beschrieben und mit einer ausführbaren WordPress-Referenz von seinem ursprünglichen Produktkontext gelöst.",
       },
     ],
     observationsEyebrow: "Fünf Beobachtungen",
@@ -93,7 +93,7 @@ export const derivationCopy = {
       ],
       [
         "Ein selten ausgeführter Recovery-Pfad driftet.",
-        "Der normale Lebenszyklus muß denselben Pfad benutzen.",
+        "Regelmäßige Änderungen sollen die Wiederherstellung mitprüfen, etwa durch eine Ersatzinstallation aus einer Sicherung.",
       ],
       [
         "Manuelle Genauigkeit skaliert nicht.",
@@ -113,7 +113,7 @@ export const derivationCopy = {
       "Install, Restore, Upgrade, Reboot und Migration beschreiben unterschiedliche Absichten. Am Ziel wiederholen sich jedoch dieselben technischen Tatsachen.",
     facts: [
       "Ist gültiger lokaler Zustand vorhanden?",
-      "Ist ein gültiger Sicherungsstand verfügbar?",
+      "Nur ohne lokalen Zustand wird ein gültiger Sicherungsstand abgefragt.",
       "Wie verhalten sich Engine- und Zustandsversion?",
     ],
     discoveryBody:
@@ -131,18 +131,18 @@ export const derivationCopy = {
     ],
     expectedTitle: "Erwartete Wirkungen",
     expectedIntro:
-      "Wenn ein Produkt den Vertrag vollständig umsetzt und regelmäßig benutzt, werden möglich:",
+      "Wenn ein Produkt den Vertrag vollständig umsetzt, werden diese Wirkungen möglich. Ein normaler Wiederanlauf oder ein In-place-Update prüft jedoch keinen Restore. Der Wiederaufbau auf leerem Zustand aus einer Sicherung mit Prüfung und gegebenenfalls Migration übt diesen Pfad aus; In-place-Updates bleiben möglich.",
     expected: [
       "weniger unterschiedliche Betriebsprozeduren und geringere kognitive Last",
-      "häufiger ausgeführte Recovery-Logik statt eines separaten Notfallpfads",
+      "bei regelmäßigem Wiederaufbau aus Sicherungen häufiger ausgeführte Recovery-Logik",
       "Sicherungsstände, die vor ihrer Verwendung technisch geprüft werden",
       "Migrationen, deren Entscheidung und Ergebnis beobachtbar bleiben",
     ],
     compositionEyebrow: "Komposition",
     compositionTitle:
-      "Bartl und multiplied single tenancy lösen verschiedene Probleme.",
+      "Der Startmechanismus und multiplied single tenancy lösen verschiedene Probleme.",
     compositionLead:
-      "Multiplied single tenancy bedeutet ein eigener Stack je Kunde, wiederholt nach demselben Bauplan. Die Isolation vervielfacht jedoch zunächst die Zahl der Betriebsobjekte. Bartl standardisiert deren Anwendungs- und Zustandslebenszyklus. Flottensteuerung hält die wiederholten Stacks konsistent.",
+      "Multiplied single tenancy bedeutet ein eigener Stack je Kunde, wiederholt nach demselben Bauplan. Die Isolation vervielfacht zunächst die Zahl der Betriebsobjekte. Der Startvertrag macht ihren Anwendungs- und Zustandslebenszyklus wiederholbar. Flottensteuerung kann die Wiederholung koordinieren; diese Topologie ist keine Voraussetzung für Bartl.",
     compositionParts: [
       {
         label: "Single tenancy",
@@ -154,7 +154,7 @@ export const derivationCopy = {
         ],
       },
       {
-        label: "Bartl",
+        label: "Bartl-Startmechanismus",
         title: "Wiederholbarer Lebenszyklus",
         items: [
           "derselbe Startvertrag je Stack",
@@ -174,14 +174,14 @@ export const derivationCopy = {
     ],
     combinedTitle: "Zusammen wird eine belastbare Betriebsform möglich.",
     combinedBody:
-      "Getrennte Stacks können einen kleineren Blast Radius, eigene Daten- und Compliance-Grenzen sowie kundenbezogene Releases und Migrationen erhalten. Der gemeinsame Bartl-Vertrag macht ihre Lebenszyklen wiederholbar. Flottensteuerung bleibt die Voraussetzung dafür, daß aus der Wiederholung keine manuelle Einzelfertigung wird.",
+      "Getrennte Stacks können einen kleineren Blast Radius, eigene Daten- und Compliance-Grenzen sowie kundenbezogene Releases und Migrationen erhalten. Der gemeinsame Startvertrag macht ihre Lebenszyklen wiederholbar. Flottensteuerung kann Versionen und Rollouts koordinieren; ihr Nutzen muß ihre Kosten und geteilten Steuerungsrisiken rechtfertigen.",
     costBoundary:
-      "Bartl beseitigt weder die Ressourcen- noch die Betriebskosten zusätzlicher Stacks. Es reduziert die Zahl unterschiedlicher Verfahren. Ohne Flottensteuerung bleiben N Stacks N einzeln zu pflegende Einheiten.",
+      "Der gemeinsame Startpfad beseitigt weder die Ressourcen- noch die Betriebskosten zusätzlicher Stacks. Er reduziert die Zahl unterschiedlicher Verfahren. Wie deren Wiederholung koordiniert wird, hängt von Umfang und Betriebsanforderungen ab, nicht von einer universellen Fleet-Management-Pflicht.",
     boundaryEyebrow: "Saubere Trennung",
     boundaryTitle:
-      "Die Herleitung erklärt das Warum. Die Spec entscheidet, was Bartl ist.",
+      "Die Herleitung erklärt das Warum. Der Anwendungsvertrag präzisiert einen Baustein.",
     boundaryBody:
-      "Diese Seite begründet die Designentscheidung und beschreibt mögliche Wirkungen. Sie erweitert den technischen Vertrag nicht. Bartl provisioniert keine Zielinfrastruktur, koordiniert keinen Cutover und ersetzt keinen vollständigen Recovery-Prozeß. Ob eine Implementierung dem Muster folgt, entscheidet die technische Spec und wird je Produkt separat belegt.",
+      "Bartl umfaßt Anwendung, Infrastruktur und Verantwortung für den vollständigen Service. Der kanonische Rahmen steht in README.md und der dort verlinkten Philosophie. Diese Seite erklärt den Startmechanismus; die technische Spec erläutert dessen Anwendungsvertrag, statt ganz Bartl zu definieren. Zielbereitstellung, sichere Aktivierung und der vollständige Recovery-Prozeß brauchen zusätzliche ausführbare Verfahren und eigene Nachweise.",
     specLink: "Technische Spec lesen",
     referenceLink: "WordPress-Referenz ausführen",
     referenceAria:
@@ -244,7 +244,7 @@ export const derivationCopy = {
       {
         year: "2026",
         title: "The open cut",
-        body: "The mechanism was named Bartl, narrowed to the startup path, and separated from its original product context through an executable WordPress reference.",
+        body: "The application startup path was described as one technical contribution to Bartl and separated from its original product context through an executable WordPress reference.",
       },
     ],
     observationsEyebrow: "Five observations",
@@ -281,7 +281,7 @@ export const derivationCopy = {
       ],
       [
         "A rarely used recovery path drifts.",
-        "The normal lifecycle must use the same path.",
+        "Routine changes should exercise reconstruction too, for example through a replacement installation from a backup.",
       ],
       [
         "Manual precision does not scale.",
@@ -301,7 +301,7 @@ export const derivationCopy = {
       "Install, restore, upgrade, reboot, and migration describe different intentions. The same technical facts recur at the target.",
     facts: [
       "Is valid local state present?",
-      "Is a valid backup available?",
+      "Only without local state is a valid backup queried.",
       "How do the engine and state versions compare?",
     ],
     discoveryBody:
@@ -319,18 +319,18 @@ export const derivationCopy = {
     ],
     expectedTitle: "Expected effects",
     expectedIntro:
-      "When a product implements the complete contract and uses it regularly, it can enable:",
+      "A product implementing the complete contract can enable these effects. A normal restart or in-place upgrade does not test restore. Reconstruction from a backup into empty state, with verification and migration when needed, exercises that path; in-place upgrades remain possible.",
     expected: [
       "fewer distinct operating procedures and lower cognitive load",
-      "recovery logic exercised more often instead of a separate emergency path",
+      "recovery logic exercised more often through routine reconstruction from backups",
       "backups that are checked technically before use",
       "migrations whose decision and result remain observable",
     ],
     compositionEyebrow: "Composition",
     compositionTitle:
-      "Bartl and multiplied single tenancy solve different problems.",
+      "The startup mechanism and multiplied single tenancy solve different problems.",
     compositionLead:
-      "Multiplied single tenancy means one stack per customer, repeated from the same blueprint. Isolation initially multiplies the number of operating objects. Bartl standardizes their application and state lifecycle. Fleet management keeps the repeated stacks consistent.",
+      "Multiplied single tenancy means one stack per customer, repeated from the same blueprint. Isolation initially multiplies the operating objects. The startup contract makes their application and state lifecycle repeatable. Fleet management can coordinate that repetition; this topology is not a prerequisite for Bartl.",
     compositionParts: [
       {
         label: "Single tenancy",
@@ -342,7 +342,7 @@ export const derivationCopy = {
         ],
       },
       {
-        label: "Bartl",
+        label: "Bartl startup mechanism",
         title: "Repeatable lifecycle",
         items: [
           "the same startup contract for every stack",
@@ -362,14 +362,14 @@ export const derivationCopy = {
     ],
     combinedTitle: "Together they can form a dependable operating model.",
     combinedBody:
-      "Separate stacks can provide a smaller blast radius, individual data and compliance boundaries, and customer-specific releases and migrations. The shared Bartl contract makes their lifecycles repeatable. Fleet management remains the prerequisite that prevents repetition from becoming manual one-off work.",
+      "Separate stacks can provide a smaller blast radius, individual data and compliance boundaries, and customer-specific releases and migrations. The shared startup contract makes their lifecycles repeatable. Fleet management can coordinate versions and rollouts; its benefit must justify its costs and shared authority risks.",
     costBoundary:
-      "Bartl removes neither the resource cost nor the operating work of additional stacks. It reduces the number of distinct procedures. Without fleet management, N stacks remain N units that must be maintained individually.",
+      "The shared startup path removes neither the resource cost nor the operating work of additional stacks. It reduces distinct procedures. How repetition is coordinated depends on scale and operating requirements, not a universal fleet-management obligation.",
     boundaryEyebrow: "Clean separation",
     boundaryTitle:
-      "The derivation explains why. The spec decides what counts as Bartl.",
+      "The derivation explains why. The application contract specifies one contribution.",
     boundaryBody:
-      "This page explains the design decision and describes possible effects. It does not extend the technical contract. Bartl does not provision target infrastructure, coordinate cutover, or replace a complete recovery process. The technical spec determines whether an implementation follows the pattern, and each product requires its own evidence.",
+      "Bartl covers application, infrastructure and responsibility for the complete service. The canonical framing is in README.md and its linked philosophy. This page explains the startup mechanism; the technical spec presents its application contract rather than defining all of Bartl. Target provisioning, safe activation and the complete recovery process require additional executable procedures and their own evidence.",
     specLink: "Read the technical spec",
     referenceLink: "Run the WordPress reference",
     referenceAria:

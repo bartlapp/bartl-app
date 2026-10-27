@@ -12,8 +12,8 @@ export function getStaticPaths() {
 const lang = Astro.params.lang as Lang;
 const description =
   lang === "de"
-    ? "Bartl ist ein offenes Entwurfsmuster, das den Startpfad zustandsbehafteter Anwendungen aus Zustand, Sicherung und Versionen wählt."
-    : "Bartl is an open design pattern that selects a stateful application's startup path from state, backup availability, and versions.";
+    ? "Bartl verbindet Anwendung, Infrastruktur und Verantwortung für praktisch ausübbare Resilienz und Souveränität. Der gemeinsame Startpfad ist ein technischer Baustein."
+    : "Bartl connects application, infrastructure and responsibility for exercisable resilience and sovereignty. Its shared startup path is one technical contribution.";
 ---
 
 <MainLayout title={SITE.title} lang={lang} description={description}>

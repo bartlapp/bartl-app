@@ -1,6 +1,7 @@
 ---
 // SPDX-License-Identifier: Apache-2.0
 import type { Lang } from "@/i18n/ui";
+import { startupCode } from "@/content/startup-code";
 
 interface Props {
   lang: Lang;
@@ -16,17 +17,6 @@ const label =
 <figure>
   <figcaption class="sr-only">{label}</figcaption>
   <div class="border-code-border shadow-base-content/10 overflow-hidden rounded-lg border shadow-lg">
-    <pre class="bg-code-background text-code-foreground overflow-x-auto px-4 py-5 font-mono text-xs leading-loose sm:px-6 sm:text-sm"><code set:html={`<span class="text-code-keyword">until</span> <span class="text-code-keyword">serving()</span>:
-    local = <span class="text-code-keyword">observe_local_state()</span>
-    backup = <span class="text-code-keyword">observe_backup()</span>
-    <span class="text-code-keyword">if</span> incomplete_or_contradictory(local, backup):
-        <span class="text-code-error">abort</span>(<span class="text-code-muted">"invalid inputs"</span>)
-    <span class="text-code-keyword">if</span> local.exists:
-        engine version vs local.version:
-            equal:    <span class="text-code-keyword">serving()</span>
-            engine &gt;: <span class="text-code-keyword">migrate(local)</span>
-            engine &lt;: <span class="text-code-error">abort</span>(<span class="text-code-muted">"downgrade"</span>)
-    <span class="text-code-keyword">elif</span> backup.valid: <span class="text-code-keyword">restore(backup)</span>
-    <span class="text-code-keyword">else</span>:             <span class="text-code-keyword">init()</span>`} /></pre>
+    <pre class="bg-code-background text-code-foreground overflow-x-auto px-4 py-5 font-mono text-xs leading-loose sm:px-6 sm:text-sm"><code set:html={startupCode.map((line) => line.html).join("\n")} /></pre>
   </div>
 </figure>

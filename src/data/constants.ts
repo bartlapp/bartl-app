@@ -4,7 +4,7 @@ export const SITE = {
   author: "Florian Kessler GmbH",
   url: "https://bartl.app",
   description:
-    "An open design pattern that selects a stateful application's startup path from observed state, backup availability, and versions.",
+    "An operating philosophy for exercisable resilience and sovereignty, connecting applications, infrastructure and responsibility for the complete service.",
   codeberg: "https://codeberg.org/bartlapp/bartl-app",
   reference: "https://codeberg.org/bartlapp/bartl-wordpress",
 } as const;

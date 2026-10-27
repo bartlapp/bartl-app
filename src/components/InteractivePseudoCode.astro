@@ -1,6 +1,7 @@
 ---
 // SPDX-License-Identifier: Apache-2.0
 import type { Lang } from "@/i18n/ui";
+import { startupCode } from "@/content/startup-code";
 
 interface Props {
   lang: Lang;
@@ -18,7 +19,7 @@ const observations = {
     {
       id: "upgrade",
       label: "Local state, older version",
-      caption: "The engine is newer than local state. Product-specific migration runs.",
+      caption: "The engine is newer than valid local state. Native migration runs, then state is observed again. Unsupported migrations or failures stop startup.",
     },
     {
       id: "downgrade",
@@ -28,17 +29,22 @@ const observations = {
     {
       id: "restore",
       label: "Valid backup",
-      caption: "No local state exists. The verified backup is restored, then observed again.",
+      caption: "No local state exists. The latest verified backup for this customer and application is restored, then state is observed again.",
     },
     {
       id: "initialize",
       label: "No state, no backup",
-      caption: "Neither local state nor a backup exists. Fresh state is initialized, then observed again.",
+      caption: "No local state exists, and no backup store is configured or the configured store has no backup. Native initialization runs, then state is observed again.",
     },
     {
       id: "invalid",
       label: "Invalid inputs",
-      caption: "Inputs are incomplete or contradictory. Startup aborts before state is changed.",
+      caption: "Local state is unknown, incomplete or contradictory. Startup aborts before state is changed.",
+    },
+    {
+      id: "backup-error",
+      label: "Backup lookup failure",
+      caption: "No local state exists, but backup lookup or integrity verification fails. Observation stops startup; it does not fall back to initialization.",
     },
   ],
   de: [
@@ -50,7 +56,7 @@ const observations = {
     {
       id: "upgrade",
       label: "Lokaler Zustand, ältere Version",
-      caption: "Die Engine ist neuer als der lokale Zustand. Die produktspezifische Migration läuft.",
+      caption: "Die Engine ist neuer als der gültige lokale Zustand. Native Migration läuft; danach wird erneut beobachtet. Nicht unterstützte Migrationen oder Fehler stoppen den Start.",
     },
     {
       id: "downgrade",
@@ -60,17 +66,22 @@ const observations = {
     {
       id: "restore",
       label: "Gültiger Sicherungsstand",
-      caption: "Lokaler Zustand fehlt. Der geprüfte Sicherungsstand wird wiederhergestellt und danach erneut beobachtet.",
+      caption: "Lokaler Zustand fehlt. Der neueste geprüfte Stand für diesen Kunden und diese Anwendung wird wiederhergestellt und danach erneut beobachtet.",
     },
     {
       id: "initialize",
       label: "Kein Zustand, keine Sicherung",
-      caption: "Weder lokaler Zustand noch ein Sicherungsstand liegen vor. Neuer Zustand wird initialisiert und danach erneut beobachtet.",
+      caption: "Lokaler Zustand fehlt. Kein Backup-Store ist konfiguriert oder der konfigurierte Store enthält keine Sicherung. Native Initialisierung läuft; danach wird erneut beobachtet.",
     },
     {
       id: "invalid",
       label: "Ungültige Eingaben",
-      caption: "Eingaben sind unvollständig oder widersprüchlich. Der Start bricht ab, bevor Zustand verändert wird.",
+      caption: "Lokaler Zustand ist unbekannt, unvollständig oder widersprüchlich. Der Start bricht vor einer Änderung ab.",
+    },
+    {
+      id: "backup-error",
+      label: "Fehler bei der Backup-Abfrage",
+      caption: "Lokaler Zustand fehlt, aber Backup-Abfrage oder Integritätsprüfung schlägt fehl. Die Beobachtung stoppt den Start, statt zur Initialisierung überzugehen.",
     },
   ],
 } as const;
@@ -88,60 +99,7 @@ const labels = {
 
 const scenarios = observations[lang];
 const text = labels[lang];
-const all = "ready upgrade downgrade restore initialize invalid";
-
-type Line = { html: string; scenarios: string };
-
-const lines: Line[] = [
-  {
-    html: `<span class="text-code-keyword">until</span> <span class="text-code-keyword">serving()</span>:`,
-    scenarios: all,
-  },
-  {
-    html: `    local = <span class="text-code-keyword">observe_local_state()</span>`,
-    scenarios: all,
-  },
-  {
-    html: `    backup = <span class="text-code-keyword">observe_backup()</span>`,
-    scenarios: all,
-  },
-  {
-    html: `    <span class="text-code-keyword">if</span> incomplete_or_contradictory(local, backup):`,
-    scenarios: all,
-  },
-  {
-    html: `        <span class="text-code-error">abort</span>(<span class="text-code-muted">"invalid inputs"</span>)`,
-    scenarios: "invalid",
-  },
-  {
-    html: `    <span class="text-code-keyword">if</span> local.exists:`,
-    scenarios: "ready upgrade downgrade",
-  },
-  {
-    html: `        engine version vs local.version:`,
-    scenarios: "ready upgrade downgrade",
-  },
-  {
-    html: `            equal:    <span class="text-code-keyword">serving()</span>`,
-    scenarios: "ready",
-  },
-  {
-    html: `            engine &gt;: <span class="text-code-keyword">migrate(local)</span>`,
-    scenarios: "upgrade",
-  },
-  {
-    html: `            engine &lt;: <span class="text-code-error">abort</span>(<span class="text-code-muted">"downgrade"</span>)`,
-    scenarios: "downgrade",
-  },
-  {
-    html: `    <span class="text-code-keyword">elif</span> backup.valid: <span class="text-code-keyword">restore(backup)</span>`,
-    scenarios: "restore",
-  },
-  {
-    html: `    <span class="text-code-keyword">else</span>:             <span class="text-code-keyword">init()</span>`,
-    scenarios: "initialize",
-  },
-];
+const lines = startupCode;
 ---
 
 <div class="ipc-container min-w-0">
