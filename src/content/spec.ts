@@ -31,7 +31,7 @@ export const specCopy = {
       ],
       [
         "Vollständig deklarierter Zustand",
-        "Inventar des eigenen veränderlichen Zustands mit Konsistenzbeziehungen und zuverlässig ermittelbarer Zustandsversion. Fremde Persistenz ist eine Abhängigkeit, keine automatische Änderungsbefugnis.",
+        "Inventar des eigenen veränderlichen Zustands und seiner Konsistenzbeziehungen. Native Verfahren bestimmen die relevante Kompatibilität. Fremde Persistenz ist eine Abhängigkeit, keine automatische Änderungsbefugnis.",
       ],
       [
         "Optionaler Sicherungsstand",
@@ -44,33 +44,27 @@ export const specCopy = {
     ],
     observationsTitle: "Beobachtungen vor der Aktion",
     observations: [
-      "observe_local_state() unterscheidet gültigen lokalen Zustand mit bekannter Version von bestätigter Abwesenheit. Beobachtungsfehler, beschädigter oder unvollständiger Zustand stoppen den Start.",
-      "observe_backup() läuft nur ohne lokalen Zustand. Die Funktion liefert den neuesten vollständig veröffentlichten und geprüften Stand für Kunde und Anwendung oder dessen Abwesenheit. Abfrage- und Integritätsfehler stoppen den Start, statt zur Initialisierung überzugehen.",
-      "Engine- und Zustandsversion sind gleich, die Engine ist neuer oder die Engine ist älter.",
-      "Release, vorhandener Zustand, gegebenenfalls Sicherung und Zielkonfiguration müssen vollständig und widerspruchsfrei sein.",
+      "observe_local_state() unterscheidet vorhandenen eigenen Zustand von bestätigter Abwesenheit. Beobachtungsfehler stoppen den Start, statt Initialisierung zu erlauben. Eine vollständige Schema-Zertifizierung ist nicht verlangt.",
+      "observe_backup() läuft nur ohne lokalen Zustand. Die Funktion liefert den neuesten vollständig veröffentlichten und geprüften Stand für Kunde und Anwendung oder dessen Abwesenheit. Abfrage- und Integritätsfehler stoppen den Start.",
+      "Der normale native Start übernimmt Initialisierung und unterstützte Migration. Native Kompatibilitätsgrenzen bleiben erhalten; nur nachgewiesene Lücken rechtfertigen eigene Ergänzungen.",
     ],
     decisionTitle: "Beobachteter Startpfad",
     decisionIntro:
-      "Der Mechanismus entscheidet nicht aus einem Label wie Install, Restore oder Upgrade. Komponenten dürfen zusammenarbeiten; Übergangsverantwortung und aktuelle Fertigmeldung müssen eindeutig sein. Nach jeder Zustandsänderung wird erneut beobachtet.",
+      "Vorhandener Zustand führt zum normalen nativen Start. Nur bei bestätigter Abwesenheit wird nach einer Sicherung gesucht. Das ist kein Wiederholungskreislauf nach jeder Zustandsänderung.",
     pathTitle: "Auswertung",
     paths: [
-      ["Gültiger lokaler Zustand und gleiche Version", "Die Anwendung kann bedienen."],
+      ["Lokaler Zustand vorhanden", "Normaler nativer Start verwendet den Zustand und führt nötige unterstützte Migration durch."],
       [
-        "Gültiger lokaler Zustand und neuere Engine",
-        "Die native produktspezifische Migration läuft. Nicht unterstützte Übergänge oder Fehler stoppen den Start; Erfolg führt zur erneuten Beobachtung.",
-      ],
-      ["Gültiger lokaler Zustand und ältere Engine", "Der Start bricht als unzulässiger Downgrade ab."],
-      [
-        "Kein lokaler Zustand und gültiger Sicherungsstand",
-        "Der neueste geprüfte Stand für Kunde und Anwendung wird nativ wiederhergestellt. Fehler stoppen den Start; Erfolg führt zur erneuten Beobachtung.",
+        "Kein lokaler Zustand und geprüfter Sicherungsstand",
+        "Der neueste geprüfte Stand für Kunde und Anwendung wird mit dem unterstützten nativen Verfahren wiederhergestellt. Unvollständige Rekonstruktion wird nicht zum nutzbaren Ziel. Danach läuft der normale native Start einschließlich unterstützter Migration.",
       ],
       [
         "Kein lokaler Zustand und kein Sicherungsstand",
-        "Native Initialisierung erzeugt neuen Zustand. Fehler stoppen den Start; Erfolg führt zur erneuten Beobachtung. Eine fehlgeschlagene Backup-Abfrage ist kein fehlender Sicherungsstand.",
+        "Der normale native Start initialisiert die Anwendung. Eine fehlgeschlagene Backup-Abfrage ist kein fehlender Sicherungsstand.",
       ],
       [
-        "Ungültige, unvollständige, widersprüchliche oder nicht beurteilbare Eingaben",
-        "Der Start bricht kontrolliert ab, bevor Zustand verändert oder bedient wird.",
+        "Beobachtung oder natives Verfahren schlägt fehl",
+        "Der Start stoppt sichtbar. Nach einem fehlgeschlagenen zustandsändernden Versuch bleibt gewöhnlicher Zugriff auch über Neustarts gesperrt. Das fehlgeschlagene Ziel zu verwerfen und die gewöhnliche Installation zu wiederholen genügt.",
       ],
     ],
     invariantsTitle: "Invarianten des Mechanismus",
@@ -78,8 +72,8 @@ export const specCopy = {
       "Eine Implementierung folgt dem Muster nur, wenn diese Eigenschaften über alle Startfälle erhalten bleiben.",
     invariants: [
       {
-        title: "Eine Entscheidungsschleife",
-        body: "Normalstart, Erstinitialisierung und Restore beginnen mit derselben Beobachtung und verwenden dieselben Abbruchbedingungen.",
+        title: "Ein Startpfad",
+        body: "Vorhandener Zustand, Restore und Erstinitialisierung münden in den normalen nativen Start. Ein gewöhnlicher Kubernetes-Neustart bleibt ein gewöhnlicher Neustart.",
       },
       {
         title: "Fail-closed",
@@ -91,15 +85,15 @@ export const specCopy = {
       },
       {
         title: "Migration gehört zum Produkt",
-        body: "Bartl koordiniert den Übergang. Vorhandene native Initialisierung und Migration bleiben beim Produkt; ergänzt werden nur fehlende Beobachtung, Koordination und Prüfung.",
+        body: "Native Initialisierung und Migration bleiben beim Produkt. Jede eigene Ergänzung muß eine benannte Administratorhandlung automatisieren oder eine nachgewiesene native Lücke schließen.",
       },
       {
-        title: "Erneute Beobachtung",
-        body: "Initialisierung, Restore und Migration führen zurück an den Anfang. Erst ein gültiger kompatibler Zustand erreicht serving().",
+        title: "Zugriff nach Erfolg",
+        body: "Die Anwendung darf für Initialisierung oder Migration intern laufen. Gewöhnlicher Zugriff bleibt bis zum nativen Erfolg und normaler Readiness gesperrt. Eine laufende Schema-Überwachung ist nicht verlangt.",
       },
       {
         title: "Kontrollierter Abbruch",
-        body: "Downgrade, Inkonsistenz und fehlende Voraussetzungen enden sichtbar. Der Mechanismus rät keinen Ersatzwert und überspringt keine Prüfung.",
+        body: "Native Fehler und nicht unterstützte Übergänge enden sichtbar, ohne destruktiven Ersatzpfad. Automatische Reparatur oder Rekonstruktion mehrdeutiger Fortschritte ist nicht verlangt.",
       },
     ],
     productTitle: "Pflichten der Anwendung",
@@ -107,27 +101,27 @@ export const specCopy = {
       "Die Anwendung liefert die konkreten Verfahren für ihren eigenen Zustand. Eine gemeinsame Entscheidungsstruktur verlangt weder identischen Code noch einen universellen Operator. Mehrere Komponenten können über ein eindeutiges Protokoll zusammenarbeiten.",
     productRequirements: [
       "Zustandsgrenze: eigenes vollständiges Inventar und Konsistenzbeziehungen deklarieren; fremde oder gemeinsam genutzte Persistenz nur innerhalb ausdrücklich zugewiesener Verantwortung verändern.",
-      "Beobachtung: leeren, gültigen, unvollständigen, beschädigten und nicht beurteilbaren Zustand samt relevanter Version zuverlässig unterscheiden; Marker allein genügen nicht.",
-      "Lifecycle: Normalstart, Initialisierung, Restore und Migration aus derselben Beobachtung ableiten; native Fehler stoppen den Start, erfolgreiche Änderungen führen zur erneuten Beobachtung.",
+      "Beobachtung: vorhandenen eigenen Zustand von bestätigter Abwesenheit unterscheiden. Beobachtungsfehler erlauben keine Initialisierung; eine eigene vollständige Schema-Prüfung ist nicht verlangt.",
+      "Lifecycle: nach gegebenenfalls nötigem Restore den normalen nativen Start einschließlich Initialisierung oder unterstützter Migration ausführen.",
       "Sicherung und Rekonstruktion: vollständige konsistente Recovery-Punkte erzeugen, vor Verwendung prüfen und ohne Quelle wiederherstellen; Software, Schlüssel und Zielvoraussetzungen benennen.",
-      "Sichere Ausführung: Unterbrechungen, Wiederholungen und konkurrierende Änderungen beherrschen; veraltete Fertigmeldungen und ungeprüfte Teilzustände dürfen keine Bedienung freigeben.",
-      "Ergebnisprüfung: native Übergangsergebnisse vor dem normalen Start prüfen und Fehler maschinenlesbar melden. Die Paketqualifikation belegt die vereinbarte Fachleistung; sie ist keine privilegierte Abnahme bei jedem Start.",
+      "Sichere Ausführung: konkurrierende Zustandsänderungen ausschließen und gewöhnlichen Zugriff bis zum Erfolg sperren. Fehlgeschlagene Übergänge bleiben auch über Neustarts gestoppt; Ziel verwerfen und gewöhnlich wiederholen genügt. Veraltete Fertigmeldungen dürfen Zugriff nicht freigeben.",
+      "Ergebnisprüfung: native Übergangsergebnisse und normale Readiness verwenden. Die Paketqualifikation belegt die vereinbarte Fachleistung, nicht eine privilegierte Abnahme bei jedem Start.",
     ],
     qualificationTitle: "Nachweise für die Katalogaufnahme",
     qualificationIntro: "Je Anwendung wird zunächst eine begründete unterstützte Konfiguration mit Releases, Übergängen, Persistenz und Zielvoraussetzungen festgelegt. Die folgenden Fälle benötigen ausführbare Nachweise mit konkreten Artefakten und Aussagegrenzen. Einzelne bestandene Fälle sind keine vollständige Qualifikation; ein gemeinsamer Test-Runner ist nicht vorgeschrieben.",
     qualificationCases: [
       "Erstinitialisierung: nachweislich leerer eigener Zustand ergibt durch native Initialisierung eine nutzbare Installation, sowohl ohne konfigurierten Backup-Store als auch mit einem Store ohne Sicherung.",
-      "Normaler Wiederanlauf: gültiger Zustand und Identität bleiben ohne Backup-Zugriff, erneute Initialisierung oder unnötigen Restore erhalten.",
+      "Normaler Wiederanlauf: Zustand und Identität bleiben beim normalen nativen Start ohne Backup-Zugriff, erneute Initialisierung oder unnötigen Restore erhalten.",
       "Restore ohne Quelle: der neueste geprüfte vollständige Stand für Kunde und Anwendung stellt die vorgesehenen Daten, Identitäten und Rechte wieder her.",
-      "Versionswechsel: unterstützte native Migration gelingt; unbekannte Übergänge und Downgrades werden ohne destruktiven Ersatzpfad abgewiesen.",
-      "Unterbrechung und Wiederholung: Teilzustände werden erkannt; Wiederholung, konkurrierende Ausführung und veraltete Fertigmeldungen enden sicher.",
-      "Fehlende oder widersprüchliche Eingaben: unerreichbarer Speicher, beschädigte Daten und unvollständige Backups werden nicht zur Erlaubnis für eine leere Installation.",
+      "Versionswechsel: der normale native Start führt unterstützte Migration durch. Nicht unterstützte Übergänge und Downgrades werden nativ oder durch eine begründete minimale Ergänzung ohne destruktiven Ersatzpfad abgewiesen.",
+      "Fehlgeschlagener Übergang und Wiederholung: Fehler bleiben sichtbar und über Neustarts gestoppt. Ziel verwerfen und gewöhnliche Installation wiederholen kann erfolgreich sein; automatische Wiederaufnahme mehrdeutiger Fortschritte ist nicht verlangt. Konkurrierende Übergänge und veraltete Fertigmeldungen geben keinen Zugriff frei.",
+      "Beobachtungs- und Verfahrensfehler: fehlgeschlagene lokale Beobachtung, unerreichbarer Backup-Speicher, beschädigte Backups und native Fehler erlauben keine leere Installation.",
       "Fremder Zustand: ein Fehler der Anwendung setzt weder eine gemeinsam genutzte Datenbank noch einen anderen Dienst zurück.",
       "Fachliche Abnahme: die Paketqualifikation belegt die vereinbarte Nutzbarkeit nach jedem unterstützten Übergang; ein erfolgreicher Container oder Job reicht nicht.",
     ],
     servingTitle: "Bedeutung von serving()",
     servingBody:
-      "serving() startet die native Anwendung mit ihrem normalen Readiness-Verhalten. Eine erfolgreiche Rekonstruktion benötigt keinen zweiten technischen Freigabebefehl. Der vollständige Servicevertrag regelt Quellisolation, Fencing, Erreichbarkeit, Aktivierung und Wiederanlaufzeit. Menschen autorisieren das Ergebnis und die akzeptierten Risiken; gepflegte Verfahren müssen diese Entscheidung technisch durchsetzen.",
+      "serving() gibt gewöhnlichen Zugriff nach nativem Erfolg und normaler Readiness frei. Die Anwendung darf zuvor intern für Initialisierung oder Migration laufen. Eine erfolgreiche Rekonstruktion benötigt keinen zweiten technischen Freigabebefehl. Der vollständige Servicevertrag regelt Quellisolation, Fencing, Erreichbarkeit, Aktivierung und Wiederanlaufzeit. Menschen autorisieren das Ergebnis und die akzeptierten Risiken; gepflegte Verfahren müssen diese Entscheidung technisch durchsetzen.",
     referenceTitle: "Ausführbare WordPress-Referenz",
     referenceIntro:
       "bartl-wordpress illustriert den Startmechanismus für eine konkrete WordPress-, MySQL- und Docker-Compose-Konfiguration. Die folgenden Angaben beschreiben die vorhandene Referenz, nicht zusätzliche normative Startbedingungen. Ihr Nachweis ist keine pauschale Bestätigung aller Katalogfälle.",
@@ -146,10 +140,10 @@ export const specCopy = {
       "Die Spec beschreibt nur den Startmechanismus für Anwendung und deklarierten Zustand.",
     insideTitle: "Teil des Startmechanismus",
     inside: [
-      "Zustand und Versionen beobachten",
-      "Sicherungsstände vor Verwendung prüfen",
-      "initialisieren, wiederherstellen oder produktspezifisch migrieren",
-      "gültigen Zustand bedienen oder kontrolliert abbrechen",
+      "vorhandenen Zustand von bestätigter Abwesenheit unterscheiden",
+      "Sicherungsstände vor Verwendung prüfen und gegebenenfalls wiederherstellen",
+      "native Initialisierung und unterstützte Migration beim normalen Start nutzen",
+      "gewöhnlichen Zugriff nach nativem Erfolg freigeben oder sichtbar stoppen",
     ],
     outsideTitle: "Nicht durch den Startmechanismus abgedeckt",
     outside: [
@@ -195,7 +189,7 @@ export const specCopy = {
       ],
       [
         "Fully declared state",
-        "An inventory of owned mutable state, its consistency relationships and a reliably detectable state version. Foreign persistence is a dependency, not automatic permission to modify it.",
+        "An inventory of owned mutable state and its consistency relationships. Native procedures determine relevant compatibility. Foreign persistence is a dependency, not automatic permission to modify it.",
       ],
       [
         "Optional backup",
@@ -208,33 +202,27 @@ export const specCopy = {
     ],
     observationsTitle: "Observations before action",
     observations: [
-      "observe_local_state() distinguishes valid local state with a known version from confirmed absence. Observation errors, damaged state and incomplete state stop startup.",
-      "observe_backup() runs only without local state. It returns the latest fully published and verified backup for the customer and application, or absence. Lookup and integrity errors stop startup instead of falling back to initialization.",
-      "The engine and state versions are equal, the engine is newer, or the engine is older.",
-      "Release, existing state, any backup used and target configuration must be complete and mutually consistent.",
+      "observe_local_state() distinguishes existing owned state from confirmed absence. Observation errors stop startup rather than permit initialization. Full-schema certification is not required.",
+      "observe_backup() runs only without local state. It returns the latest fully published and verified backup for the customer and application, or absence. Lookup and integrity errors stop startup.",
+      "Normal native startup handles initialization and supported migration. Preserve native compatibility boundaries; only demonstrated gaps justify custom safeguards.",
     ],
     decisionTitle: "Observed startup path",
     decisionIntro:
-      "The mechanism does not decide from an install, restore or upgrade label. Components may cooperate, but transition ownership and current completion signals must be unambiguous. Observe again after every state change.",
+      "Existing state leads to normal native startup. Only confirmed absence triggers backup lookup. This is not a loop that repeats observation after every state change.",
     pathTitle: "Evaluation",
     paths: [
-      ["Valid local state and equal version", "The application can serve."],
+      ["Existing local state", "Normal native startup uses the state and performs any necessary supported migration."],
       [
-        "Valid local state and newer engine",
-        "Native product-specific migration runs. Unsupported transitions or failures stop startup; success returns to observation.",
-      ],
-      ["Valid local state and older engine", "Startup aborts because a downgrade is not permitted."],
-      [
-        "No local state and a valid backup",
-        "Native restore reconstructs the latest verified backup for the customer and application. Failure stops startup; success returns to observation.",
+        "No local state and a verified backup",
+        "Restore reconstructs the latest verified backup for the customer and application through the supported native procedure. Incomplete reconstruction cannot become the usable target. Normal native startup follows, including supported migration.",
       ],
       [
         "No local state and no backup",
-        "Native initialization creates fresh state. Failure stops startup; success returns to observation. A failed backup lookup is not an absent backup.",
+        "Normal native startup initializes the application. A failed backup lookup is not an absent backup.",
       ],
       [
-        "Invalid, incomplete, contradictory or unknown inputs",
-        "Startup aborts before state is changed or served.",
+        "Observation or a native procedure fails",
+        "Startup stops visibly. After a failed state-changing attempt, ordinary access remains withheld across restarts. Discarding the failed target and retrying the ordinary installation is sufficient.",
       ],
     ],
     invariantsTitle: "Mechanism invariants",
@@ -242,8 +230,8 @@ export const specCopy = {
       "An implementation follows the pattern only if it preserves these properties across every startup case.",
     invariants: [
       {
-        title: "One decision loop",
-        body: "Normal startup, first initialization, and restore begin with the same observation and use the same abort conditions.",
+        title: "One startup path",
+        body: "Existing state, restore and first initialization lead to normal native startup. An ordinary Kubernetes restart remains an ordinary restart.",
       },
       {
         title: "Fail closed",
@@ -255,15 +243,15 @@ export const specCopy = {
       },
       {
         title: "Migration belongs to the product",
-        body: "Bartl coordinates the transition. Existing native initialization and migration remain with the product; add only missing observation, coordination and verification.",
+        body: "Native initialization and migration remain with the product. Each custom mechanism must automate a named administrator action or close a demonstrated native gap.",
       },
       {
-        title: "Observe again",
-        body: "Initialization, restore, and migration return to the beginning. Only valid compatible state reaches serving().",
+        title: "Access after success",
+        body: "The application may run internally for initialization or migration. Ordinary access remains withheld until native success and normal readiness. Continuous schema policing is not required.",
       },
       {
         title: "Controlled abort",
-        body: "Downgrade, inconsistency, and missing prerequisites end visibly. The mechanism neither guesses replacement values nor skips checks.",
+        body: "Native failures and unsupported transitions end visibly without destructive fallback. Automatic repair or reconstruction of ambiguous progress is not required.",
       },
     ],
     productTitle: "Application duties",
@@ -271,27 +259,27 @@ export const specCopy = {
       "The application supplies concrete procedures for its own state. A common decision structure requires neither identical code nor a universal operator. Multiple components may cooperate through an explicit protocol.",
     productRequirements: [
       "State boundary: declare the complete owned inventory and consistency relationships; change foreign or shared persistence only within explicitly assigned responsibility.",
-      "Observation: reliably distinguish empty, valid, incomplete, damaged and unknown state and its relevant version; a marker alone is insufficient.",
-      "Lifecycle: derive normal start, initialization, restore and migration from the same observations; native failures stop startup, successful changes return to observation.",
+      "Observation: distinguish existing owned state from confirmed absence. Observation errors do not permit initialization; an independent full-schema validity check is not required.",
+      "Lifecycle: after any required restore, use normal native startup including initialization or supported migration.",
       "Capture and reconstruction: produce complete consistent recovery points, verify before use and restore without the source; identify software, keys and target prerequisites.",
-      "Safe execution: handle interruption, repetition and conflicting changes; stale completion signals and unverified partial state must not release serving.",
-      "Result verification: verify native transition results before normal startup and expose machine-readable failures. Package qualification demonstrates agreed application behavior; it is not a privileged acceptance ceremony on every restart.",
+      "Safe execution: exclude conflicting state changes and withhold ordinary access until success. Failed transitions remain stopped across restarts; discarding the target and ordinary retry is sufficient. Stale completion signals must not release access.",
+      "Result verification: use native transition results and normal readiness. Package qualification demonstrates agreed application behavior, not a privileged acceptance ceremony on every restart.",
     ],
     qualificationTitle: "Evidence for catalogue inclusion",
     qualificationIntro: "Start with one justified supported configuration per application, declaring releases, transitions, persistence and target prerequisites. The following cases require executable evidence with exact artifacts and claim boundaries. Individual passing cases are not complete qualification; a shared test runner is not prescribed.",
     qualificationCases: [
       "First initialization: confirmed empty owned state produces a usable installation through native initialization, both without a configured backup store and with a configured store containing no backup.",
-      "Normal restart: valid state and identity survive without backup access, reinitialization or unnecessary restore.",
+      "Normal restart: state and identity survive ordinary native startup without backup access, reinitialization or unnecessary restore.",
       "Source-independent restore: the latest verified complete backup for the customer and application restores the intended data, identities and permissions.",
-      "Release transition: supported native migration succeeds; unknown transitions and downgrades are rejected without destructive fallback.",
-      "Interruption and repetition: partial state is recognized; retry, conflicting execution and stale completion signals remain safe.",
-      "Missing or contradictory inputs: unreachable storage, damaged data and incomplete backups never authorize an empty installation.",
+      "Release transition: normal native startup performs supported migration. Unsupported transitions and downgrades are rejected natively or through a justified minimal safeguard without destructive fallback.",
+      "Failed transition and retry: failures remain visible and stopped across restarts. Discarding the target and retrying ordinary installation can succeed; automatic resumption of ambiguous progress is not required. Conflicting transitions and stale completion signals cannot release access.",
+      "Observation and operation failures: failed local observation, unreachable backup storage, damaged backups and native failures never authorize an empty installation.",
       "Foreign state: an application failure does not reset a shared database or another service.",
       "Application acceptance: package qualification demonstrates agreed usability after each supported transition; a successful container or job is insufficient.",
     ],
     servingTitle: "Meaning of serving()",
     servingBody:
-      "serving() starts the native application with its normal readiness behavior. Successful reconstruction needs no second technical release command. The complete service contract covers source isolation, fencing, reachability, activation and recovery time. People authorize the outcome and accepted risks; maintained procedures must enforce that decision technically.",
+      "serving() opens ordinary access after native success and normal readiness. The application may run internally beforehand for initialization or migration. Successful reconstruction needs no second technical release command. The complete service contract covers source isolation, fencing, reachability, activation and recovery time. People authorize the outcome and accepted risks; maintained procedures must enforce that decision technically.",
     referenceTitle: "Executable WordPress reference",
     referenceIntro:
       "bartl-wordpress illustrates the startup mechanism for one concrete WordPress, MySQL, and Docker Compose configuration. The details below describe the existing reference, not additional normative startup conditions. Its evidence does not automatically qualify every catalogue case.",
@@ -310,10 +298,10 @@ export const specCopy = {
       "The spec describes only the startup mechanism for the application and its declared state.",
     insideTitle: "Part of the startup mechanism",
     inside: [
-      "observe state and versions",
-      "verify backups before use",
-      "initialize, restore, or run product-specific migration",
-      "serve valid state or abort in a controlled way",
+      "distinguish existing state from confirmed absence",
+      "verify backups before use and restore when needed",
+      "use native initialization and supported migration during normal startup",
+      "open ordinary access after native success or stop visibly",
     ],
     outsideTitle: "Not covered by the startup mechanism",
     outside: [

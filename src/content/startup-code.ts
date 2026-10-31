@@ -9,15 +9,12 @@ const all = "ready upgrade downgrade restore initialize invalid backup-error";
 const scenarios = [
   all,
   all,
-  "ready upgrade downgrade restore initialize backup-error",
-  "ready upgrade downgrade",
-  "ready",
-  "upgrade",
-  "downgrade",
   "restore initialize backup-error",
   "restore initialize backup-error",
   "restore",
-  "initialize",
+  "ready upgrade downgrade restore initialize",
+  "ready upgrade downgrade restore initialize",
+  "ready upgrade restore initialize",
 ];
 const lines = algorithm.split("\n");
 if (lines.length !== scenarios.length) {
@@ -28,10 +25,9 @@ export const startupCode = lines.map((line, index) => ({
   html: line
     .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
     .replace(
-      /\b(?:until|if|else|abort)\b|(?:serving|observe_local_state|observe_backup|migrate|restore|init)\([^)]*\)|"downgrade"/g,
+      /\b(?:if|not)\b|(?:serving|observe_local_state|observe_backup|native_start|await_native_success|restore)\([^)]*\)/g,
       (token) => {
-        const color = token === "abort" ? "error" : token === '"downgrade"' ? "muted" : "keyword";
-        return `<span class="text-code-${color}">${token}</span>`;
+        return `<span class="text-code-keyword">${token}</span>`;
       },
     ),
   scenarios: scenarios[index],

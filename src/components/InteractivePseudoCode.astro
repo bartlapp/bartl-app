@@ -13,33 +13,33 @@ const observations = {
   en: [
     {
       id: "ready",
-      label: "Local state, equal version",
-      caption: "Valid local state matches the engine version. The application serves.",
+      label: "Existing local state",
+      caption: "Local state exists. Normal native startup uses it; ordinary access opens after native success and readiness.",
     },
     {
       id: "upgrade",
-      label: "Local state, older version",
-      caption: "The engine is newer than valid local state. Native migration runs, then state is observed again. Unsupported migrations or failures stop startup.",
+      label: "Supported upgrade",
+      caption: "Normal native startup performs the supported migration. The application may run internally; ordinary access remains withheld until success.",
     },
     {
       id: "downgrade",
       label: "Local state, newer version",
-      caption: "The engine is older than local state. Startup aborts rather than downgrade it.",
+      caption: "Native compatibility behavior, or a justified minimal safeguard, rejects the unsupported downgrade without destructive fallback.",
     },
     {
       id: "restore",
       label: "Valid backup",
-      caption: "No local state exists. The latest verified backup for this customer and application is restored, then state is observed again.",
+      caption: "No local state exists. The latest verified backup for this customer and application is restored, then normal native startup runs.",
     },
     {
       id: "initialize",
       label: "No state, no backup",
-      caption: "No local state exists, and no backup store is configured or the configured store has no backup. Native initialization runs, then state is observed again.",
+      caption: "No local state exists, and no backup store is configured or the configured store has no backup. Normal native startup initializes the application.",
     },
     {
       id: "invalid",
-      label: "Invalid inputs",
-      caption: "Local state is unknown, incomplete or contradictory. Startup aborts before state is changed.",
+      label: "Local observation failure",
+      caption: "Local state cannot be observed reliably. Startup stops rather than assuming absence and initializing.",
     },
     {
       id: "backup-error",
@@ -50,33 +50,33 @@ const observations = {
   de: [
     {
       id: "ready",
-      label: "Lokaler Zustand, gleiche Version",
-      caption: "Gültiger lokaler Zustand paßt zur Engine-Version. Die Anwendung bedient.",
+      label: "Lokaler Zustand vorhanden",
+      caption: "Lokaler Zustand ist vorhanden. Der normale native Start verwendet ihn. Nach nativem Erfolg und Readiness wird der gewöhnliche Zugriff freigegeben.",
     },
     {
       id: "upgrade",
-      label: "Lokaler Zustand, ältere Version",
-      caption: "Die Engine ist neuer als der gültige lokale Zustand. Native Migration läuft; danach wird erneut beobachtet. Nicht unterstützte Migrationen oder Fehler stoppen den Start.",
+      label: "Unterstütztes Upgrade",
+      caption: "Der normale native Start führt die unterstützte Migration durch. Die Anwendung darf intern laufen; gewöhnlicher Zugriff bleibt bis zum Erfolg gesperrt.",
     },
     {
       id: "downgrade",
       label: "Lokaler Zustand, neuere Version",
-      caption: "Die Engine ist älter als der lokale Zustand. Der Start bricht ab, statt den Zustand herabzustufen.",
+      caption: "Natives Kompatibilitätsverhalten oder eine begründete minimale Ergänzung weist den unzulässigen Downgrade ohne destruktiven Ersatzpfad ab.",
     },
     {
       id: "restore",
       label: "Gültiger Sicherungsstand",
-      caption: "Lokaler Zustand fehlt. Der neueste geprüfte Stand für diesen Kunden und diese Anwendung wird wiederhergestellt und danach erneut beobachtet.",
+      caption: "Lokaler Zustand fehlt. Der neueste geprüfte Stand für diesen Kunden und diese Anwendung wird wiederhergestellt. Danach läuft der normale native Start.",
     },
     {
       id: "initialize",
       label: "Kein Zustand, keine Sicherung",
-      caption: "Lokaler Zustand fehlt. Kein Backup-Store ist konfiguriert oder der konfigurierte Store enthält keine Sicherung. Native Initialisierung läuft; danach wird erneut beobachtet.",
+      caption: "Lokaler Zustand fehlt. Kein Backup-Store ist konfiguriert oder der konfigurierte Store enthält keine Sicherung. Der normale native Start initialisiert die Anwendung.",
     },
     {
       id: "invalid",
-      label: "Ungültige Eingaben",
-      caption: "Lokaler Zustand ist unbekannt, unvollständig oder widersprüchlich. Der Start bricht vor einer Änderung ab.",
+      label: "Fehler der lokalen Beobachtung",
+      caption: "Lokaler Zustand läßt sich nicht zuverlässig beobachten. Der Start stoppt, statt Abwesenheit anzunehmen und zu initialisieren.",
     },
     {
       id: "backup-error",

@@ -27,7 +27,7 @@ export const landingCopy = {
       },
       {
         title: "Vollständig deklarierter Zustand",
-        body: "Alle veränderlichen Daten und Metadaten einschließlich einer zuverlässig ermittelbaren Zustandsversion. Nicht deklarierter Zustand kann nicht belastbar gesichert oder wiederhergestellt werden.",
+        body: "Alle eigenen veränderlichen Daten und Metadaten mit ihren Konsistenzbeziehungen. Native Verfahren bestimmen die relevante Kompatibilität. Nicht deklarierter Zustand kann nicht belastbar gesichert oder wiederhergestellt werden.",
       },
       {
         title: "Optionaler Sicherungsstand",
@@ -62,12 +62,12 @@ export const landingCopy = {
     scopeTitle: "Was der Startmechanismus leistet und was der vollständige Service braucht.",
     doesTitle: "Der Startmechanismus leistet",
     does: [
-      "zuerst lokalen Zustand und Versionen beobachten, nur ohne lokalen Zustand eine Sicherung abfragen",
-      "den Startpfad aus diesen Beobachtungen wählen",
+      "vorhandenen lokalen Zustand von bestätigter Abwesenheit unterscheiden",
+      "nur ohne lokalen Zustand eine Sicherung abfragen und gegebenenfalls wiederherstellen",
       "Backups vor ihrer Verwendung prüfen",
-      "produktspezifische Migration aufrufen",
-      "bei Downgrade, Inkonsistenz oder fehlenden Voraussetzungen abbrechen",
-      "denselben Pfad bei Normalstart und Restore verwenden",
+      "native Initialisierung und unterstützte Migration beim normalen Start nutzen",
+      "bei Beobachtungsfehlern oder fehlgeschlagenen Verfahren sichtbar stoppen",
+      "gewöhnlichen Zugriff erst nach nativem Erfolg freigeben",
     ],
     doesNotTitle: "Nicht durch den Startmechanismus abgedeckt",
     doesNot: [
@@ -83,15 +83,15 @@ export const landingCopy = {
     fitTitle: "Das Muster braucht eine saubere Zustandsgrenze.",
     suitableTitle: "Geeignet, wenn",
     suitable: [
-      "der veränderliche Zustand vollständig benannt und versioniert werden kann",
+      "der eigene veränderliche Zustand vollständig benannt werden kann",
       "Release, Zustand und Zielkonfiguration sauber getrennt sind",
       "Backup-Integrität und Restore automatisiert geprüft werden können",
-      "produktspezifische Migrationen deterministisch aufgerufen werden können",
+      "native Initialisierung und unterstützte Migration automatisiert ausgeführt werden können",
     ],
     unsuitableTitle: "Nicht geeignet, wenn",
     unsuitable: [
       "kritischer Zustand unbekannt oder über unkontrollierte Orte verteilt bleibt",
-      "ein leerer, gültiger und beschädigter Zustand nicht unterscheidbar sind",
+      "vorhandener Zustand und bestätigte Abwesenheit nicht unterscheidbar sind",
       "Release und Laufzeitzustand nicht voneinander getrennt werden können",
       "der Startmechanismus externe Betriebsaufgaben vollständig übernehmen soll",
     ],
@@ -128,7 +128,7 @@ export const landingCopy = {
       },
       {
         title: "Fully declared state",
-        body: "All mutable data and metadata, including a reliably detectable state version. Undeclared state cannot be backed up or restored dependably.",
+        body: "All owned mutable data and metadata with their consistency relationships. Native procedures determine relevant compatibility. Undeclared state cannot be backed up or restored dependably.",
       },
       {
         title: "Optional backup",
@@ -163,12 +163,12 @@ export const landingCopy = {
     scopeTitle: "What startup does and what the complete service still needs.",
     doesTitle: "The startup mechanism does",
     does: [
-      "observe local state and versions first, querying backups only without local state",
-      "select the startup path from those observations",
+      "distinguish existing local state from confirmed absence",
+      "query backups only without local state and restore when available",
       "verify backups before using them",
-      "invoke product-specific migration",
-      "abort on downgrade, inconsistency, or missing prerequisites",
-      "use the same path for normal startup and restore",
+      "use native initialization and supported migration during normal startup",
+      "stop visibly on observation or native procedure failures",
+      "open ordinary access only after native success",
     ],
     doesNotTitle: "Not covered by the startup mechanism",
     doesNot: [
@@ -184,15 +184,15 @@ export const landingCopy = {
     fitTitle: "The pattern requires a clean state boundary.",
     suitableTitle: "A good fit when",
     suitable: [
-      "mutable state can be named completely and versioned",
+      "owned mutable state can be named completely",
       "release, state, and target configuration are cleanly separated",
       "backup integrity and restore can be checked automatically",
-      "product-specific migrations can be invoked deterministically",
+      "native initialization and supported migration can be executed automatically",
     ],
     unsuitableTitle: "Not a fit when",
     unsuitable: [
       "critical state is unknown or spread across uncontrolled locations",
-      "empty, valid, and damaged state cannot be distinguished",
+      "existing state and confirmed absence cannot be distinguished",
       "release and runtime state cannot be separated",
       "the startup mechanism is expected to perform every external operating task",
     ],

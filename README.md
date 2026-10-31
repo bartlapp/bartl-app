@@ -18,7 +18,7 @@ An installation administrator is the human responsible for operating a customer 
 
 Application recovery depends on an explicit target-environment contract rather than a particular provider. Provider-specific provisioning establishes that contract; it does not redefine application recovery. Any environment satisfying the contract can be a target, provided access, capacity and required dependencies are actually usable. The complete recovery path, including its execution and inputs, must remain available without help from the provider whose loss or withdrawal it is intended to withstand.
 
-The application startup pattern is one technical expression of this philosophy. It observes local state, backup availability, and engine and state versions, then initializes, restores, invokes product-specific migration, serves, or aborts in a controlled way. The executable reference is [bartl-wordpress](https://codeberg.org/bartlapp/bartl-wordpress). It demonstrates this mechanism for one WordPress, MySQL, and Docker Compose configuration, not automatic provisioning or complete service recovery across providers.
+The application startup pattern is one technical expression of this philosophy. It distinguishes existing from absent local state, restores the latest available backup only when state is absent, and uses native startup for initialization and supported migration. Errors stop execution rather than imply absence. The executable reference is [bartl-wordpress](https://codeberg.org/bartlapp/bartl-wordpress). It demonstrates this mechanism for one WordPress, MySQL, and Docker Compose configuration, not automatic provisioning or complete service recovery across providers.
 
 ## Application contract and qualification
 
@@ -65,22 +65,21 @@ Die Ersatzinstallation ändert das Ziel und erfordert die Umschaltung des Dienst
 ### Startup decision
 
 ```text
-until serving():
-    local = observe_local_state()
-    if local.exists:
-        engine version vs local.version:
-            equal:    serving()
-            engine >: migrate(local)
-            engine <: abort("downgrade")
-    else:
-        backup = observe_backup()
-        if backup.valid: restore(backup)
-        else:            init()
+local = observe_local_state()
+if not local.exists:
+    backup = observe_backup()
+    if backup.exists:
+        restore(backup)
+native_start()
+await_native_success()
+serving()
 ```
 
-- `observe_local_state()` distinguishes existing state from absence. Unreadable, damaged or incomplete state stops execution; it is not absence.
-- `observe_backup()` returns the latest verified backup for this customer/application, or absence when no store is configured or the configured store contains no backup for it. Lookup or integrity errors stop execution rather than masquerading as absence. Existing local state does not require backup access.
-- `init()`, `restore()` and `migrate()` use application-native procedures. Failure stops execution; success returns to observation. Unsupported migrations fail. `serving()` starts the native application with its normal readiness behavior.
+- `observe_local_state()` distinguishes existing owned state from confirmed absence. Failed observation stops execution; it never authorizes initialization. This is not full-schema certification.
+- `observe_backup()` returns the latest complete verified backup for this customer/application, or absence when no store is configured or the configured store contains no backup for it. Lookup or integrity errors stop execution. Existing local state does not require backup access.
+- `restore()` reconstructs the backup through the supported native procedure; incomplete reconstruction must not become the usable target. `native_start()` uses the product's normal startup, including native initialization when state remains absent and supported migration when needed. Unsupported transitions and downgrades must not destructively change state; rely on native behavior and add only a demonstrated missing safeguard.
+- `await_native_success()` checks the native initialization or migration result and normal readiness. The application may run internally while ordinary access is withheld. `serving()` opens ordinary access after success; it is not a second command for the installation administrator.
+- A failed state-changing attempt stops visibly and remains stopped across ordinary restarts. Discarding the failed target and retrying the ordinary installation procedure is an acceptable recovery path. Automatic repair, replay or reconstruction of ambiguous progress is not required.
 
 Installing the customer's application invokes this procedure. The installation administrator supplies the selected release and installation configuration, not an initialization permission, a recovery mode or a second command to release successful reconstruction. The package also supplies native capture and publication into the configured backup store so another installation can use that history.
 
@@ -91,15 +90,15 @@ Each application implements the decision within its owned state and supported co
 | Obligation | Required application contribution |
 | --- | --- |
 | State boundary | Inventory all owned mutable data and metadata and their consistency relationships. Identify shared or externally owned services separately; consuming them does not authorize resetting them. |
-| Observation | Distinguish confirmed absence, valid state with known version, incomplete or damaged state, and unknown state caused by unavailable dependencies. A checkpoint or declared release alone does not establish the current data state. |
-| State-driven lifecycle | Implement the startup decision above. Observe again after every state-changing action. |
+| Observation | Distinguish existing owned state from confirmed absence. Dependency or observation failures stop execution rather than imply absence; no independent full-schema validity engine is required. |
+| State-driven lifecycle | Implement the startup decision above through normal native startup, including supported initialization and migration. |
 | Capture and reconstruction | Produce a complete consistent recovery point and reconstruct an authorized point without the original installation. Declare compatible software, keys, target requirements and all recovery dependencies. |
-| Safe execution | Make interruption and repetition safe, exclude conflicting state changes, and prevent invalid intermediate state from serving. Completion signals must identify the current installation and operation; stale signals are not evidence. |
-| Result verification | Verify native transition results before normal startup. Package qualification demonstrates the agreed application behavior; it is not a privileged acceptance ceremony on every restart. |
+| Safe execution | Exclude conflicting state changes and withhold ordinary access until native transition success. Failed transitions remain visibly stopped; discarding the failed target and ordinary retry is sufficient. If components exchange completion signals, they must identify the current installation and operation. |
+| Result verification | Use native transition results and normal readiness. Package qualification demonstrates agreed usable behavior; neither a privileged acceptance ceremony on every restart nor continuous schema policing is required. |
 
-Collaborating components may implement the loop through an entrypoint or an explicit protocol. Keep transition ownership and completion unambiguous. Let native initialization and migration do their work; add only the observation and coordination the product does not supply. A stateless application declares an empty owned persistence inventory rather than inventing backup work.
+Automate the procedures a competent administrator would perform using the product's native tools. Every custom mechanism must name the administrator action it automates or the demonstrated native gap it closes. Collaborating components may use an entrypoint or an explicit protocol; keep transition ownership and completion unambiguous. A stateless application declares an empty owned persistence inventory rather than inventing backup work.
 
-The contract applies to a logical application instance, not to an independent installation per process or replica. Additional replicas join that instance through the product's supported state-sharing or replication mechanisms; they do not independently initialize or restore shared application state. Explicitly assigned components own state transitions and exclude conflicting execution. Restarting a process must preserve the required state and compatibility checks without repeating the complete recovery procedure in every process.
+The contract applies to a logical application instance, not to an independent installation per process or replica. Additional replicas join that instance through the product's supported state-sharing or replication mechanisms; they do not independently initialize or restore shared application state. Explicitly assigned components own transitions and exclude conflicting execution. An ordinary process or Kubernetes restart remains ordinary native startup, not a complete recovery workflow.
 
 Preserve native application and platform capabilities for scaling, restart and supported updates rather than imposing a uniform topology. Document product limitations and justify restrictions introduced by the operating package. Supported profiles still require qualification; this principle does not promise arbitrary replica counts, high availability or uninterrupted upgrades.
 
@@ -110,11 +109,11 @@ Each application records its supported releases and transitions, persistence cho
 | Case | Required evidence |
 | --- | --- |
 | First initialization | Empty owned state produces a usable vanilla installation both without a configured backup store and with a configured store containing no backup. |
-| Normal restart | Existing valid state and identity survive a restart without backup access, reinitialization or unnecessary restore. |
+| Normal restart | Existing state and identity survive ordinary native startup without backup access, reinitialization or unnecessary restore. |
 | Source-independent restore | Installing on an empty target restores the latest backup for the customer/application and reaches normal startup without a second technical release command. |
-| Supported release transition | Native migration reaches a supported state; unsupported transitions and downgrades are rejected without destructive fallback. |
-| Interruption and repetition | Partial work is recognized; retries resume safely or stop visibly, including conflicting execution and stale completion signals. |
-| Observation and operation failures | Unreadable local state, a failed configured-store lookup, damaged backups and failed native operations stop visibly without falling through to initialization. |
+| Supported release transition | Native startup performs supported migration; unsupported transitions and downgrades are rejected without destructive fallback, using native behavior or a justified minimal safeguard. |
+| Failed transition and retry | Failure remains visible and stopped across restarts. Discarding the failed target and an ordinary retry can succeed; no automatic resumption of ambiguous progress is required. Conflicting transitions are excluded and stale completion signals cannot release access. |
+| Observation and operation failures | Failed local observation, a failed configured-store lookup, damaged backups and failed native operations stop visibly without falling through to initialization. |
 | Foreign state boundary | Failure of the application does not reset a shared database, another application or an external service. |
 | Application acceptance | The maintained procedure checks the agreed usable behavior after each supported transition; a successful container or job is insufficient. |
 
