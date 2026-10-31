@@ -49,6 +49,18 @@ The subsequent visual revision uses recurring document, file/database and permis
 
 The picture revision was inspected in both languages at desktop and mobile sizes, including dark mode. Bounds checks at 320, 390, 768 and 1440 pixels found no page overflow or clipped SVG labels. Across the eight main language/page combinations, all 104 checked internal links and anchors resolved; neither visible text nor HTML contained WordPress. Astro check reported no diagnostics, the build generated 14 pages, and German prose lint passed. Browser inspection corrected clipped labels and routes crossing labels before the local candidate was retained.
 
+### Release checks and publication proposal, 31 October
+
+Florian accepted the visual direction and explanation at `6c9c17e6057621e78601f6b7fe48d0d882479a0e`. The release pass preserves that content and design. Its only UI fix enables wrapping and hyphenation on the privacy page after the German title overflowed at mobile widths.
+
+Release verification: all eight main language/page combinations rendered at 320, 390, 768 and 1440 pixels without page overflow or clipped diagram labels. Navigation and language switching retained all four page destinations on desktop and mobile. All seven Contract scenarios per language responded correctly. All 104 main-page internal links/anchors and six distinct external targets resolved. The unpublished footer commit link becomes available only after publication. Legal pages, the root entrypoint and the 404 page were exercised; the privacy fix passed at all four widths. Dark mode was inspected; no browser errors remained. Astro check reported zero diagnostics, the build produced 14 pages, and prose checks passed. The illustrative document service remains separate from qualified Keycloak evidence.
+
+The proposed destination is `refs/heads/main` at `ssh://git@codeberg.org/bartlapp/bartl-app.git`. SSH fetch and the live Codeberg API agreed on destination tip `8c66e3f715c34e40c3462cdcc4d925ba6a164a8d`, an ancestor of the candidate. Forgejo's API reports `/api/v1`; authenticated user `fke` is active, unrestricted and not prohibited from login. The repository is not archived, grants push/admin access, and reports `main` unprotected, no effective protection rule, zero required approvals, no required status checks, and effective push/merge permission. The proposal is an ordinary fast-forward preserving all seven outgoing commits, including referenced review versions, not a squash or history rewrite. Recheck the destination tip and effective policy immediately before any authorized push.
+
+Deployment follows the existing Codeberg push mirror to `ssh://github.com/bartlapp/bartl-app.git` (`sync_on_commit: true`, no last error). The GitHub mirror tip matches Codeberg. A push to GitHub `main` triggers `.github/workflows/deploy.yml`: Node 22, `npm ci`, Astro check/build, upload `dist/`, then GitHub Pages deployment to `bartl.app`. The public API reports an active workflow and a `github-pages` environment restricted to `main`, with no review or wait rule. The latest run `41203824566` succeeded at the destination tip.
+
+Authenticated GitHub inspection returned 401; the Pages settings endpoint was unavailable without authentication. Public branch, rules, workflow, environment, branch-policy and run evidence was available. No direct GitHub write or settings change is proposed. Codeberg policy/access preflight passed; GitHub administrative settings were not verified. After authorization, verify mirror convergence, the deployment run at the exact candidate SHA and the live bilingual pages. Publication has not been authorized or performed.
+
 
 ## German and English pages share their structure
 
