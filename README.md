@@ -6,7 +6,7 @@
 
 Source of [bartl.app](https://bartl.app), the bilingual website for Bartl. This repository is the canonical home for Bartl's general philosophy and public explanation.
 
-Start with [Bartl: retaining the ability to act](docs/philosophy.md), the canonical general explanation. It carries the complete argument independently of the current website's content, structure or presentation. The recovery contracts below make specific obligations explicit; the startup specification describes one bounded mechanism.
+Start with [Bartl: retaining the ability to act](docs/philosophy.md) for the operating philosophy. The [application contract](#application-contract-and-qualification) below defines required behavior; [How to bartlize an application](docs/how-to-bartlize.md) explains the implementation method. Each application owns its supported configuration, operating instructions, design and release evidence.
 
 ## Scope
 
@@ -159,7 +159,7 @@ Only complete, verified publication makes a recovery point eligible. Interrupted
 
 Storage durably publishes, protects and retrieves the artifact; it need not understand the application's database, files or migration logic. An external path or object store can satisfy this boundary when it is independent of the source provider's relevant failure and administrative domain and meets access, encryption, retention, deletion and regulatory requirements. Protect against unauthorized deletion as well as overwrite, including by compromised production credentials. Versioning alone is insufficient if those credentials can erase all versions. A storage label or retention feature does not by itself establish regulatory compliance.
 
-The [WordPress reference](https://codeberg.org/bartlapp/bartl-wordpress#backup-store-and-integrity-contract) packages its database export, uploads, inventory and checksums into one archive with a small publication sidecar. It illustrates this boundary; it does not mandate that format or prove another application's recovery. No application-aware backup server or workflow platform follows from this contract. Any additional machinery must justify its contribution. Artifact integrity does not replace consistency, final-state freshness, interrupted-operation handling or exclusive write authority.
+The [WordPress example](https://codeberg.org/bartlapp/bartl-wordpress#export-backup) uses an archive and checksum sidecar. That historical format is not a universal requirement or evidence that every publication and consistency obligation above is implemented. No application-aware backup server or workflow platform follows from this contract. Any additional machinery must justify its contribution. Artifact integrity does not replace consistency, final-state freshness, interrupted-operation handling or exclusive write authority.
 
 ### Target and provider boundary
 

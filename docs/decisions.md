@@ -6,6 +6,8 @@ A lightweight record of non-obvious choices for this repo. Not formal ADRs - a f
 
 [The philosophy](philosophy.md) explains Bartl's complete-service scope across application, infrastructure and operating responsibility. The [README](../README.md#application-contract-and-qualification) owns the normative application contract; its service-recovery sections define the broader recovery obligations.
 
+[How to bartlize](how-to-bartlize.md) explains the implementation method without adding requirements. Application repositories own their concrete design, administrator procedures and exact-version evidence. Historical experiments do not govern new implementation.
+
 `src/content/spec.ts`, rendered by `src/pages/[lang]/spec.astro`, explains the application contract for website readers. It is neither a runtime implementation nor a second normative source. The startup mechanism is one contribution to Bartl, not its complete definition.
 
 The landing page currently concentrates on that mechanism and the WordPress example. The derivation explains its reasoning and history. Neither page adds requirements to the canonical contracts. Website changes must preserve that distinction; a reference demonstrates only its stated product configuration.
