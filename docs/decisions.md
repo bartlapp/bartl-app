@@ -10,15 +10,27 @@ A lightweight record of non-obvious choices for this repo. Not formal ADRs - a f
 
 `src/content/spec.ts`, rendered by `src/pages/[lang]/spec.astro`, explains the application contract for website readers. It is neither a runtime implementation nor a second normative source. The startup mechanism is one contribution to Bartl, not its complete definition.
 
-The homepage derives the operating approach from useful work and retained freedom to act: healthy components do not establish a complete service, nominal alternatives do not establish usable choices, and repeatable operation needs maintained application procedures, usable infrastructure and responsible organization. Continuing maintenance precedes the recovery example. Keycloak supplies separate application-package evidence. Startup pseudocode belongs on the technical Contract page. WordPress is removed from the current reader journey; historical publication records below remain historical evidence.
+The homepage starts from resilience and sovereignty as requirements, then derives the operating consequences for applications, infrastructure and responsibility. Continuing maintenance precedes the recovery example. Keycloak supplies separate application-package evidence. Startup pseudocode belongs on the technical Contract page. WordPress is removed from the current reader journey; historical publication records below remain historical evidence.
 
 Historical talks and product contexts provide provenance. They do not define a second version of Bartl.
+
+## North Star: take resilience and sovereignty seriously
+
+The governing question is: "What would operating IT look like if we took resilience and sovereignty seriously?" Its consequence is: "If we treat them as requirements, what must change in how we build applications, provide infrastructure and organize responsibility?"
+
+Requirements establish what is needed; claims describe what evidence can substantiate. The explanation therefore starts with requirements, not with a challenge to existing claims. It derives useful work beyond component health, usable alternatives beyond contractual permission, dependable organizational capability beyond specialist improvisation, and continuing maintenance beyond a one-time demonstration. The limits remain explicit: prepare for specified conditions, not every conceivable failure or complete independence.
+
+Preserve the agreed causal wording when transferring it to the website and Approach pages. Do not turn it into a new writing brief, a slogan or a list of preferred mechanisms. Keep observation and consequence together; examples develop the argument rather than replace it. The application contract remains unchanged.
+
+The focused revision places this question and its four consequences directly at the beginning of both homepages and both Approach pages. It replaces the generic introduction and restores explicit causal wording about whole-service responsibility, changing prerequisites and reuse of operating procedures. The opening uses a readable single-column layout rather than splitting its reasoning into separate display blocks.
+
+Verification of this revision: Astro check reported zero errors, warnings or hints and the build produced 14 pages. German prose lint passed. Both homepages and Approach pages were exercised at 320, 390, 768 and 1440 pixels without horizontal overflow. Desktop English and mobile German openings were visually inspected; language switching, the link into the operating explanation, recovery-example expansion and onward navigation to Approach worked without browser errors. No publication was performed.
 
 ## Explain the operating model before demonstrating recovery
 
 On 31 October, after publication of `f436267`, Florian reopened the explanation, not just its visual treatment. Existing wording, pictures and page structure are no longer constraints. The earlier reviews established fidelity and visual improvement, but did not establish that a newcomer could explain what to do differently and why.
 
-The revised bilingual homepage first establishes the gap between functioning components and useful service, then between a nominal choice and a prepared alternative. Application, infrastructure and organizational contributions follow from those gaps. Continuing maintenance explains why the capability must survive changes in software, dependencies and responsibility.
+The first causal revision, `9f46c92`, established the gap between functioning components and useful service, then between a nominal choice and a prepared alternative. The subsequent North Star revision replaces its generic introduction with the agreed requirements argument. Application, infrastructure and organizational contributions develop that argument; continuing maintenance explains how the capability survives change.
 
 Replacement updates and provider-loss recovery now demonstrate the approach rather than define it. Their main lessons remain visible; native expandable sections carry the existing detailed pictures and conditions. The document service stays illustrative, and Keycloak evidence retains its exact package scope. The Approach pages carry the same causal links into the existing detailed philosophy. Implement and Contract remain unchanged because the application behavior and integration method have not changed.
 

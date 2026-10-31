@@ -2,15 +2,22 @@
 
 # Bartl: handlungsfähig bleiben
 
-Menschen müssen ihre Arbeit erledigen können. Sie müssen ihre Daten nutzen, zusammenarbeiten und Ergebnisse liefern können, auch wenn sich Software, Provider und Anforderungen ändern. Wir sollten eine Anwendung aktualisieren, einen ungeeigneten Dienstleister ersetzen oder eine Störung überwinden können, ohne erst erfinden zu müssen, wie der Service dabei nutzbar bleibt.
+Wie sähe IT-Betrieb aus, wenn wir Resilienz und Souveränität ernst nähmen?
 
-Dafür brauchen wir einen vollständigen Service, nicht nur gesunde Komponenten. Eine Anwendung kann laufen, während Menschen sich nicht anmelden, ihre Daten nicht erreichen oder eine erforderliche Abhängigkeit nicht nutzen können. Der Zustand einer Komponente ist wichtig, weil sie zur nutzbaren Leistung beiträgt. Er ist nicht das Ergebnis, das wir erhalten wollen.
+Wenn wir sie als Anforderungen behandeln, was muß sich daran ändern, wie wir Anwendungen bauen, Infrastruktur bereitstellen und Verantwortung organisieren?
 
-Resilienz bedeutet, daß wir die erforderliche Arbeit trotz einer Störung fortsetzen oder innerhalb vertretbarer Grenzen für Unterbrechung und Datenverlust wiederaufnehmen können. Souveränität bedeutet, selbst darüber entscheiden zu können, wie wir IT nutzen. Dazu gehört, eine untragbare Betriebsvereinbarung ablehnen zu können, ohne den Service zu verlieren. Ein vertragliches Recht zum Ausstieg gibt uns wenig Freiheit, wenn es kein nutzbares Ziel gibt. Wir brauchen eine Alternative, deren Software, Daten, Infrastruktur, Zugang und Betriebsverantwortung so weit vorbereitet sind, daß wir sie innerhalb der akzeptierten Grenzen nutzen können.
+Diese Anforderungen ernst zu nehmen heißt, ihre Konsequenzen anzunehmen:
 
-Ein Spezialist weiß vielleicht, wie das einmal gelingt. Damit hat das Betriebsteam noch keine wiederholbar nutzbare Fähigkeit. Das technische Wissen muß in gepflegte Verfahren übergehen, die das vorgesehene Team mit den verfügbaren Menschen und Mitteln ausführen und prüfen kann. Entscheidungen und unerwartete Bedingungen brauchen weiterhin Urteilsvermögen. Der gewöhnliche Betrieb darf nicht davon abhängen, daß jemand den Lösungsweg immer wieder aus dem Gedächtnis zusammensetzt.
+- Wenn wir Resilienz verlangen, genügt es nicht, Komponenten am Laufen zu halten. Menschen müssen die erforderliche Arbeit fortsetzen oder innerhalb von Grenzen wiederaufnehmen können, die wir tatsächlich einhalten können.
+- Wenn wir Souveränität verlangen, genügt eine Wahlmöglichkeit auf dem Papier nicht. Wir müssen eine untragbare Vereinbarung ablehnen können, ohne den Service zu verlieren, auf den wir angewiesen sind.
+- Wenn eine dieser Fähigkeiten davon abhängt, daß ein bestimmter Spezialist improvisiert, haben wir daraus noch keine verläßliche Fähigkeit der Organisation gemacht.
+- Wenn wir die Fähigkeit einmal nachweisen und ihre Voraussetzungen danach verfallen lassen, belegt der frühere Nachweis nicht mehr unsere heutige Fähigkeit.
 
-Bartl denkt von diesem Ergebnis zurück. Die Anwendung muß ihr eigenes Betriebswissen bereitstellen, die Infrastruktur die dafür nutzbaren Bedingungen schaffen und die Organisation Verantwortung, Befugnisse und Mittel regeln. Erst ihr Zusammenwirken kann den Service liefern. Bartl ist diese Betriebsphilosophie, keine bestimmte Runtime und keine Behauptung, daß diese Praktiken neu seien.
+Deshalb brauchen wir Anwendungsverfahren, vorbereitete Infrastruktur, Befugnisse, Ressourcen und fortlaufende Übungen. Sie folgen daraus, daß wir die Anforderungen ernst nehmen, nicht aus einer Sammlung bevorzugter Engineering-Praktiken.
+
+Sie ernst zu nehmen bedeutet nicht, jede Abhängigkeit zu beseitigen oder jeden denkbaren Ausfall zu überstehen. Es bedeutet festzulegen, was wir bewältigen müssen, die nötigen Vorkehrungen zu treffen, ihre Wirksamkeit nachzuweisen und ehrlich mit den verbleibenden Abhängigkeiten umzugehen.
+
+Bartl leitet aus diesen Anforderungen die folgenden Beiträge ab. Es ist eine Betriebsphilosophie, keine bestimmte Runtime und keine Behauptung, daß diese Praktiken neu seien.
 
 ## Was muß die Anwendung leisten?
 

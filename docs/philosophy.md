@@ -2,15 +2,22 @@
 
 # Bartl: retaining the ability to act
 
-People need to get their work done: use their data, collaborate and deliver results. They also need to keep doing that as software, providers and requirements change. We should be able to update an application, replace an unsuitable service provider or recover from a disruption without first having to invent how to keep the service usable.
+What would operating IT look like if we took resilience and sovereignty seriously?
 
-That requires a complete service, not just healthy components. An application can be running while people cannot sign in, reach their data or use a required dependency. Component health matters because it contributes to useful work; it is not the result we are trying to preserve.
+If we treat them as requirements, what must change in how we build applications, provide infrastructure and organize responsibility?
 
-Resilience means that we can continue the required work despite disruption, or recover within acceptable interruption and data-loss limits. Sovereignty means retaining the ability to decide how we use IT, including rejecting an unacceptable operating arrangement without losing the service. A contractual right to leave gives us little freedom if there is nowhere usable to go. We need an alternative whose software, data, infrastructure, access and operating responsibility are prepared well enough to use within the limits we accept.
+Taking these requirements seriously means accepting their consequences:
 
-A specialist may know how to achieve this once. That does not yet give the operating team a repeatable capability. The technical knowledge must become maintained procedures that the intended team can execute and check with the people and resources available. Judgment remains necessary for decisions and unexpected conditions; ordinary operation must not depend on someone repeatedly reconstructing the method from memory.
+- If we require resilience, keeping components running is insufficient. People must be able to continue the required work, or resume it within limits we can actually meet.
+- If we require sovereignty, having a choice on paper is insufficient. We must be able to reject an unacceptable arrangement without losing the service we depend on.
+- If either capability depends on a particular specialist improvising, we have not yet made it a dependable organizational capability.
+- If we demonstrate it once and then let its prerequisites decay, the earlier demonstration no longer establishes our present capability.
 
-Bartl works backwards from that outcome. The application must supply its own operating knowledge, the infrastructure must provide usable conditions for it, and the organization must arrange responsibility, authority and resources. Only their combined operation can deliver the service. Bartl is this operating philosophy, not a particular runtime or a claim that these practices are new.
+That is why application procedures, prepared infrastructure, authority, resources and continuing exercises enter the argument. They are consequences of taking the requirements seriously, not a collection of preferred engineering practices.
+
+Taking them seriously does not mean eliminating every dependency or surviving every conceivable failure. It means specifying what we need to withstand, making the necessary arrangements, demonstrating that they work, and being honest about the dependencies we retain.
+
+Bartl works backwards from these requirements to the contributions below. It is an operating philosophy, not a particular runtime or a claim that these practices are new.
 
 ## What must the application provide?
 

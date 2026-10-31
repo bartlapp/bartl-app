@@ -2,16 +2,26 @@
 export const landingCopy = {
   en: {
     eyebrow: "Bartl / an operating philosophy",
-    title: ["Dependable work.", "Room to choose."],
-    lead: "People need services they can rely on for everyday work. They also need to remain able to change how those services are provided.",
-    introduction: "Bartl connects applications, infrastructure and responsibility. Together they must keep the service useful and make alternatives usable, rather than leave the next change to improvisation.",
+    title: "What would operating IT look like if we took resilience and sovereignty seriously?",
+    lead: "If we treat them as requirements, what must change in how we build applications, provide infrastructure and organize responsibility?",
+    requirements: {
+      premise: "Taking these requirements seriously means accepting their consequences:",
+      consequences: [
+        "If we require resilience, keeping components running is insufficient. People must be able to continue the required work, or resume it within limits we can actually meet.",
+        "If we require sovereignty, having a choice on paper is insufficient. We must be able to reject an unacceptable arrangement without losing the service we depend on.",
+        "If either capability depends on a particular specialist improvising, we have not yet made it a dependable organizational capability.",
+        "If we demonstrate it once and then let its prerequisites decay, the earlier demonstration no longer establishes our present capability.",
+      ],
+      conclusion: "That is why application procedures, prepared infrastructure, authority, resources and continuing exercises enter the argument. They are consequences of taking the requirements seriously, not a collection of preferred engineering practices.",
+      boundary: "Taking them seriously does not mean eliminating every dependency or surviving every conceivable failure. It means specifying what we need to withstand, making the necessary arrangements, demonstrating that they work, and being honest about the dependencies we retain.",
+    },
     approachLink: "Explore the approach",
-    storyLink: "Start with the work",
+    storyLink: "What this means in operation",
     problem: {
       label: "01 / Start with the result",
       title: "Working parts are not yet a working service.",
       lead: "Someone needs to find a shared document, read it and save a change. A running application is not enough if sign-in fails, the document is missing or its permissions prevent the edit. Each part can meet its own specification while the person still cannot work.",
-      consequence: "Define the useful result first. Then establish which contributions must work together, and check that result rather than just the health of the parts.",
+      consequence: "Therefore someone must ensure that application, data, access and dependencies work together. Responsibility for the parts does not replace responsibility for the useful result.",
     },
     choice: {
       label: "02 / Retain the ability to act",
@@ -26,7 +36,7 @@ export const landingCopy = {
     contributions: {
       label: "03 / Make the contributions fit",
       title: "No single layer can supply the whole.",
-      lead: "Repeatable technical knowledge must become maintained procedures. Otherwise every change depends on a specialist reconstructing what to do.",
+      lead: "Recurring technical knowledge must become maintained procedures, supported by usable infrastructure and clear authority. The contributions below address different parts of that requirement.",
       items: [
         { title: "Application", gap: "A backup alone does not explain how to rebuild a usable application.", action: "Maintain supported procedures for consistent capture, reconstruction, startup and updates. Use native tools; automate repeatable technical steps and check the usable result." },
         { title: "Infrastructure", gap: "A portable application cannot create missing capacity or reach an unavailable dependency.", action: "Supply the capabilities the application declares through supported machine interfaces. Prepare usable storage, connectivity, access and required integrations at the target." },
@@ -36,8 +46,8 @@ export const landingCopy = {
     },
     upkeep: {
       label: "04 / Keep the capability alive",
-      title: "Preparation decays unless it is used.",
-      lead: "Releases, dependencies, access and people change. Yesterday's successful exercise does not keep today's alternative ready.",
+      title: "Keep pace with what changes.",
+      lead: "Preparation decays as applications, dependencies and organizations change. Therefore this is continuing operational work, not a one-off migration or recovery project.",
       steps: [
         { title: "Follow changes", detail: "Update procedures, inputs and responsibilities when the service or its environment changes." },
         { title: "Exercise the path", detail: "Use ordinary maintenance where useful. Check whether people can do the agreed work, and measure interruption and recovered data." },
@@ -48,7 +58,7 @@ export const landingCopy = {
     demonstration: {
       label: "05 / An illustration",
       title: "An ordinary update can exercise reconstruction.",
-      lead: "For the document service, one useful choice is to build the next release as a replacement instead of changing the running installation.",
+      lead: "Maintaining alternatives costs effort. Installation, updates and recovery need much of the same knowledge, so reuse their common procedures and make routine work exercise them where worthwhile. For the document service, one option is to build the next release as a replacement.",
       recoverySummary: "Restore a consistent recovery point, perform the supported update and verify the same document, permissions and editing work before switching service. Routine work then also exercises a way to reconstruct the application.",
       lossSummary: "Losing the provider adds another test. Inputs and execution must survive independently; the destination, user access and dependencies must be usable. Control must allow the old installation's production authority to be withdrawn without its provider.",
       lesson: "This is one way to practise the philosophy, not its definition. If replacement costs too much, update in place and exercise reconstruction separately.",
@@ -127,16 +137,26 @@ export const landingCopy = {
   },
   de: {
     eyebrow: "Bartl / eine Betriebsphilosophie",
-    title: ["Verläßlich arbeiten.", "Handlungsfähig bleiben."],
-    lead: "Menschen brauchen Services, mit denen sie ihre tägliche Arbeit verläßlich erledigen können. Sie müssen auch ändern können, wie diese Services bereitgestellt werden.",
-    introduction: "Bartl verbindet Anwendung, Infrastruktur und Verantwortung. Zusammen müssen sie den Service nützlich und Alternativen nutzbar halten, statt die nächste Änderung der Improvisation zu überlassen.",
+    title: "Wie sähe IT-Betrieb aus, wenn wir Resilienz und Souveränität ernst nähmen?",
+    lead: "Wenn wir sie als Anforderungen behandeln, was muß sich daran ändern, wie wir Anwendungen bauen, Infrastruktur bereitstellen und Verantwortung organisieren?",
+    requirements: {
+      premise: "Diese Anforderungen ernst zu nehmen heißt, ihre Konsequenzen anzunehmen:",
+      consequences: [
+        "Wenn wir Resilienz verlangen, genügt es nicht, Komponenten am Laufen zu halten. Menschen müssen die erforderliche Arbeit fortsetzen oder innerhalb von Grenzen wiederaufnehmen können, die wir tatsächlich einhalten können.",
+        "Wenn wir Souveränität verlangen, genügt eine Wahlmöglichkeit auf dem Papier nicht. Wir müssen eine untragbare Vereinbarung ablehnen können, ohne den Service zu verlieren, auf den wir angewiesen sind.",
+        "Wenn eine dieser Fähigkeiten davon abhängt, daß ein bestimmter Spezialist improvisiert, haben wir daraus noch keine verläßliche Fähigkeit der Organisation gemacht.",
+        "Wenn wir die Fähigkeit einmal nachweisen und ihre Voraussetzungen danach verfallen lassen, belegt der frühere Nachweis nicht mehr unsere heutige Fähigkeit.",
+      ],
+      conclusion: "Deshalb brauchen wir Anwendungsverfahren, vorbereitete Infrastruktur, Befugnisse, Ressourcen und fortlaufende Übungen. Sie folgen daraus, daß wir die Anforderungen ernst nehmen, nicht aus einer Sammlung bevorzugter Engineering-Praktiken.",
+      boundary: "Sie ernst zu nehmen bedeutet nicht, jede Abhängigkeit zu beseitigen oder jeden denkbaren Ausfall zu überstehen. Es bedeutet festzulegen, was wir bewältigen müssen, die nötigen Vorkehrungen zu treffen, ihre Wirksamkeit nachzuweisen und ehrlich mit den verbleibenden Abhängigkeiten umzugehen.",
+    },
     approachLink: "Den Ansatz verstehen",
-    storyLink: "Bei der Arbeit beginnen",
+    storyLink: "Was daraus für den Betrieb folgt",
     problem: {
       label: "01 / Vom Ergebnis ausgehen",
       title: "Funktionierende Teile sind noch kein nutzbarer Service.",
       lead: "Jemand muß ein gemeinsames Dokument finden, lesen und eine Änderung speichern. Eine laufende Anwendung reicht nicht, wenn die Anmeldung scheitert, das Dokument fehlt oder seine Berechtigungen die Bearbeitung verhindern. Jeder Teil kann seine Vorgaben erfüllen, während der Mensch trotzdem nicht arbeiten kann.",
-      consequence: "Zuerst das nützliche Ergebnis bestimmen. Dann klären, welche Beiträge dafür zusammenwirken müssen, und dieses Ergebnis prüfen statt nur den Zustand der Teile.",
+      consequence: "Deshalb muß jemand dafür sorgen, daß Anwendung, Daten, Zugang und Abhängigkeiten zusammenwirken. Verantwortung für die Teile ersetzt nicht die Verantwortung für das nutzbare Ergebnis.",
     },
     choice: {
       label: "02 / Handlungsfähig bleiben",
@@ -151,7 +171,7 @@ export const landingCopy = {
     contributions: {
       label: "03 / Die Beiträge verbinden",
       title: "Keine Ebene liefert das Ganze allein.",
-      lead: "Wiederholbares technisches Wissen muß in gepflegte Verfahren eingehen. Sonst hängt jede Änderung davon ab, daß ein Spezialist die nötigen Schritte neu zusammensetzt.",
+      lead: "Wiederkehrendes technisches Wissen muß in gepflegte Verfahren übergehen, getragen von nutzbarer Infrastruktur und klaren Befugnissen. Die folgenden Beiträge erfüllen unterschiedliche Teile dieser Anforderung.",
       items: [
         { title: "Anwendung", gap: "Eine Sicherung allein erklärt nicht, wie daraus wieder eine nutzbare Anwendung wird.", action: "Unterstützte Verfahren für konsistente Sicherung, Rekonstruktion, Start und Updates pflegen. Native Werkzeuge nutzen, wiederholbare technische Schritte automatisieren und das nutzbare Ergebnis prüfen." },
         { title: "Infrastruktur", gap: "Eine portable Anwendung beschafft weder fehlende Kapazität noch eine unerreichbare Abhängigkeit.", action: "Die von der Anwendung benannten Fähigkeiten über unterstützte Maschinenschnittstellen bereitstellen. Nutzbaren Storage, Konnektivität, Zugang und erforderliche Integrationen am Ziel vorbereiten." },
@@ -161,8 +181,8 @@ export const landingCopy = {
     },
     upkeep: {
       label: "04 / Die Fähigkeit erhalten",
-      title: "Vorbereitung verfällt, wenn sie ungenutzt bleibt.",
-      lead: "Releases, Abhängigkeiten, Zugänge und Menschen ändern sich. Eine gestern erfolgreiche Übung hält die heutige Alternative nicht einsatzbereit.",
+      title: "Mit den Änderungen Schritt halten.",
+      lead: "Vorbereitung verfällt, weil sich Anwendungen, Abhängigkeiten und Organisationen ändern. Deshalb ist dies dauerhafte Betriebsarbeit, kein einmaliges Migrations- oder Wiederherstellungsprojekt.",
       steps: [
         { title: "Änderungen nachführen", detail: "Verfahren, Grundlagen und Zuständigkeiten anpassen, wenn sich der Service oder seine Umgebung ändert." },
         { title: "Den Weg erproben", detail: "Gewöhnliche Wartung nutzen, wo es sinnvoll ist. Prüfen, ob Menschen die vereinbarte Arbeit erledigen können, und Unterbrechung sowie wiederhergestellte Daten messen." },
@@ -173,7 +193,7 @@ export const landingCopy = {
     demonstration: {
       label: "05 / Ein veranschaulichendes Beispiel",
       title: "Ein gewöhnliches Update kann die Rekonstruktion üben.",
-      lead: "Beim Dokumentenservice bietet es sich an, das nächste Release als Ersatz aufzubauen, statt die laufende Installation zu verändern.",
+      lead: "Alternativen nutzbar zu halten kostet Aufwand. Installation, Updates und Wiederherstellung brauchen zu großen Teilen dasselbe Wissen. Deshalb ihre gemeinsamen Verfahren nachnutzen und sie durch Routinearbeit erproben, wo es sich lohnt. Beim Dokumentenservice kann dafür das nächste Release als Ersatz aufgebaut werden.",
       recoverySummary: "Einen konsistenten Sicherungspunkt wiederherstellen, das unterstützte Update ausführen und vor der Umschaltung dasselbe Dokument, seine Berechtigungen und die Bearbeitung prüfen. Die Routinearbeit übt damit auch einen Weg, die Anwendung zu rekonstruieren.",
       lossSummary: "Der Verlust des Providers stellt eine weitere Anforderung. Grundlagen und Ausführung müssen unabhängig verfügbar bleiben; Ziel, Nutzerzugang und Abhängigkeiten müssen nutzbar sein. Die produktive Berechtigung der alten Installation muß sich ohne ihren Provider entziehen lassen.",
       lesson: "Das ist eine Möglichkeit, die Philosophie zu praktizieren, nicht ihre Definition. Kostet der Ersatz zu viel, erfolgt das Update in-place und die Rekonstruktion wird gesondert geübt.",
