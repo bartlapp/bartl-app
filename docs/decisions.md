@@ -10,13 +10,13 @@ A lightweight record of non-obvious choices for this repo. Not formal ADRs - a f
 
 `src/content/spec.ts`, rendered by `src/pages/[lang]/spec.astro`, explains the application contract for website readers. It is neither a runtime implementation nor a second normative source. The startup mechanism is one contribution to Bartl, not its complete definition.
 
-The homepage leads with usable service and retained freedom to act, then connects application, infrastructure and responsibility. A bounded Keycloak example makes the approach concrete. Startup pseudocode and the historical WordPress example belong on the technical Contract page, not in the homepage's main argument.
+The homepage leads with usable service and retained freedom to act, then connects application, infrastructure and responsibility through an illustrative document service. A separate, bounded Keycloak evidence section demonstrates application-package behavior. Startup pseudocode belongs on the technical Contract page. WordPress is removed from the current reader journey; historical publication records below remain historical evidence.
 
 Historical talks and product contexts provide provenance. They do not define a second version of Bartl.
 
 ## Documentation alignment and remaining work
 
-The 31 October 2026 correction aligns the local contract and both website languages with native startup and bounded failure handling. WordPress is a historical mechanism example, not a qualified implementation of the current contract; its README and the website describe the actual checksum, publication and migration limits.
+The 31 October 2026 correction aligned the local contract and both website languages with native startup and bounded failure handling. At that stage the website documented the historical WordPress mechanism and its checksum, publication and migration limits; it did not qualify that implementation under the current contract.
 
 The correctness candidate `8c66e3f715c34e40c3462cdcc4d925ba6a164a8d` and WordPress correction `890080350dd637c8db21f09c9b6fae236d0d4dff` were published on 31 October. Codeberg and GitHub mirror heads matched; [deployment 41203824566](https://github.com/bartlapp/bartl-app/actions/runs/41203824566) succeeded. The live DE/EN landing and specification pages exposed the exact candidate and corrected content.
 
@@ -44,6 +44,10 @@ Florian accepted the document-service candidate `149a264`, retaining its design 
 Both languages now use the same visual component and language-specific copy in `src/content/landing.ts`. The obsolete German layout and copy are removed. The illustrative document service remains distinct from exercised Keycloak package evidence.
 
 Local verification on 31 October: Astro check reported no diagnostics; the static build generated 14 pages. Both languages were visually inspected at desktop and mobile sizes. Layout checks at 320, 390, 768 and 1440 pixels found no overflow after adding language-aware hyphenation and wrapping for long German words. All five distinct main-content links and anchors per language resolved, including the language-specific Keycloak section. No browser errors were recorded. The bilingual candidate remains local; publication is not authorized.
+
+The subsequent visual revision uses recurring document, file/database and permission objects instead of labelled containers and a numbered step list. Reconstruction preserves recognizable state while changing the application release. Provider-loss pictures distinguish the withdrawn source from surviving recovery inputs, execution, access and dependencies. The production path visibly closes at the old installation while the replacement alone receives production traffic. Supporting text retains consistency, final-write coordination, authorization and independent-enforcement conditions. These remain illustrations, not new qualification evidence.
+
+The picture revision was inspected in both languages at desktop and mobile sizes, including dark mode. Bounds checks at 320, 390, 768 and 1440 pixels found no page overflow or clipped SVG labels. Across the eight main language/page combinations, all 104 checked internal links and anchors resolved; neither visible text nor HTML contained WordPress. Astro check reported no diagnostics, the build generated 14 pages, and German prose lint passed. Browser inspection corrected clipped labels and routes crossing labels before the local candidate was retained.
 
 
 ## German and English pages share their structure

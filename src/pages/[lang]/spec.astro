@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import InteractivePseudoCode from "@/components/InteractivePseudoCode.astro";
 import { specCopy } from "@/content/spec";
-import { SITE } from "@/data/constants";
 import { languages, type Lang } from "@/i18n/ui";
 import MainLayout from "@/layouts/MainLayout.astro";
 
@@ -136,28 +135,6 @@ const c = specCopy[lang];
             <li class="border-primary border-l-2 pl-4 leading-relaxed">{item}</li>
           ))}
         </ul>
-      </section>
-
-      <section id="reference" aria-labelledby="reference-title" class="border-base-300 scroll-mt-24 border-t py-12 sm:py-16">
-        <h2 id="reference-title" class="text-3xl leading-tight">{c.referenceTitle}</h2>
-        <p class="text-base-content/70 mt-4 max-w-3xl leading-relaxed">{c.referenceIntro}</p>
-        <dl class="border-base-300 mt-8 border-t">
-          {c.referenceRows.map(([term, detail]) => (
-            <div class="border-base-300 grid gap-2 border-b py-5 sm:grid-cols-3 sm:gap-8">
-              <dt class="font-mono text-sm">{term}</dt>
-              <dd class="text-base-content/70 leading-relaxed sm:col-span-2">{detail}</dd>
-            </div>
-          ))}
-        </dl>
-        <a
-          href={SITE.reference}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={c.referenceAria}
-          class="btn btn-primary mt-8 focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-4"
-        >
-          {c.referenceLink}
-        </a>
       </section>
 
       <section id="boundary" aria-labelledby="boundary-title" class="border-base-300 scroll-mt-24 border-t py-12 sm:py-16">

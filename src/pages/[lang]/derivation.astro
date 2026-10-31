@@ -24,15 +24,7 @@ const description = lang === "de"
   <DocumentArticle lang={lang} eyebrow={title} headings={headings}>
     <Content />
     <Fragment slot="after">
-      <h2>{lang === "de" ? "Entstehung" : "Origins"}</h2>
       <p>
-        {lang === "de"
-          ? "Die Betriebsfrage reicht bis 2022 zurück. Installation, Änderung und Wiederherstellung sollten reproduzierbar werden, statt getrennte, von Einzelpersonen abhängige Verfahren zu bleiben. 2026 wurde der Anwendungs-Startpfad als abgegrenzter technischer Baustein mit einer öffentlichen WordPress-Referenz beschrieben."
-          : "The operating question dates back to 2022: installation, change and recovery should become reproducible rather than remain separate procedures dependent on individuals. In 2026, the application startup path was described as a bounded technical mechanism with a public WordPress reference."}
-      </p>
-      <p>
-        <a href="https://codeberg.org/bartlapp/bartl-wordpress">{lang === "de" ? "WordPress-Referenz" : "WordPress reference"}</a>
-        {" · "}
         <a href={`/${lang}/implement/`}>{lang === "de" ? "Eine Anwendung bartlisieren" : "Bartlize an application"}</a>
         {" · "}
         <a href={`/${lang}/spec/`}>{lang === "de" ? "Anwendungsvertrag" : "Application contract"}</a>

@@ -1,0 +1,183 @@
+---
+// SPDX-License-Identifier: Apache-2.0
+import ServiceGlyph from "./ServiceGlyph.astro";
+import type { landingCopy } from "@/content/landing";
+import type { Lang } from "@/i18n/ui";
+interface Props { kind: "hero" | "recovery" | "loss"; copy: (typeof landingCopy)[Lang] }
+const { kind, copy: c } = Astro.props;
+const p = c.pictures;
+---
+{kind === "hero" && <div class="hero-picture">
+  <svg viewBox="0 0 320 280" role="img" aria-label={p.heroAlt}>
+    <path class="route" d="M62 92h55m-8-6 8 6-8 6"/>
+    <ServiceGlyph kind="person" x={12} y={52}/>
+    <ServiceGlyph kind="application" x={122} y={40}/>
+    <ServiceGlyph kind="document" x={151} y={64}/>
+    <ServiceGlyph kind="key" x={199} y={66} scale={0.5}/>
+    <circle cx="272" cy="77" r="17"/><path d="m264 77 6 6 11-12"/>
+    <path class="branch" d="M234 91h19M179 130v54m-6-8 6 8 6-8"/>
+    <ServiceGlyph kind="state" x={140} y={195}/>
+    <text x="12" y="149">{p.person}</text>
+    <text x="178" y="26" text-anchor="middle">{p.application}</text>
+    <text x="272" y="123" text-anchor="middle">{p.signIn}</text>
+    <text x="181" y="270" text-anchor="middle">{p.filesDatabase}</text>
+  </svg>
+  <p class="result-label">{c.service.applicationDetail}</p>
+  <p class="support">{p.keyMeaning}{" "}{c.service.access}.{" "}{p.authSupport}</p>
+</div>}
+{kind === "recovery" && <div>
+  <div class="scenes">
+    <figure class="scene">
+      <h3>{p.capture}</h3>
+      <svg viewBox="0 0 300 260" role="img" aria-label={p.captureAlt}>
+        <ServiceGlyph kind="application" x={90} y={12}/>
+        <ServiceGlyph kind="document" x={119} y={36}/>
+        <ServiceGlyph kind="key" x={218} y={54} scale={0.65}/>
+        <path class="route" d="M146 106v35m-6-8 6 8 6-8"/>
+        <path class="capture" d="M48 155h205v93H48z"/>
+        <ServiceGlyph kind="state" x={79} y={173}/>
+        <ServiceGlyph kind="key" x={191} y={183} scale={0.7}/>
+      </svg>
+      <figcaption><span class="scene-label">{p.onePoint}</span>{c.maintenance.sourceDetail}</figcaption>
+    </figure>
+    <figure class="scene">
+      <h3>{p.reconstruct}</h3>
+      <svg viewBox="0 0 300 260" role="img" aria-label={p.reconstructAlt}>
+        <g class="empty"><ServiceGlyph kind="application" x={90} y={12}/><path d="M126 40h40v45h-40z"/></g>
+        <path class="route" d="M146 151v-40m-6 8 6-8 6 8"/>
+        <path class="capture" d="M48 155h205v93H48z"/>
+        <ServiceGlyph kind="state" x={79} y={173}/>
+        <ServiceGlyph kind="key" x={191} y={183} scale={0.7}/>
+      </svg>
+      <figcaption><span class="scene-label">{p.emptyTarget}</span>{p.reconstructDetail}</figcaption>
+    </figure>
+    <figure class="scene">
+      <h3>{p.verify}</h3>
+      <svg viewBox="0 0 300 260" role="img" aria-label={p.verifyAlt}>
+        <ServiceGlyph kind="application" x={90} y={12}/>
+        <path class="new-release" d="M91 28h110"/>
+        <ServiceGlyph kind="document" x={119} y={36}/>
+        <ServiceGlyph kind="key" x={218} y={54} scale={0.65}/>
+        <ServiceGlyph kind="person" x={17} y={30}/>
+        <path class="route" d="M65 65h23m-8-6 8 6-8 6M146 106v39m-6-8 6 8 6-8"/>
+        <ServiceGlyph kind="state" x={79} y={173}/>
+        <ServiceGlyph kind="key" x={191} y={183} scale={0.7}/>
+        <path class="check" d="m227 133 10 10 23-26"/>
+      </svg>
+      <figcaption><span class="scene-label">{c.maintenance.targetDetail}</span>{p.verifyDetail}</figcaption>
+    </figure>
+  </div>
+  <div class="authority">
+    <div>
+      <h3>{p.afterVerification}</h3>
+      <svg viewBox="0 0 300 290" role="img" aria-label={p.authorityAlt}>
+        <ServiceGlyph kind="person" x={137} y={0} scale={0.7}/>
+        <path class="route" d="M150 50v20h85v83m-6-8 6 8 6-8"/>
+        <path class="branch" d="M150 70H65v23M65 123v30"/>
+        <path class="closed" d="M43 99h44v19H43zM48 102l34 13"/>
+        <text x="65" y="263" text-anchor="middle">{p.old}</text>
+        <text x="235" y="263" text-anchor="middle">{p.new}</text>
+        <g opacity="0.5">
+          <ServiceGlyph kind="application" x={15} y={161} scale={0.9}/>
+          <ServiceGlyph kind="document" x={40} y={183} scale={0.9}/>
+          <ServiceGlyph kind="key" x={88} y={190} scale={0.5}/>
+        </g>
+        <ServiceGlyph kind="application" x={185} y={161} scale={0.9}/>
+        <ServiceGlyph kind="document" x={210} y={183} scale={0.9}/>
+        <ServiceGlyph kind="key" x={258} y={190} scale={0.5}/>
+        <path class="check" d="m156 216 7 7 16-18"/>
+        <text x="65" y="285" text-anchor="middle">{p.closed}</text>
+        <text x="235" y="285" text-anchor="middle">{p.open}</text>
+      </svg>
+    </div>
+    <div class="authority-copy"><p>{c.maintenance.condition}</p><p>{p.enforcement}</p></div>
+  </div>
+</div>}
+{kind === "loss" && <div>
+  <div class="scenes loss-scenes">
+    <figure class="scene withdrawn">
+      <h3>{c.loss.source}</h3>
+      <svg viewBox="0 0 300 260" role="img" aria-label={p.withdrawnAlt}>
+        <path class="region" d="M18 4h265v246H18z"/>
+        <g opacity="0.35"><ServiceGlyph kind="application" x={90} y={12}/><ServiceGlyph kind="document" x={119} y={36}/><ServiceGlyph kind="key" x={218} y={54} scale={0.65}/><ServiceGlyph kind="state" x={79} y={173}/></g>
+        <path class="strike" d="m30 233 240-218M30 15l240 218"/>
+      </svg>
+      <figcaption>{c.loss.sourceDetail}</figcaption>
+    </figure>
+    <figure class="scene independent">
+      <h3>{p.independent}</h3>
+      <svg viewBox="0 0 300 260" role="img" aria-label={p.independentAlt}>
+        <path class="capture" d="M15 8h140v82H15z"/>
+        <ServiceGlyph kind="state" x={25} y={24}/><ServiceGlyph kind="key" x={120} y={38} scale={0.5}/>
+        <ServiceGlyph kind="key" x={204} y={24}/>
+        <text x="85" y="113" text-anchor="middle">{p.backup}</text>
+        <text x="225" y="82" text-anchor="middle">{p.keys}</text>
+        <path class="route" d="M85 120v18H63v11m-6-8 6 8 6-8M225 96v42H85M225 138v11m-6-8 6 8 6-8"/>
+        <path d="M32 151h62v34H32zM41 159l8 7-8 7m15 0h15M225 149v36m-10-27h20m-20 18h20"/>
+        <text x="63" y="204" text-anchor="middle"><tspan x="63">{p.executor.split(" + ")[0]} +</tspan><tspan x="63" dy="17">{p.executor.split(" + ")[1]}</tspan></text>
+        <text x="225" y="204" text-anchor="middle"><tspan x="225">{p.access.split(" + ")[0]} +</tspan><tspan x="225" dy="17">{p.access.split(" + ")[1]}</tspan></text>
+        <path class="route" d="M63 185v5M63 230v6h162v-6M225 190v-5"/>
+        <path class="route wide-route" d="M145 236h153m-8-6 8 6-8 6"/>
+        <path class="route stacked-route" d="M145 236v21m-6-8 6 8 6-8"/>
+      </svg>
+      <figcaption>{c.loss.inputs.map(input => <p><span class="scene-label">{input.title}</span>{input.detail}</p>)}</figcaption>
+    </figure>
+    <figure class="scene">
+      <h3>{c.loss.target}</h3>
+      <svg viewBox="0 0 300 260" role="img" aria-label={p.destinationAlt}>
+        <path class="route wide-route" d="M2 236h53V105h31m-8-6 8 6-8 6"/>
+        <path class="route stacked-route" d="M146 0v10"/>
+        <ServiceGlyph kind="application" x={90} y={12}/><ServiceGlyph kind="document" x={119} y={36}/><ServiceGlyph kind="key" x={218} y={54} scale={0.65}/>
+        <ServiceGlyph kind="person" x={17} y={30}/>
+        <path class="route" d="M65 65h23m-8-6 8 6-8 6M146 106v39m-6-8 6 8 6-8"/>
+        <ServiceGlyph kind="state" x={79} y={173}/><ServiceGlyph kind="key" x={191} y={183} scale={0.7}/>
+        <path class="check" d="m227 133 10 10 23-26"/>
+      </svg>
+      <figcaption><span class="scene-label">{c.loss.targetDetail}</span>{c.loss.targetQualification}<p>{c.loss.targetDependencies}.</p><p>{c.loss.result}.</p></figcaption>
+    </figure>
+  </div>
+  <p class="boundary">{c.loss.boundary}</p>
+</div>}
+<style>
+  svg { display: block; width: 100%; height: auto; color: var(--accent); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  text { fill: currentColor; stroke: none; font-family: inherit; font-size: 14px; }
+  .hero-picture { margin-top: 18px; }
+  .hero-picture svg { max-width: 420px; margin-inline: auto; }
+  .route { stroke-width: 3; }
+  .branch, .region { stroke-dasharray: 5 5; }
+  .capture { fill: var(--wash); stroke-width: 2; }
+  .empty { opacity: 0.5; stroke-dasharray: 4 5; }
+  .new-release { stroke-width: 7; }
+  .check { stroke-width: 4; }
+  .closed, .strike { color: light-dark(#914b3b, #e2a08e); stroke-width: 3; }
+  .scenes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+  .scene { min-width: 0; margin: 0; position: relative; }
+  h3 { font-size: 1rem; line-height: 1.4; font-weight: 600; min-height: 2.8em; }
+  .scene svg { margin-block: 16px; }
+  figcaption, .support { font-size: 0.85rem; line-height: 1.6; color: var(--muted); }
+  .scene-label { display: block; color: var(--ink); font-weight: 500; margin-bottom: 6px; }
+  figcaption p + p { margin-top: 12px; }
+  .result-label { font-weight: 500; margin-top: 14px; font-size: 0.95rem; }
+  .support { margin-top: 8px; }
+  .stacked-route { display: none; }
+  .authority { border-block: 1px solid var(--line); margin-top: 40px; padding-block: 24px; display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: center; }
+  .authority h3 { min-height: 0; margin-bottom: 16px; }
+  .authority-copy, .boundary { font-size: 0.9rem; line-height: 1.6; }
+  .authority-copy p + p { margin-top: 16px; }
+  .boundary { border-left: 3px solid var(--accent); padding-left: 20px; margin-top: 32px; max-width: 900px; }
+  @media (max-width: 760px) {
+    .scenes { grid-template-columns: 1fr; gap: 36px; }
+    .scene { display: grid; grid-template-columns: minmax(0, 300px) 1fr; column-gap: 24px; }
+    .scene h3 { grid-column: 1 / -1; min-height: 0; }
+    .scene figcaption { align-self: center; }
+    .authority { grid-template-columns: 1fr; gap: 24px; }
+    .authority svg { max-width: 300px; }
+    .wide-route { display: none; }
+    .stacked-route { display: initial; }
+  }
+  @media (max-width: 520px) {
+    .scene { display: block; }
+    .scene svg { max-width: 340px; margin-inline: auto; }
+    .scene + .scene { padding-top: 28px; border-top: 1px solid var(--line); }
+  }
+</style>

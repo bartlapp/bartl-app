@@ -6,7 +6,6 @@ export const SITE = {
   description:
     "Keep a complete service usable and retain useful alternatives through how we build applications, provide infrastructure and organize responsibility.",
   codeberg: "https://codeberg.org/bartlapp/bartl-app",
-  reference: "https://codeberg.org/bartlapp/bartl-wordpress",
 } as const;
 
 export const PRIMARY_NAVIGATION = [

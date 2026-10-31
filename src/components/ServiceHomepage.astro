@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { landingCopy } from "@/content/landing";
 import type { Lang } from "@/i18n/ui";
+import ServicePicture from "./ServicePicture.astro";
 interface Props {
   copy: (typeof landingCopy)[Lang];
   lang: Lang;
@@ -26,50 +27,7 @@ const { copy: c, lang } = Astro.props;
     <figure id="service" class="service-map">
       <figcaption class="eyebrow">{c.service.label}</figcaption>
       <h2>{c.service.title}</h2>
-      <div class="person-row">
-        <svg
-          viewBox="0 0 56 64"
-          width="48"
-          height="56"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          aria-hidden="true"
-          ><circle cx="28" cy="14" r="9"></circle><path
-            d="M10 58V43a18 18 0 0 1 36 0v15M20 44v14M36 44v14"></path></svg
-        >
-        <div>
-          <p>{c.service.person}</p><span class="outcome"
-            >{c.service.outcome}</span
-          >
-        </div>
-      </div>
-      <div class="path-label">{c.service.access}</div>
-      <div class="provider-frame">
-        <p class="frame-label">{c.service.provider}</p>
-        <div class="application-node">
-          <span class="node-mark" aria-hidden="true"
-            ><svg
-              viewBox="0 0 24 24"
-              width="24"
-              height="24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              ><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h6"></path></svg
-            ></span
-          ><div>
-            <h3>{c.service.application}</h3><p>{c.service.applicationDetail}</p>
-          </div>
-        </div>
-        <div class="state-node">
-          <p>{c.service.state}</p><small>{c.service.stateDetail}</small>
-        </div>
-      </div>
-      <div class="connection" aria-hidden="true"></div>
-      <div class="dependency-node">
-        <h3>{c.service.dependencies}</h3><p>{c.service.dependenciesDetail}</p>
-      </div>
+      <ServicePicture kind="hero" copy={c} />
       <p class="figure-note">{c.service.caption}</p>
     </figure>
   </header>
@@ -86,63 +44,8 @@ const { copy: c, lang } = Astro.props;
           {c.maintenance.title}
         </h2><p class="section-lead">{c.maintenance.lead}</p>
       </div>
-      <div class="replacement-track">
-        <div class="track-end source-end">
-          <span class="node-mark" aria-hidden="true"
-            ><svg
-              viewBox="0 0 24 24"
-              width="24"
-              height="24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              ><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h6"></path></svg
-            ></span
-          ><div>
-            <h3>{c.maintenance.source}</h3><p>{c.maintenance.sourceDetail}</p>
-          </div>
-        </div>
-        <ol class="recovery-steps">
-          {
-            c.maintenance.steps.map((step, index) => (
-              <li>
-                <>
-                  <span class="step-number" aria-hidden="true">
-                    {index + 1}
-                  </span>
-                  <div>
-                    <>
-                      <h3>{step.title}</h3>
-                      <p>{step.detail}</p>
-                      <span class="owner">{step.owner}</span>
-                    </>
-                  </div>
-                </>
-              </li>
-            ))
-          }
-        </ol>
-        <div class="track-end target-end">
-          <span class="node-mark" aria-hidden="true"
-            ><svg
-              viewBox="0 0 24 24"
-              width="24"
-              height="24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              ><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h6"></path></svg
-            ></span
-          ><div>
-            <h3>{c.maintenance.target}</h3><p>{c.maintenance.targetDetail}</p>
-          </div><span class="authority-mark" aria-hidden="true">✓</span>
-        </div>
-      </div>
-      <div class="maintenance-notes">
-        <p class="condition">{c.maintenance.condition}</p><p>
-          {c.maintenance.cost}
-        </p>
-      </div>
+      <div class="picture-block"><ServicePicture kind="recovery" copy={c} /></div>
+      <p class="maintenance-cost">{c.maintenance.cost}</p>
     </div>
   </section>
 
@@ -153,78 +56,7 @@ const { copy: c, lang } = Astro.props;
       </h2><p class="section-lead">{c.loss.lead}</p>
     </div>
     <figure class="loss-map">
-      <div class="lost-provider">
-        <span class="lost-symbol" aria-hidden="true">×</span><div>
-          <h3>{c.loss.source}</h3><p>{c.loss.sourceDetail}</p>
-        </div><span class="lost-application" aria-hidden="true"
-          >{c.loss.sourceApplication}</span
-        >
-      </div>
-      <div class="recovery-route">
-        <div class="independent-inputs">
-          <h3 class="eyebrow">{c.loss.outside}</h3><ul>
-            {
-              c.loss.inputs.map((input, index) => (
-                <li>
-                  <>
-                    <span class="input-number" aria-hidden="true">
-                      0{index + 1}
-                    </span>
-                    <div>
-                      <>
-                        <h4>{input.title}</h4>
-                        <p>{input.detail}</p>
-                      </>
-                    </div>
-                  </>
-                </li>
-              ))
-            }
-          </ul>
-        </div>
-        <div class="destination">
-          <p class="frame-label">{c.loss.target}</p><p
-            class="destination-capacity"
-          >
-            {c.loss.targetDetail}
-          </p>
-          <p class="destination-capacity">{c.loss.targetQualification}</p>
-          <div class="application-node">
-            <span class="node-mark" aria-hidden="true"
-              ><svg
-                viewBox="0 0 24 24"
-                width="24"
-                height="24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                ><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6M9 16h6"></path></svg
-              ></span
-            ><h3>
-              {c.loss.targetApplication}
-            </h3>
-          </div>
-          <div class="state-node">
-            <p>{c.service.state}</p><small>{c.service.stateDetail}</small>
-          </div>
-          <div class="connection" aria-hidden="true"></div>
-          <p class="dependency-node">{c.loss.targetDependencies}</p>
-          <div class="result">
-            <svg
-              viewBox="0 0 56 64"
-              width="34"
-              height="40"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              aria-hidden="true"
-              ><circle cx="28" cy="14" r="9"></circle><path
-                d="M10 58V43a18 18 0 0 1 36 0v15"></path></svg
-            ><p>{c.loss.result}</p>
-          </div>
-        </div>
-      </div>
-      <p class="authority-boundary">{c.loss.boundary}</p>
+      <ServicePicture kind="loss" copy={c} />
       <figcaption class="figure-note">{c.loss.caption}</figcaption>
     </figure>
   </section>
@@ -394,71 +226,6 @@ const { copy: c, lang } = Astro.props;
     max-width: 22rem;
     letter-spacing: -0.025em;
   }
-  .person-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    padding-top: 24px;
-    font-size: 0.85rem;
-  }
-  .person-row svg {
-    color: var(--accent);
-    flex-shrink: 0;
-  }
-  .outcome {
-    font-weight: 600;
-  }
-  .path-label {
-    position: relative;
-    text-align: center;
-    margin-block: 16px;
-    padding-block: 10px;
-    font-size: 0.7rem;
-    color: var(--muted);
-  }
-  .path-label::before,
-  .path-label::after {
-    content: "";
-    position: absolute;
-    height: 12px;
-    width: 1px;
-    background: var(--accent);
-    left: 50%;
-  }
-  .path-label::before {
-    top: -10px;
-  }
-  .path-label::after {
-    bottom: -12px;
-  }
-  .provider-frame {
-    padding: 16px;
-    border: 1px dashed var(--accent);
-    border-radius: 5px;
-  }
-  .frame-label {
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 12px;
-  }
-  .application-node {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px;
-    background: var(--accent);
-    color: var(--color-base-100);
-    border-radius: 4px;
-  }
-  .application-node h3 {
-    font-size: 1rem;
-  }
-  .application-node p {
-    font-size: 0.75rem;
-  }
   .node-mark {
     display: grid;
     place-items: center;
@@ -469,41 +236,6 @@ const { copy: c, lang } = Astro.props;
     border-radius: 8px;
     font-size: 1.25rem;
     font-weight: 500;
-  }
-  .state-node {
-    border: 1px solid var(--line);
-    border-top: 0;
-    margin: 0 10px;
-    padding: 10px;
-    text-align: center;
-    border-radius: 0 0 12px 12px;
-    font-size: 0.8rem;
-    background: var(--color-base-100);
-  }
-  .state-node small {
-    font-size: 0.65rem;
-    color: var(--muted);
-  }
-  .connection {
-    width: 1px;
-    height: 22px;
-    background: var(--accent);
-    margin-inline: auto;
-  }
-  .dependency-node {
-    padding: 12px;
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    text-align: center;
-    font-size: 0.85rem;
-  }
-  .dependency-node h3 {
-    font-size: 0.85rem;
-  }
-  .dependency-node p {
-    font-size: 0.7rem;
-    margin-top: 3px;
-    color: var(--muted);
   }
   .figure-note {
     font-size: 0.75rem;
@@ -530,211 +262,15 @@ const { copy: c, lang } = Astro.props;
     margin-top: 22px;
     max-width: 40rem;
   }
-  .replacement-track {
-    margin-top: 44px;
-  }
-  .track-end {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 18px 22px;
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    background: var(--color-base-100);
-  }
-  .track-end h3 {
-    font-size: 0.95rem;
-  }
-  .track-end p {
-    font-size: 0.85rem;
-    color: var(--muted);
-  }
-  .source-end {
-    max-width: 520px;
-  }
-  .recovery-steps {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    padding-block: 34px;
-    margin-inline: 22px;
-    list-style: none;
-  }
-  .recovery-steps li {
-    position: relative;
-    padding-right: 24px;
-  }
-  .recovery-steps li::before {
-    content: "";
-    height: 1px;
-    background: var(--accent);
-    position: absolute;
-    top: 17px;
-    left: 0;
-    right: 0;
-  }
-  .recovery-steps li:last-child::before {
-    right: auto;
-    width: 34px;
-  }
-  .step-number {
-    position: relative;
-    display: grid;
-    place-items: center;
-    background: var(--accent);
-    color: var(--color-base-100);
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    font-size: 0.8rem;
-    margin-bottom: 18px;
-  }
-  .recovery-steps h3 {
-    font-size: 1.15rem;
-  }
-  .recovery-steps p {
-    font-size: 0.85rem;
-    margin-top: 10px;
-  }
-  .owner {
-    display: block;
-    font-size: 0.65rem;
-    color: var(--accent);
-    margin-top: 14px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-  .target-end {
-    margin-left: auto;
-    max-width: 580px;
-    border-color: var(--accent);
-  }
-  .target-end .node-mark,
-  .authority-mark {
-    color: var(--accent);
-  }
-  .authority-mark {
-    margin-left: auto;
-    font-size: 1.4rem;
-  }
-  .maintenance-notes {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    margin-top: 32px;
-    font-size: 0.85rem;
-    color: var(--muted);
-  }
-  .condition {
-    border-left: 3px solid var(--accent);
-    padding-left: 18px;
-  }
+  .picture-block,
   .loss-map {
     margin-top: 40px;
   }
-  .lost-provider {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    border: 1px dashed var(--line);
-    padding: 20px 24px;
-    border-radius: 4px;
-    color: var(--muted);
-  }
-  .lost-provider h3 {
-    text-decoration: line-through;
-  }
-  .lost-provider p {
+  .maintenance-cost {
+    margin-top: 24px;
+    max-width: 800px;
     font-size: 0.85rem;
-  }
-  .lost-symbol {
-    font-size: 2.8rem;
-    line-height: 1;
-    font-weight: 300;
-  }
-  .lost-application {
-    margin-left: auto;
-    text-decoration: line-through;
-    font-size: 0.9rem;
-  }
-  .recovery-route {
-    display: grid;
-    grid-template-columns: 1.15fr 1fr;
-    gap: 60px;
-    margin-top: 30px;
-    align-items: center;
-  }
-  .independent-inputs ul {
-    list-style: none;
-    margin-top: 12px;
-  }
-  .independent-inputs li {
-    display: flex;
-    gap: 18px;
-    border-top: 1px solid var(--line);
-    padding-block: 18px;
-  }
-  .input-number {
-    font-family: var(--font-mono);
-    color: var(--accent);
-    font-size: 0.75rem;
-    padding-top: 3px;
-  }
-  .independent-inputs h4 {
-    font-size: 0.95rem;
-  }
-  .independent-inputs p {
-    font-size: 0.85rem;
-    margin-top: 6px;
     color: var(--muted);
-  }
-  .destination {
-    position: relative;
-    border: 1px solid var(--accent);
-    border-radius: 5px;
-    padding: 24px;
-    background: var(--wash);
-  }
-  .destination::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: -46px;
-    width: 30px;
-    height: 10px;
-    border-top: 1px solid var(--accent);
-    border-right: 1px solid var(--accent);
-    transform: skewY(18deg);
-  }
-  .destination .frame-label {
-    margin-bottom: 0;
-  }
-  .destination-capacity {
-    font-size: 0.8rem;
-    color: var(--muted);
-    margin-bottom: 18px;
-  }
-  .destination .application-node h3 {
-    font-size: 0.9rem;
-  }
-  .result {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    border-top: 1px solid var(--line);
-    margin-top: 20px;
-    padding-top: 16px;
-    font-size: 0.9rem;
-    color: var(--accent);
-  }
-  .result svg {
-    flex-shrink: 0;
-  }
-  .authority-boundary {
-    border-left: 3px solid var(--accent);
-    padding: 8px 0 8px 20px;
-    margin-top: 26px;
-    font-size: 0.9rem;
-    max-width: 900px;
   }
   .evidence-layout {
     display: grid;
@@ -858,73 +394,6 @@ const { copy: c, lang } = Astro.props;
     }
     .section-lead {
       font-size: 1rem;
-    }
-    .recovery-steps {
-      grid-template-columns: 1fr;
-      gap: 0;
-      padding-block: 0;
-      margin: 0 20px;
-    }
-    .recovery-steps li {
-      display: flex;
-      gap: 18px;
-      padding: 24px 0;
-    }
-    .recovery-steps li::before {
-      top: 0;
-      bottom: 0;
-      left: 16px;
-      right: auto;
-      width: 1px;
-      height: auto;
-    }
-    .recovery-steps li:last-child::before {
-      width: 1px;
-    }
-    .step-number {
-      flex-shrink: 0;
-      margin: 0;
-    }
-    .recovery-steps p {
-      margin-top: 6px;
-    }
-    .owner {
-      margin-top: 8px;
-    }
-    .track-end {
-      padding: 16px;
-      align-items: flex-start;
-    }
-    .target-end {
-      margin-left: 0;
-    }
-    .maintenance-notes {
-      grid-template-columns: 1fr;
-      gap: 20px;
-    }
-    .lost-provider {
-      align-items: flex-start;
-      padding: 18px;
-      gap: 14px;
-    }
-    .lost-application {
-      display: none;
-    }
-    .recovery-route {
-      grid-template-columns: 1fr;
-      gap: 34px;
-    }
-    .destination::before {
-      left: 50%;
-      top: -26px;
-      width: 10px;
-      height: 18px;
-      border-top: 0;
-      border-bottom: 1px solid var(--accent);
-      transform: skewX(-18deg);
-    }
-    .destination {
-      padding: 20px;
     }
     .evidence-layout {
       grid-template-columns: 1fr;

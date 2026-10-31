@@ -18,7 +18,7 @@ An installation administrator is the human responsible for operating a customer 
 
 Application recovery depends on an explicit target-environment contract rather than a particular provider. Provider-specific provisioning establishes that contract; it does not redefine application recovery. Any environment satisfying the contract can be a target, provided access, capacity and required dependencies are actually usable. The complete recovery path, including its execution and inputs, must remain available without help from the provider whose loss or withdrawal it is intended to withstand.
 
-The application startup pattern is one technical expression of this philosophy. It distinguishes existing from absent local state, restores the latest available backup only when state is absent, and uses native startup for initialization and supported migration. Errors stop execution rather than imply absence. The executable reference is [bartl-wordpress](https://codeberg.org/bartlapp/bartl-wordpress). It demonstrates this mechanism for one WordPress, MySQL, and Docker Compose configuration, not automatic provisioning or complete service recovery across providers.
+The application startup pattern is one technical expression of this philosophy. It distinguishes existing from absent local state, restores the latest available backup only when state is absent, and uses native startup for initialization and supported migration. Errors stop execution rather than imply absence.
 
 ## Application contract and qualification
 
@@ -121,7 +121,7 @@ These are common evidence requirements, not a mandate for a universal test runne
 
 ## Provider-independent recovery execution contract
 
-This is the design contract for the long-term goal of automated service recovery, beyond the current application-package scope. It does not require the current human-operated customer installation to automate the complete sequence, nor claim that the startup specification or WordPress reference implements it. Its end-to-end obligations apply when claiming this automated recovery capability; the application contract above applies to each bartlized application now.
+This is the design contract for the long-term goal of automated service recovery, beyond the current application-package scope. It does not require the current human-operated customer installation to automate the complete sequence, nor claim that the startup specification implements it. Its end-to-end obligations apply when claiming this automated recovery capability; the application contract above applies to each bartlized application now.
 
 > Recover this installation from the authorized recovery point into the authorized target environment, verify the required service and establish exclusive production authority without manual technical intervention.
 
@@ -159,7 +159,7 @@ Only complete, verified publication makes a recovery point eligible. Interrupted
 
 Storage durably publishes, protects and retrieves the artifact; it need not understand the application's database, files or migration logic. An external path or object store can satisfy this boundary when it is independent of the source provider's relevant failure and administrative domain and meets access, encryption, retention, deletion and regulatory requirements. Protect against unauthorized deletion as well as overwrite, including by compromised production credentials. Versioning alone is insufficient if those credentials can erase all versions. A storage label or retention feature does not by itself establish regulatory compliance.
 
-The [WordPress example](https://codeberg.org/bartlapp/bartl-wordpress#export-backup) uses an archive and checksum sidecar. That historical format is not a universal requirement or evidence that every publication and consistency obligation above is implemented. No application-aware backup server or workflow platform follows from this contract. Any additional machinery must justify its contribution. Artifact integrity does not replace consistency, final-state freshness, interrupted-operation handling or exclusive write authority.
+No application-aware backup server or workflow platform follows from this contract. Any additional machinery must justify its contribution. Artifact integrity does not replace consistency, final-state freshness, interrupted-operation handling or exclusive write authority.
 
 ### Target and provider boundary
 
@@ -222,7 +222,7 @@ The complete claim must be exercised with source access withheld, including prov
 | Legal pages and copy | `src/pages/[lang]/`, `src/legal/` |
 | Static assets | `public/` |
 
-Both languages share navigation, the four-page structure and the visual homepage treatment. The bilingual homepage remains a local candidate, as recorded in [Decisions](docs/decisions.md#high-fidelity-homepage-revision-bilingual-local-candidate). It explains the complete-service argument through an illustrative document service, with separate Keycloak application-package evidence. Approach and Implement render the maintained Markdown documents, not independent English website copies. German Markdown files are translations of those same documents. The Contract page explains the normative application contract above; it does not redefine it. WordPress remains historical supporting material on the technical path.
+Both languages share navigation, the four-page structure and the visual homepage treatment. The bilingual homepage remains a local candidate, as recorded in [Decisions](docs/decisions.md#high-fidelity-homepage-revision-bilingual-local-candidate). It explains the complete-service argument through an illustrative document service, with separate Keycloak application-package evidence. Approach and Implement render the maintained Markdown documents, not independent English website copies. German Markdown files are translations of those same documents. The Contract page explains the normative application contract above; it does not redefine it.
 
 ## Develop
 
