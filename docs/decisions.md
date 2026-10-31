@@ -14,6 +14,16 @@ The landing page currently concentrates on that mechanism and the WordPress exam
 
 Historical talks and product contexts provide provenance. They do not define a second version of Bartl.
 
+## Documentation alignment and remaining work
+
+The 31 October 2026 correction aligns the local contract and both website languages with native startup and bounded failure handling. WordPress is a historical mechanism example, not a qualified implementation of the current contract; its README and the website describe the actual checksum, publication and migration limits.
+
+Publication remains pending. Integrate the corrected WordPress description and Bartl candidate on Codeberg, then verify the GitHub deployment mirror and the live DE/EN pages. A local correction is not a deployed correction.
+
+The broader website rewrite remains proposed, not implemented: lead with usable service and retained freedom to act, connect application, infrastructure and responsibility, and use a self-contained Keycloak example. Keep one normative contract and one implementation guide. Review the proposed homepage argument before implementation; no runtime redesign is part of this work.
+
+Codeberg issues are the remote work channel. No issue was created for this follow-up while remote writes were withheld; this section retains the outstanding work locally.
+
 ## German and English pages share their structure
 
 The landing route renders `src/components/Landing.astro` for both languages. Landing, derivation, and spec copy live in `src/content/landing.ts`, `src/content/derivation.ts`, and `src/content/spec.ts`; each page keeps one shared layout across languages. Copy remains language-specific, but section order, links, semantics, and claim boundaries cannot drift through separate page implementations.

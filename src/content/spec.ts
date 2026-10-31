@@ -122,16 +122,16 @@ export const specCopy = {
     servingTitle: "Bedeutung von serving()",
     servingBody:
       "serving() gibt gewöhnlichen Zugriff nach nativem Erfolg und normaler Readiness frei. Die Anwendung darf zuvor intern für Initialisierung oder Migration laufen. Eine erfolgreiche Rekonstruktion benötigt keinen zweiten technischen Freigabebefehl. Der vollständige Servicevertrag regelt Quellisolation, Fencing, Erreichbarkeit, Aktivierung und Wiederanlaufzeit. Menschen autorisieren das Ergebnis und die akzeptierten Risiken; gepflegte Verfahren müssen diese Entscheidung technisch durchsetzen.",
-    referenceTitle: "Ausführbare WordPress-Referenz",
+    referenceTitle: "Historisches WordPress-Beispiel",
     referenceIntro:
-      "bartl-wordpress illustriert den Startmechanismus für eine konkrete WordPress-, MySQL- und Docker-Compose-Konfiguration. Die folgenden Angaben beschreiben die vorhandene Referenz, nicht zusätzliche normative Startbedingungen. Ihr Nachweis ist keine pauschale Bestätigung aller Katalogfälle.",
+      "bartl-wordpress illustriert einen früheren Startmechanismus mit WordPress, MySQL und Docker Compose. Es ist kein qualifiziertes Anwendungspaket nach dem heutigen Vertrag. Die folgenden Angaben beschreiben seinen tatsächlichen Umfang, keine zusätzlichen Anforderungen.",
     referenceRows: [
       ["Deklarierter Zustand", "MySQL-Datenbank und wp-content/uploads"],
-      ["Unveränderliches Release", "WordPress-Core, Plugins und Themes im Image"],
-      ["Sicherungsformat", "database.sql, uploads.tar, state.json und SHA256SUMS in einem Archiv"],
-      ["Veröffentlichung", "Archiv plus .sha256-Sidecar, wobei das Sidecar als Commit-Marker zuletzt erscheint"],
-      ["Restore", "Neuester vollständig veröffentlichter Stand auf einem leeren kompatiblen Ziel"],
-      ["Fehlerverhalten", "Auf einem leeren Ziel Abbruch bei fehlendem Store-Mount sowie immer bei unvollständigem Paar, falschen Prüfsummen oder ungültigem Inventar"],
+      ["Software", "WordPress- und MySQL-Images; Plugins und Themes liegen im veränderlichen wp-content-Volume außerhalb der Upload-Sicherung"],
+      ["Sicherungsformat", "database.sql, metadata.txt, SHA256SUMS und bei vorhandenen Uploads uploads.tar in einem Archiv"],
+      ["Veröffentlichung", "Archiv am endgültigen Pfad, danach .sha256-Sidecar; Restore verlangt das Sidecar nicht als Veröffentlichungsnachweis"],
+      ["Restore", "Auswahl des letzten Archivnamens ohne lokalen Versionsmarker; keine vollständige Zustandsprüfung"],
+      ["Prüfgrenzen", "Falsche Prüfsummen stoppen, fehlende Prüfsummendateien nicht. Datenbank und Uploads werden ohne gemeinsame Schreibpause erfaßt; Upgrade-Abschluß wird vor Zugriff nicht geprüft"],
     ],
     referenceLink: "Referenz und Runbook auf Codeberg öffnen",
     referenceAria: "bartl-wordpress auf Codeberg öffnen, neuer Tab",
@@ -155,7 +155,7 @@ export const specCopy = {
       "einen vollständigen Betriebs- oder Recovery-Prozeß ersetzen",
     ],
     closing:
-      "Die WordPress-Referenz belegt diese Eigenschaften nur für ihre festgeschriebene Konfiguration. Andere Anwendungen benötigen ein eigenes Zustandsinventar, Sicherungsformat, Migrationslogik und ausführbaren Nachweis.",
+      "Das WordPress-Beispiel ersetzt keinen Nachweis des heutigen Anwendungsvertrags. Jedes Anwendungspaket benötigt ein eigenes Zustandsinventar, native Verfahren und ausführbare Nachweise für seine unterstützte Konfiguration.",
     back: "Zur Startseite",
   },
   en: {
@@ -280,16 +280,16 @@ export const specCopy = {
     servingTitle: "Meaning of serving()",
     servingBody:
       "serving() opens ordinary access after native success and normal readiness. The application may run internally beforehand for initialization or migration. Successful reconstruction needs no second technical release command. The complete service contract covers source isolation, fencing, reachability, activation and recovery time. People authorize the outcome and accepted risks; maintained procedures must enforce that decision technically.",
-    referenceTitle: "Executable WordPress reference",
+    referenceTitle: "Historical WordPress example",
     referenceIntro:
-      "bartl-wordpress illustrates the startup mechanism for one concrete WordPress, MySQL, and Docker Compose configuration. The details below describe the existing reference, not additional normative startup conditions. Its evidence does not automatically qualify every catalogue case.",
+      "bartl-wordpress illustrates an earlier startup mechanism with WordPress, MySQL and Docker Compose. It is not a qualified application package under the current contract. The details below describe its actual scope, not additional requirements.",
     referenceRows: [
       ["Declared state", "MySQL database and wp-content/uploads"],
-      ["Immutable release", "WordPress core, plugins, and themes in the image"],
-      ["Backup format", "database.sql, uploads.tar, state.json, and SHA256SUMS in one archive"],
-      ["Publication", "Archive plus .sha256 sidecar, with the sidecar published last as the commit marker"],
-      ["Restore", "Newest fully published backup on an empty compatible target"],
-      ["Failure behavior", "On an empty target, abort on a missing store mount; always abort on an incomplete pair, checksum failure, or invalid inventory"],
+      ["Software", "WordPress and MySQL images; plugins and themes live in the mutable wp-content volume outside the uploads backup"],
+      ["Backup format", "database.sql, metadata.txt, SHA256SUMS and, when uploads exist, uploads.tar in one archive"],
+      ["Publication", "Archive written to its final path, then a .sha256 sidecar; restore does not require the sidecar as publication evidence"],
+      ["Restore", "Selects the last archive name without a local version marker; no complete state check"],
+      ["Verification limits", "Checksum mismatches stop execution; missing checksum files do not. Database and uploads are captured without a shared writer pause; upgrade completion is not checked before access"],
     ],
     referenceLink: "Open the reference and runbook on Codeberg",
     referenceAria: "Open bartl-wordpress on Codeberg in a new tab",
@@ -313,7 +313,7 @@ export const specCopy = {
       "replace a complete operations or recovery process",
     ],
     closing:
-      "The WordPress reference demonstrates these properties only for its pinned configuration. Other applications need their own state inventory, backup format, migration logic, and executable evidence.",
+      "The WordPress example does not establish the current application contract. Each application package needs its own state inventory, native procedures and executable evidence for its supported configuration.",
     back: "Back to the landing page",
   },
 } as const;
