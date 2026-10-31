@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: CC-BY-4.0
 export const specCopy = {
   de: {
-    pageTitle: "Technische Spec",
+    pageTitle: "Anwendungsvertrag",
     description:
-      "Technische Spec des Bartl-Startpfads für zustandsbehaftete Anwendungen mit Eingaben, Entscheidung, Produktpflichten und Aussagegrenzen.",
-    eyebrow: "Bartl-Startmechanismus",
-    title: "Technische Spec",
+      "Der Bartl-Anwendungsvertrag erläutert Startverhalten, Produktpflichten und Nachweise für jede unterstützte Konfiguration. Das README führt die normativen Anforderungen.",
+    eyebrow: "Technischer App-/Zustandsvertrag",
+    title: "Anwendungsvertrag",
     lead: "Diese Seite erläutert den normativen Anwendungsvertrag in README.md, Abschnitt Application contract and qualification. Der Startmechanismus ist ein Baustein von Bartls umfassender Betriebsphilosophie. Die Pflichten gelten je unterstützter Konfiguration; eine bestimmte Container- oder Kubernetes-Architektur ist nicht vorgeschrieben.",
     principle:
       "Der Zustand wählt den Pfad, nicht der Name einer angeforderten Operation.",
@@ -137,7 +137,7 @@ export const specCopy = {
     referenceAria: "bartl-wordpress auf Codeberg öffnen, neuer Tab",
     boundaryTitle: "Aussagegrenze",
     boundaryIntro:
-      "Die Spec beschreibt nur den Startmechanismus für Anwendung und deklarierten Zustand.",
+      "Der Anwendungsvertrag beschreibt die Pflichten der Anwendung für ihren deklarierten Zustand. Der Startmechanismus deckt nur diesen Teil des vollständigen Service ab.",
     insideTitle: "Teil des Startmechanismus",
     inside: [
       "vorhandenen Zustand von bestätigter Abwesenheit unterscheiden",
@@ -159,11 +159,11 @@ export const specCopy = {
     back: "Zur Startseite",
   },
   en: {
-    pageTitle: "Technical Spec",
+    pageTitle: "Application contract",
     description:
-      "Technical specification of the Bartl startup path for stateful applications, covering inputs, decisions, product duties, and claim boundaries.",
-    eyebrow: "Bartl startup mechanism",
-    title: "Technical Spec",
+      "The Bartl application contract explains startup behavior, application duties and evidence for each supported configuration. The README holds the normative requirements.",
+    eyebrow: "Technical application/state contract",
+    title: "Application contract",
     lead: "This page explains the normative application contract in README.md, under Application contract and qualification. The startup mechanism is one contribution to Bartl's broader operating philosophy. The obligations apply per supported configuration; no particular container or Kubernetes architecture is prescribed.",
     principle:
       "State selects the path, not the name of a requested operation.",
@@ -295,7 +295,7 @@ export const specCopy = {
     referenceAria: "Open bartl-wordpress on Codeberg in a new tab",
     boundaryTitle: "Claim boundary",
     boundaryIntro:
-      "The spec describes only the startup mechanism for the application and its declared state.",
+      "The application contract describes the application's responsibilities for its declared state. The startup mechanism covers only this part of the complete service.",
     insideTitle: "Part of the startup mechanism",
     inside: [
       "distinguish existing state from confirmed absence",

@@ -1,0 +1,34 @@
+---
+// SPDX-License-Identifier: Apache-2.0
+import DocumentArticle from "@/components/DocumentArticle.astro";
+import { languages, type Lang } from "@/i18n/ui";
+import MainLayout from "@/layouts/MainLayout.astro";
+import * as guideEn from "../../../docs/how-to-bartlize.md";
+import * as guideDe from "../../../docs/how-to-bartlize.de.md";
+
+export function getStaticPaths() {
+  return Object.keys(languages).map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Lang;
+const document = lang === "de" ? guideDe : guideEn;
+const { Content } = document;
+const headings = document.getHeadings();
+const title = lang === "de" ? "Umsetzung" : "Implement";
+const description = lang === "de"
+  ? "Eine Anwendung bartlisieren: native Verfahren erhalten, fehlende Koordination ergänzen und das Betriebspaket qualifizieren. Mit Keycloak-Beispiel."
+  : "How to bartlize an application: preserve native procedures, add missing coordination and qualify the operating package. With a Keycloak worked example.";
+---
+
+<MainLayout title={title} lang={lang} description={description}>
+  <DocumentArticle lang={lang} eyebrow={title} headings={headings}>
+    <Content />
+    <Fragment slot="after">
+      <p>
+        <a href={`/${lang}/derivation/`}>{lang === "de" ? "Betriebsphilosophie" : "Operating philosophy"}</a>
+        {" · "}
+        <a href={`/${lang}/spec/`}>{lang === "de" ? "Anwendungsvertrag" : "Application contract"}</a>
+      </p>
+    </Fragment>
+  </DocumentArticle>
+</MainLayout>

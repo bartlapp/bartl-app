@@ -205,15 +205,15 @@ The complete claim must be exercised with source access withheld, including prov
 
 | What | Where |
 | --- | --- |
-| Shared DE/EN landing page layout | `src/components/Landing.astro` |
-| DE/EN landing page copy | `src/content/landing.ts` |
-| Interactive startup decision | `src/components/InteractivePseudoCode.astro` |
-| Static pseudocode used by the spec | `src/components/PseudoCode.astro` |
-| DE/EN landing route | `src/pages/[lang]/index.astro` |
-| DE/EN derivation route and layout | `src/pages/[lang]/derivation.astro` |
-| DE/EN derivation copy | `src/content/derivation.ts` |
-| DE/EN technical spec route and layout | `src/pages/[lang]/spec.astro` |
-| DE/EN technical spec copy | `src/content/spec.ts` |
+| Outcome-led DE/EN homepage layout and copy | `src/components/Landing.astro`, `src/content/landing.ts` |
+| DE/EN homepage route | `src/pages/[lang]/index.astro` |
+| Approach, retaining the established derivation URL | `src/pages/[lang]/derivation.astro` |
+| Philosophy rendered directly, with German translation | `docs/philosophy.md`, `docs/philosophy.de.md` |
+| Implementation guide route | `src/pages/[lang]/implement.astro` |
+| Guide rendered directly, with German translation | `docs/how-to-bartlize.md`, `docs/how-to-bartlize.de.md` |
+| Shared document typography and section navigation | `src/components/DocumentArticle.astro` |
+| Contract explanation, retaining the established spec URL | `src/pages/[lang]/spec.astro`, `src/content/spec.ts` |
+| Interactive startup decision on Contract, sourced from this README | `src/components/InteractivePseudoCode.astro`, `src/content/startup-code.ts` |
 | Navigation and footer | `src/components/Navbar.astro`, `src/components/Footer.astro` |
 | UI strings and language utilities | `src/i18n/` |
 | Site metadata and repository links | `src/data/constants.ts` |
@@ -222,7 +222,7 @@ The complete claim must be exercised with source access withheld, including prov
 | Legal pages and copy | `src/pages/[lang]/`, `src/legal/` |
 | Static assets | `public/` |
 
-Both languages use the same component structure. Product claims, technical inputs, reference boundaries, and navigation therefore change in one place instead of drifting between separate page implementations.
+Both languages share page structure and navigation. The homepage carries the complete-service argument and a bounded Keycloak example; Approach and Implement render the maintained Markdown documents, not independent English website copies. German Markdown files are translations of those same documents. The Contract page explains the normative application contract above; it does not redefine it. WordPress remains historical supporting material on the technical path.
 
 ## Develop
 

@@ -12,8 +12,8 @@ export function getStaticPaths() {
 const lang = Astro.params.lang as Lang;
 const description =
   lang === "de"
-    ? "Bartl verbindet Anwendung, Infrastruktur und Verantwortung für praktisch ausübbare Resilienz und Souveränität. Der gemeinsame Startpfad ist ein technischer Baustein."
-    : "Bartl connects application, infrastructure and responsibility for exercisable resilience and sovereignty. Its shared startup path is one technical contribution.";
+    ? "Eine Betriebsphilosophie für nutzbare Services und echte Wahlmöglichkeiten. Bartl verbindet Anwendungsverfahren, Infrastruktur und Verantwortung."
+    : "An operating philosophy for usable services and real alternatives. Bartl connects application procedures, infrastructure and responsibility.";
 ---
 
 <MainLayout title={SITE.title} lang={lang} description={description}>

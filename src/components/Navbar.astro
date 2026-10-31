@@ -1,6 +1,6 @@
 ---
 // SPDX-License-Identifier: Apache-2.0
-import { SITE } from "@/data/constants";
+import { PRIMARY_NAVIGATION, SITE } from "@/data/constants";
 import { languages, type Lang } from "@/i18n/ui";
 import { getAlternatePath, useTranslations } from "@/i18n/utils";
 
@@ -12,12 +12,10 @@ interface Props {
 const { lang, pathname } = Astro.props;
 const t = useTranslations(lang);
 const homePath = `/${lang}/`;
-const derivationPath = `/${lang}/derivation/`;
-const specPath = `/${lang}/spec/`;
 ---
 
 <header class="bg-base-100 border-base-300 sticky top-0 z-50 border-b">
-  <div class="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6 lg:px-8">
+  <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 sm:min-h-16 sm:flex-nowrap sm:px-6 sm:py-0 lg:px-8">
     <a
       class="focus-visible:outline-primary rounded-sm text-xl font-semibold focus-visible:outline-2 focus-visible:outline-offset-4"
       href={homePath}
@@ -26,22 +24,19 @@ const specPath = `/${lang}/spec/`;
       {SITE.title}
     </a>
 
-    <nav aria-label={t("nav.main")} class="ml-auto flex items-center gap-1">
-      <a
-        href={derivationPath}
-        aria-current={pathname === derivationPath ? "page" : undefined}
-        class="btn btn-ghost btn-sm px-2 focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-2"
-      >
-        <span class="hidden sm:inline">{t("nav.derivation")}</span>
-        <span class="sm:hidden">{t("nav.derivationShort")}</span>
-      </a>
-      <a
-        href={specPath}
-        aria-current={pathname === specPath ? "page" : undefined}
-        class="btn btn-ghost btn-sm focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-2"
-      >
-        {t("nav.spec")}
-      </a>
+    <nav aria-label={t("nav.main")} class="order-last flex w-full flex-wrap items-center justify-center gap-1 sm:order-none sm:ml-auto sm:w-auto">
+      {PRIMARY_NAVIGATION.map(({ path, label }) => (
+        <a
+          href={`/${lang}/${path}/`}
+          aria-current={pathname === `/${lang}/${path}/` ? "page" : undefined}
+          class="btn btn-ghost btn-sm px-2 focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          {t(label)}
+        </a>
+      ))}
+    </nav>
+
+    <nav aria-label={t("nav.secondary")} class="ml-auto flex items-center gap-1 sm:ml-0">
       <a
         href={SITE.codeberg}
         target="_blank"

@@ -4,7 +4,7 @@
 
 Turn the supported procedures a competent administrator would perform into a maintained operating package. Preserve the application's native work; automate the missing steps and coordination.
 
-The [application contract](../README.md#application-contract-and-qualification) defines the required behavior. This guide explains how to implement it. It prescribes neither Kubernetes nor a shared runtime.
+The [application contract](https://codeberg.org/bartlapp/bartl-app#application-contract-and-qualification) defines the required behavior. This guide explains how to implement it. It prescribes neither Kubernetes nor a shared runtime.
 
 ## Start with one supported configuration
 
@@ -47,7 +47,7 @@ Keep the operator recipe separate from implementation reasoning. State the suppo
 
 ## Qualify the delivered path
 
-Use the [contract's evidence cases](../README.md#supported-configuration-and-catalogue-evidence), not a second checklist invented by the implementation. Exercise the actual package and administrator interface, including usable recovery, supported migration and failure behavior.
+Use the [contract's evidence cases](https://codeberg.org/bartlapp/bartl-app#supported-configuration-and-catalogue-evidence), not a second checklist invented by the implementation. Exercise the actual package and administrator interface, including usable recovery, supported migration and failure behavior.
 
 Check the limits on our intervention as well as successful operation: ordinary restart must not acquire recovery dependencies; failed work must not silently initialize or replay; completion must not override an intentional stop. Qualification accounts and functional probes do not automatically become startup dependencies.
 

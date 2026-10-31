@@ -1,0 +1,95 @@
+---
+// SPDX-License-Identifier: Apache-2.0
+import type { Lang } from "@/i18n/ui";
+
+interface Props {
+  lang: Lang;
+  eyebrow: string;
+  headings: { depth: number; slug: string; text: string }[];
+}
+
+const { lang, eyebrow, headings } = Astro.props;
+const sections = headings.filter((heading) => heading.depth === 2);
+const toc = lang === "de" ? "Auf dieser Seite" : "On this page";
+---
+
+<div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:grid lg:grid-cols-4 lg:gap-12 lg:px-8 lg:py-20">
+  <aside class="hidden min-w-0 lg:block">
+    <nav class="border-base-300 border-b pb-6 lg:sticky lg:top-24 lg:border-0 lg:pb-0" aria-label={toc}>
+      <p class="text-base-content/50 text-sm font-semibold tracking-wide uppercase">{toc}</p>
+      <ul class="mt-4 space-y-3 text-sm">
+        {sections.map(({ slug, text }) => (
+          <li>
+            <a href={`#${slug}`} class="text-base-content/70 hover:text-base-content focus-visible:outline-primary rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4">{text}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  </aside>
+  <article class="min-w-0 lg:col-span-3">
+    <p class="text-primary mb-3 font-mono text-xs font-semibold tracking-widest uppercase">{eyebrow}</p>
+    <div class="article-copy"><slot /></div>
+    <div class="article-copy border-base-300 mt-12 border-t pt-8"><slot name="after" /></div>
+  </article>
+</div>
+
+<style>
+  .article-copy {
+    line-height: 1.8;
+    overflow-wrap: anywhere;
+  }
+  .article-copy :global(h1) {
+    margin: 0 0 2rem;
+    font-size: clamp(2.25rem, 5vw, 3rem);
+    font-weight: 500;
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+  .article-copy :global(h2) {
+    margin: 3rem 0 1.25rem;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 500;
+    line-height: 1.3;
+    scroll-margin-top: 6rem;
+  }
+  .article-copy :global(h3) {
+    margin: 2rem 0 1rem;
+    font-size: 1.25rem;
+    line-height: 1.4;
+    scroll-margin-top: 6rem;
+  }
+  .article-copy :global(p),
+  .article-copy :global(ul),
+  .article-copy :global(ol),
+  .article-copy :global(blockquote) {
+    margin-bottom: 1.25rem;
+  }
+  .article-copy :global(ul) { list-style: disc; padding-left: 1.5rem; }
+  .article-copy :global(ol) { list-style: decimal; padding-left: 1.5rem; }
+  .article-copy :global(li + li) { margin-top: 0.5rem; }
+  .article-copy :global(a) { color: var(--color-primary); text-decoration: underline; text-underline-offset: 0.2em; }
+  .article-copy :global(a:focus-visible) { outline: 2px solid var(--color-primary); outline-offset: 4px; }
+  .article-copy :global(blockquote) { border-left: 2px solid var(--color-primary); padding-left: 1.25rem; }
+  .article-copy :global(table) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    margin: 2rem 0;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+  .article-copy :global(th), .article-copy :global(td) {
+    min-width: 15rem;
+    padding: 1rem;
+    border: 1px solid var(--color-base-300);
+    text-align: left;
+    vertical-align: top;
+  }
+  .article-copy :global(th) { background: var(--color-base-200); font-weight: 600; }
+  .article-copy :global(code) { font-size: 0.9em; }
+  @media (max-width: 639px) {
+    .article-copy :global(table) { display: table; width: 100%; table-layout: fixed; }
+    .article-copy :global(th), .article-copy :global(td) { min-width: 0; padding: 0.75rem 0.5rem; }
+  }
+</style>

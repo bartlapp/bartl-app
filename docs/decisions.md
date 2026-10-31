@@ -10,7 +10,7 @@ A lightweight record of non-obvious choices for this repo. Not formal ADRs - a f
 
 `src/content/spec.ts`, rendered by `src/pages/[lang]/spec.astro`, explains the application contract for website readers. It is neither a runtime implementation nor a second normative source. The startup mechanism is one contribution to Bartl, not its complete definition.
 
-The landing page currently concentrates on that mechanism and the WordPress example. The derivation explains its reasoning and history. Neither page adds requirements to the canonical contracts. Website changes must preserve that distinction; a reference demonstrates only its stated product configuration.
+The homepage leads with usable service and retained freedom to act, then connects application, infrastructure and responsibility. A bounded Keycloak example makes the approach concrete. Startup pseudocode and the historical WordPress example belong on the technical Contract page, not in the homepage's main argument.
 
 Historical talks and product contexts provide provenance. They do not define a second version of Bartl.
 
@@ -18,15 +18,17 @@ Historical talks and product contexts provide provenance. They do not define a s
 
 The 31 October 2026 correction aligns the local contract and both website languages with native startup and bounded failure handling. WordPress is a historical mechanism example, not a qualified implementation of the current contract; its README and the website describe the actual checksum, publication and migration limits.
 
-Publication remains pending. Integrate the corrected WordPress description and Bartl candidate on Codeberg, then verify the GitHub deployment mirror and the live DE/EN pages. A local correction is not a deployed correction.
+The correctness candidate `8c66e3f715c34e40c3462cdcc4d925ba6a164a8d` and WordPress correction `890080350dd637c8db21f09c9b6fae236d0d4dff` were published on 31 October. Codeberg and GitHub mirror heads matched; [deployment 41203824566](https://github.com/bartlapp/bartl-app/actions/runs/41203824566) succeeded. The live DE/EN landing and specification pages exposed the exact candidate and corrected content.
 
-The broader website rewrite remains proposed, not implemented: lead with usable service and retained freedom to act, connect application, infrastructure and responsibility, and use a self-contained Keycloak example. Keep one normative contract and one implementation guide. Review the proposed homepage argument before implementation; no runtime redesign is part of this work.
+The subsequent website rewrite implements the approved homepage argument and four-page structure. Approach keeps `/derivation/`, Contract keeps `/spec/`, and Implement adds `/implement/`; established URLs remain usable without compatibility routes. Approach and Implement render the existing English Markdown and maintained German translations directly. The old mechanism-first derivation copy and unused static startup components are removed.
 
-Codeberg issues are the remote work channel. No issue was created for this follow-up while remote writes were withheld; this section retains the outstanding work locally.
+The rewrite remains local pending review of the rendered candidate and separate publication authorization. No application runtime or HZD material is changed. Codeberg issues remain the remote work channel; this section records the current local review boundary without creating an additional backlog.
+
+Local verification on 31 October: Astro check reported no diagnostics and the static build generated 14 pages. Chromium exercised all four main pages in both languages at 1280, 390 and 320 pixels, checked 226 internal links/anchors across 12 content/legal pages, and exercised all seven Contract scenarios per language, language switching and dark mode. Desktop/mobile screenshots were inspected; no browser errors remained. Prose lint passed. These are website checks, not new application qualification.
 
 ## German and English pages share their structure
 
-The landing route renders `src/components/Landing.astro` for both languages. Landing, derivation, and spec copy live in `src/content/landing.ts`, `src/content/derivation.ts`, and `src/content/spec.ts`; each page keeps one shared layout across languages. Copy remains language-specific, but section order, links, semantics, and claim boundaries cannot drift through separate page implementations.
+The landing route renders `src/components/Landing.astro` for both languages, with copy in `src/content/landing.ts`. Approach and Implement share `DocumentArticle.astro`; Contract uses `src/content/spec.ts` with one layout. Header and footer use one primary navigation list. Copy remains language-specific, but section order, links, semantics and claim boundaries share their implementation.
 
 ## Astro over a single-binary static site generator
 

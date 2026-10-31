@@ -1,6 +1,6 @@
 ---
 // SPDX-License-Identifier: Apache-2.0
-import { SITE } from "@/data/constants";
+import { PRIMARY_NAVIGATION, SITE } from "@/data/constants";
 import { languages, type Lang } from "@/i18n/ui";
 import { getAlternatePath, useTranslations } from "@/i18n/utils";
 
@@ -21,26 +21,19 @@ const commitUrl = `https://codeberg.org/bartlapp/bartl-app/commit/${commitRef}`;
   <div class="text-base-content/60 mx-auto max-w-6xl px-4 py-8 text-sm sm:px-6 lg:px-8">
     <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
       <nav aria-label={t("nav.main")} class="flex flex-wrap items-center gap-x-5 gap-y-2">
-        <a
-          href={`/${lang}/derivation/`}
-          class="hover:text-base-content focus-visible:outline-primary rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4"
-        >
-          {t("nav.derivation")}
-        </a>
-        <a
-          href={`/${lang}/spec/`}
-          class="hover:text-base-content focus-visible:outline-primary rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4"
-        >
-          {t("nav.spec")}
-        </a>
-        <a
-          href={SITE.reference}
-          target="_blank"
-          rel="noopener noreferrer"
-          class="hover:text-base-content focus-visible:outline-primary rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4"
-        >
-          {t("footer.reference")}
-        </a>
+        {PRIMARY_NAVIGATION.map(({ path, label }) => (
+          <a
+            href={`/${lang}/${path}/`}
+            class="hover:text-base-content focus-visible:outline-primary rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4"
+          >
+            {t(label)}
+          </a>
+        ))}
+      </nav>
+    </div>
+
+    <div class="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <nav aria-label={t("nav.secondary")} class="flex flex-wrap items-center gap-x-5 gap-y-2">
         <a
           href={SITE.codeberg}
           target="_blank"

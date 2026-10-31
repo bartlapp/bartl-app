@@ -4,7 +4,13 @@ export const SITE = {
   author: "Florian Kessler GmbH",
   url: "https://bartl.app",
   description:
-    "An operating philosophy for exercisable resilience and sovereignty, connecting applications, infrastructure and responsibility for the complete service.",
+    "Keep a complete service usable and retain useful alternatives through how we build applications, provide infrastructure and organize responsibility.",
   codeberg: "https://codeberg.org/bartlapp/bartl-app",
   reference: "https://codeberg.org/bartlapp/bartl-wordpress",
 } as const;
+
+export const PRIMARY_NAVIGATION = [
+  { path: "derivation", label: "nav.derivation" },
+  { path: "implement", label: "nav.implement" },
+  { path: "spec", label: "nav.spec" },
+] as const;
