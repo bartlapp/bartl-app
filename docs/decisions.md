@@ -30,18 +30,18 @@ Local verification on 31 October: Astro check reported no diagnostics and the st
 
 On 31 October Florian authorized one bounded visual revision before publication. The rendered English candidate is implemented on `polish-bartl-docs-2026-10-31`, retaining the current four-page structure and canonical content ownership.
 
-Use one service throughout the homepage:
+Use one illustrative, product-independent document service throughout the main story:
 
-1. Keep "Keep the service. Keep your options." Show a person using the service, its application, state and necessary dependencies. Make the outcome that must survive visible.
-2. Show ordinary maintenance exercising recovery: reconstruct a replacement from backup, apply the supported update, verify it and switch service. Include the need to coordinate writes.
-3. Show what provider loss adds: withdraw the original provider and reveal the recovery inputs, access paths and dependencies that must remain independently available. Application reconstruction must not stand in for complete service recovery.
-4. Ground the explanation in Keycloak's qualified package behavior. Distinguish illustrative scenarios from exercised evidence; do not portray an unperformed provider-loss drill as a result.
+1. Keep "Keep the service. Keep your options." Show a person finding, reading and updating a shared document, supported by the application, consistent document/file and database state, user access and required dependencies. Authentication is one dependency, not the outcome.
+2. Show ordinary maintenance exercising recovery of that service: reconstruct a replacement from a consistent recovery point, apply the supported update, verify the document, permissions and editing, then switch service. Include the need to coordinate writes.
+3. Show what provider loss adds: independently available recovery inputs and execution, a usable destination, working access and dependencies, and controlled transfer of production authority. Application reconstruction must not stand in for complete service recovery.
+4. Keep Keycloak only in the evidence section as a real qualified application package demonstrating part of the approach. Its evidence does not qualify the illustrative document service or complete provider-loss recovery.
 
 Place application, infrastructure and responsibility beside their actual contributions rather than repeating three prose columns. Short explanations must retain the causal links and necessary conditions; deeper discussion belongs on Approach, technical detail on Implement and Contract. Prefer static explanatory visuals. Interaction needs a real explanatory purpose; no carousel, decorative animation or framework change.
 
-The English candidate uses a connected sign-in service diagram, a replacement-update sequence, a withdrawn-provider scenario and a separate Keycloak qualification record. `ServiceHomepage.astro` owns the visual treatment; English copy remains in `src/content/landing.ts`. The German homepage retains its previous rendering until Florian approves the English treatment.
+The first visual candidate `dc744f3` used Keycloak throughout. Florian retained its visual treatment but rejected identity-service deployment as the organizing subject of an operating philosophy. The revised English candidate preserves the composition, sequence and four-page structure while using the illustrative document service above. It makes no implementation or qualification claim for that service. `ServiceHomepage.astro` owns the visual treatment; English copy remains in `src/content/landing.ts`. The German homepage retains its previous rendering until Florian approves the English treatment.
 
-Local verification on 31 October: Astro check reported no diagnostics and the static build generated 14 pages. Chromium inspection covered desktop and mobile, light and dark modes. Layout checks at 320, 390, 768, 1280 and 1440 pixels found no overflowing homepage elements. All ten distinct local homepage links and anchors resolved. The service jump, Keycloak implementation link, theme toggle and language switch were exercised; no browser errors were recorded. A mobile collision with DaisyUI's `steps` class was corrected by using a component-specific class.
+Local verification of the document-service revision on 31 October: Astro check reported no diagnostics and the static build generated 14 pages. Chromium inspection covered desktop and mobile, light and dark modes. Layout checks at 320, 390, 768, 1280 and 1440 pixels found no overflowing homepage elements. Keycloak appears only in the English evidence section. All ten distinct local homepage links and anchors resolved. The service jump, Keycloak implementation link, theme toggle and language switch were exercised; the German route retained its existing layout and no browser errors were recorded.
 
 Next decision: Florian reviews the rendered English homepage for clarity and visual quality. After approval, carry the treatment through German, verify and prepare publication. Neither the visual-work authorization nor the earlier exact-candidate publication approval authorizes publishing this rewrite.
 
