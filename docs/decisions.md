@@ -22,9 +22,25 @@ The correctness candidate `8c66e3f715c34e40c3462cdcc4d925ba6a164a8d` and WordPre
 
 The subsequent website rewrite implements the approved homepage argument and four-page structure. Approach keeps `/derivation/`, Contract keeps `/spec/`, and Implement adds `/implement/`; established URLs remain usable without compatibility routes. Approach and Implement render the existing English Markdown and maintained German translations directly. The old mechanism-first derivation copy and unused static startup components are removed.
 
-The rewrite remains local pending review of the rendered candidate and separate publication authorization. No application runtime or HZD material is changed. Codeberg issues remain the remote work channel; this section records the current local review boundary without creating an additional backlog.
+The content baseline `b3aab7eb29b0f53e67933008debd799f6e2d262c` remains local. Florian rejected its visual treatment as boring and excessively text-heavy; the substantive argument remains the constraint, not permission to publish this presentation. No application runtime or HZD material is changed. Codeberg issues remain the remote work channel.
 
 Local verification on 31 October: Astro check reported no diagnostics and the static build generated 14 pages. Chromium exercised all four main pages in both languages at 1280, 390 and 320 pixels, checked 226 internal links/anchors across 12 content/legal pages, and exercised all seven Contract scenarios per language, language switching and dark mode. Desktop/mobile screenshots were inspected; no browser errors remained. Prose lint passed. These are website checks, not new application qualification.
+
+### Approved next work: high-fidelity homepage revision
+
+On 31 October Florian authorized one bounded visual revision before publication. Continue in a fresh session in `bartl-app`, from `polish-bartl-docs-2026-10-31`. Implement a rendered English candidate in the existing Astro site, not another outline or philosophy round. Retain the current four-page structure and canonical content ownership.
+
+Use one service throughout the homepage:
+
+1. Keep "Keep the service. Keep your options." Show a person using the service, its application, state and necessary dependencies. Make the outcome that must survive visible.
+2. Show ordinary maintenance exercising recovery: reconstruct a replacement from backup, apply the supported update, verify it and switch service. Include the need to coordinate writes.
+3. Show what provider loss adds: withdraw the original provider and reveal the recovery inputs, access paths and dependencies that must remain independently available. Application reconstruction must not stand in for complete service recovery.
+4. Ground the explanation in Keycloak's qualified package behavior. Distinguish illustrative scenarios from exercised evidence; do not portray an unperformed provider-loss drill as a result.
+
+Place application, infrastructure and responsibility beside their actual contributions rather than repeating three prose columns. Short explanations must retain the causal links and necessary conditions; deeper discussion belongs on Approach, technical detail on Implement and Contract. Prefer static explanatory visuals. Interaction needs a real explanatory purpose; no carousel, decorative animation or framework change.
+
+Next deliverable is the actual English homepage at desktop and mobile sizes, visually inspected in the browser. Florian reviews whether it makes the idea understandable and compelling without distortion. After that approval, carry the treatment through German, verify and prepare publication. Neither the visual-work authorization nor the earlier exact-candidate publication approval authorizes publishing this rewrite.
+
 
 ## German and English pages share their structure
 
