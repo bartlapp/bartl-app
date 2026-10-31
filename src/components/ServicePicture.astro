@@ -3,28 +3,10 @@
 import ServiceGlyph from "./ServiceGlyph.astro";
 import type { landingCopy } from "@/content/landing";
 import type { Lang } from "@/i18n/ui";
-interface Props { kind: "hero" | "recovery" | "loss"; copy: (typeof landingCopy)[Lang] }
+interface Props { kind: "recovery" | "loss"; copy: (typeof landingCopy)[Lang] }
 const { kind, copy: c } = Astro.props;
 const p = c.pictures;
 ---
-{kind === "hero" && <div class="hero-picture">
-  <svg viewBox="0 0 320 280" role="img" aria-label={p.heroAlt}>
-    <path class="route" d="M62 92h55m-8-6 8 6-8 6"/>
-    <ServiceGlyph kind="person" x={12} y={52}/>
-    <ServiceGlyph kind="application" x={122} y={40}/>
-    <ServiceGlyph kind="document" x={151} y={64}/>
-    <ServiceGlyph kind="key" x={199} y={66} scale={0.5}/>
-    <circle cx="272" cy="77" r="17"/><path d="m264 77 6 6 11-12"/>
-    <path class="branch" d="M234 91h19M179 130v54m-6-8 6 8 6-8"/>
-    <ServiceGlyph kind="state" x={140} y={195}/>
-    <text x="12" y="149">{p.person}</text>
-    <text x="178" y="26" text-anchor="middle">{p.application}</text>
-    <text x="272" y="123" text-anchor="middle">{p.signIn}</text>
-    <text x="181" y="270" text-anchor="middle">{p.filesDatabase}</text>
-  </svg>
-  <p class="result-label">{c.service.applicationDetail}</p>
-  <p class="support">{p.keyMeaning}{" "}{c.service.access}.{" "}{p.authSupport}</p>
-</div>}
 {kind === "recovery" && <div>
   <div class="scenes">
     <figure class="scene">
@@ -141,8 +123,6 @@ const p = c.pictures;
 <style>
   svg { display: block; width: 100%; height: auto; color: var(--accent); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   text { fill: currentColor; stroke: none; font-family: inherit; font-size: 14px; }
-  .hero-picture { margin-top: 18px; }
-  .hero-picture svg { max-width: 420px; margin-inline: auto; }
   .route { stroke-width: 3; }
   .branch, .region { stroke-dasharray: 5 5; }
   .capture { fill: var(--wash); stroke-width: 2; }
@@ -154,11 +134,9 @@ const p = c.pictures;
   .scene { min-width: 0; margin: 0; position: relative; }
   h3 { font-size: 1rem; line-height: 1.4; font-weight: 600; min-height: 2.8em; }
   .scene svg { margin-block: 16px; }
-  figcaption, .support { font-size: 0.85rem; line-height: 1.6; color: var(--muted); }
+  figcaption { font-size: 0.85rem; line-height: 1.6; color: var(--muted); }
   .scene-label { display: block; color: var(--ink); font-weight: 500; margin-bottom: 6px; }
   figcaption p + p { margin-top: 12px; }
-  .result-label { font-weight: 500; margin-top: 14px; font-size: 0.95rem; }
-  .support { margin-top: 8px; }
   .stacked-route { display: none; }
   .authority { border-block: 1px solid var(--line); margin-top: 40px; padding-block: 24px; display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: center; }
   .authority h3 { min-height: 0; margin-bottom: 16px; }

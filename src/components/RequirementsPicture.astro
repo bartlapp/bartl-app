@@ -1,0 +1,119 @@
+---
+// SPDX-License-Identifier: Apache-2.0
+import ServiceGlyph from "./ServiceGlyph.astro";
+import type { Lang } from "@/i18n/ui";
+interface Props { kind: "service" | "choice" | "capability" | "upkeep" | "model"; lang: Lang }
+const { kind, lang } = Astro.props;
+const de = lang === "de";
+const text = de ? {
+  service: "Erst wenn alles zusammenwirkt, kann der Mensch das Dokument bearbeiten.",
+  choice: "Das Kündigungsrecht endet auf Papier. Eine vorbereitete Alternative führt zum selben Dokument an einem anderen Ort.",
+  capability: "Wissen im Kopf eines Spezialisten wird zu einem gepflegten Verfahren, das verschiedene Betreiber ausführen können.",
+  upkeep: "Eine frühere Prüfung reicht nach einer Änderung nicht mehr. Das Verfahren wird angepaßt und erneut am nutzbaren Ergebnis geprüft.",
+  model: "Ein autorisierter Betreiber führt das gepflegte Verfahren aus. Die Anwendung läuft in bereitgestellter Infrastruktur; der Mensch kann sein Dokument bearbeiten.",
+  authorized: "Ziel + Grenzen", approved: "freigegeben", environment: "Runtime · Storage · Netz", operator: "Betreiber", outcome: "Nutzbare Arbeit",
+  missing: "Kein nutzbares Ziel",
+  work: "Änderung gespeichert", access: "Zugang", state: "Daten + Rechte", paper: "Kündigungsrecht", destination: "Vorbereitetes Ziel", same: "Dasselbe Dokument", mind: "Nur im Kopf", procedure: "Gepflegtes Verfahren", team: "Durch das Team ausführbar", before: "Geprüft", change: "Geändert", again: "Erneut geprüft", release: "Release", repair: "Anpassen + erneut ausführen"
+} : {
+  service: "Only when the parts work together can the person edit the document.",
+  choice: "The right to terminate ends on paper. A prepared alternative reaches the same document somewhere else.",
+  capability: "Knowledge in one specialist's head becomes a maintained procedure that different operators can execute.",
+  upkeep: "An earlier check is insufficient after a change. The procedure is updated and checked again against useful work.",
+  model: "An authorized operator executes the maintained procedure. The application runs on supplied infrastructure; the person can edit their document.",
+  authorized: "Target + limits", approved: "approved", environment: "Runtime · storage · network", operator: "Operator", outcome: "Useful work",
+  missing: "No usable destination",
+  work: "Change saved", access: "Access", state: "Data + permissions", paper: "Right to terminate", destination: "Prepared destination", same: "The same document", mind: "Only in one head", procedure: "Maintained procedure", team: "Executable by the team", before: "Checked", change: "Changed", again: "Rechecked", release: "Release", repair: "Adapt + execute again"
+};
+---
+<svg class="requirements-picture" viewBox="0 0 600 340" role="img" aria-label={text[kind]}>
+  {kind === "service" && <>
+    <path class="flow" d="M107 163h92M313 163h92M267 220v37h138M267 103V65h138" />
+    <ServiceGlyph kind="person" x={48} y={125} scale={1.15}/>
+    <ServiceGlyph kind="application" x={199} y={119} scale={1.2}/>
+    <ServiceGlyph kind="document" x={228} y={151} scale={.8}/>
+    <ServiceGlyph kind="key" x={417} y={42} scale={.75}/>
+    <ServiceGlyph kind="state" x={405} y={230} scale={.8}/>
+    <g class="result"><path d="M421 135h100v65H421z"/><path d="m451 166 13 13 26-29"/></g>
+    <text x="471" y="225" text-anchor="middle">{text.work}</text>
+    <text x="457" y="104" text-anchor="middle">{text.access}</text>
+    <text x="446" y="311" text-anchor="middle">{text.state}</text>
+  </>}
+  {kind === "choice" && <>
+    <ServiceGlyph kind="person" x={36} y={143}/>
+    <path class="faint" d="M91 170h51V72h57"/>
+    <path class="paper" d="M200 31h61l18 18v76h-79zM261 31v18h18M214 69h49M214 81h40M214 93h32"/>
+    <path class="faint" stroke-dasharray="4 7" d="M288 78h97"/>
+    <g class="faint"><rect x="409" y="42" width="112" height="75" rx="4"/><path d="M409 58h112"/></g>
+    <text x="465" y="25" text-anchor="middle">{text.missing}</text>
+    <text x="465" y="96" text-anchor="middle" class="question">?</text>
+    <text x="236" y="154" text-anchor="middle">{text.paper}</text>
+    <path class="flow" d="M91 185h51v69h239"/>
+    <path class="flow" d="m369 245 12 9-12 9"/>
+    <path class="environment" d="M395 181h169v139H395z"/>
+    <ServiceGlyph kind="application" x={424} y={201} scale={.86}/>
+    <ServiceGlyph kind="document" x={442} y={226} scale={.6}/>
+    <text x="479" y="161" text-anchor="middle">{text.destination}</text>
+    <text x="236" y="287" text-anchor="middle">{text.same}</text>
+    <ServiceGlyph kind="document" x={219} y={214} scale={.58}/>
+  </>}
+  {kind === "capability" && <>
+    <ServiceGlyph kind="person" x={37} y={151}/>
+    <path class="faint" d="M66 132c-24-14-18-51 9-54-6-26 41-39 54-14 28-7 45 23 26 43 5 28-31 40-48 23z"/>
+    <path class="faint" d="M88 88h41m-41 10h26m-26 10h34"/>
+    <text x="99" y="266" text-anchor="middle">{text.mind}</text>
+    <path class="flow" d="M178 166h54m-12-9 12 9-12 9"/>
+    <g class="manual"><path d="M256 80h95l18 18v162H256zM351 80v18h18"/><path d="m273 121 7 7 12-15m-19 47 7 7 12-15m-19 47 7 7 12-15M305 122h44M305 161h44M305 200h44M273 235h76"/></g>
+    <path class="flow" d="M370 166h49v-51h29M419 166v76h29"/>
+    <ServiceGlyph kind="person" x={460} y={75} scale={.8}/>
+    <ServiceGlyph kind="person" x={460} y={203} scale={.8}/>
+    <ServiceGlyph kind="document" x={519} y={83} scale={.65}/>
+    <ServiceGlyph kind="document" x={519} y={211} scale={.65}/>
+    <text x="313" y="52" text-anchor="middle">{text.procedure}</text>
+    <text x="432" y="302" text-anchor="middle">{text.team}</text>
+  </>}
+  {kind === "upkeep" && <>
+    <path class="faint" d="M76 154h445"/>
+    {[65, 255, 445].map((x, i) => <g>
+      <ServiceGlyph kind="application" x={x} y={88} scale={.8}/>
+      <ServiceGlyph kind="document" x={x + 20} y={113} scale={.55}/>
+      <text x={x + 45} y="66" text-anchor="middle">{i === 0 ? text.before : i === 1 ? text.change : text.again}</text>
+      <text class="small" x={x + 45} y="187" text-anchor="middle">{text.release} {i === 0 ? "1" : "2"}</text>
+    </g>)}
+    <g class="result"><circle cx="145" cy="153" r="17"/><path d="m137 153 6 6 11-13M512 153l7 7 13-16"/></g>
+    <circle cx="355" cy="153" r="18" fill="var(--color-base-100)" stroke="var(--warning)" stroke-width="2"/>
+    <text x="355" y="161" text-anchor="middle" style="fill:var(--warning);font-size:26px">?</text>
+    <path class="flow" d="M300 204v47h190v-47m-8 12 8-12 8 12"/>
+    <text x="395" y="285" text-anchor="middle">{text.repair}</text>
+  </>}
+  {kind === "model" && <>
+    <ServiceGlyph kind="person" x={44} y={94} scale={1.05}/>
+    <g class="manual"><path d="M102 96h50v73h-50z"/><path d="m112 114 5 5 9-11m-14 32 5 5 9-11M134 114h9M134 140h9"/></g>
+    <path class="flow" d="M165 135h61m-12-9 12 9-12 9"/>
+    <ServiceGlyph kind="application" x={238} y={67} scale={1.35}/>
+    <ServiceGlyph kind="document" x={270} y={106} scale={.85}/>
+    <path class="paper" d="M222 211h184v27H222zM222 249h184v27H222z"/>
+    <path class="flow" d="M237 224h4m8 0h4m-16 38h4m8 0h4M312 190v20M390 135h61"/>
+    <ServiceGlyph kind="person" x={460} y={98}/>
+    <ServiceGlyph kind="document" x={521} y={104} scale={.8}/>
+    <path class="result" d="m530 180 8 8 17-20"/>
+    <text x="101" y="209" text-anchor="middle">{text.operator}</text>
+    <text x="106" y="251" text-anchor="middle"><tspan x="106">{text.authorized}</tspan><tspan x="106" dy="27">{text.approved}</tspan></text>
+    <text x="314" y="308" text-anchor="middle">{text.environment}</text>
+    <text x="510" y="224" text-anchor="middle">{text.outcome}</text>
+  </>}
+</svg>
+<style>
+  .requirements-picture { display: block; width: 100%; height: auto; color: var(--ink); overflow: visible; }
+  svg :global(path), svg :global(circle) { stroke-linecap: round; stroke-linejoin: round; }
+  text { fill: var(--ink); font: 20px system-ui, sans-serif; }
+  .small { font-size: 18px; }
+  .flow { fill: none; stroke: var(--accent); stroke-width: 3; }
+  .faint { fill: none; stroke: var(--line); stroke-width: 2; }
+  .result { fill: none; stroke: var(--accent); stroke-width: 3; }
+  .question { fill: var(--warning); font-size: 26px; }
+  .paper, .manual { fill: var(--color-base-100); stroke: var(--ink); stroke-width: 2; }
+  .environment { fill: var(--wash); stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 5; }
+  @media (max-width: 680px) {
+    text, .small { font-size: 24px; }
+  }
+</style>

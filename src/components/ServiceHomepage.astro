@@ -3,8 +3,15 @@
 import type { landingCopy } from "@/content/landing";
 import type { Lang } from "@/i18n/ui";
 import ServicePicture from "./ServicePicture.astro";
+import RequirementsPicture from "./RequirementsPicture.astro";
 interface Props { copy: (typeof landingCopy)[Lang]; lang: Lang }
 const { copy: c, lang } = Astro.props;
+const chapters = [
+  { kind: "service" as const, ...c.problem },
+  { kind: "choice" as const, ...c.choice },
+  { kind: "capability" as const, ...c.capability },
+  { kind: "upkeep" as const, ...c.upkeep },
+];
 ---
 
 <article class="service-story">
@@ -12,49 +19,30 @@ const { copy: c, lang } = Astro.props;
     <p class="eyebrow">{c.eyebrow}</p>
     <h1>{c.title}</h1>
     <p class="hero-lead">{c.lead}</p>
-    <div class="requirements">
-      <p>{c.requirements.premise}</p>
-      <ul>{c.requirements.consequences.map(item => <li>{item}</li>)}</ul>
-      <p>{c.requirements.conclusion}</p>
-      <p>{c.requirements.boundary}</p>
-      <a class="text-link" href="#service">{c.storyLink}</a>
-    </div>
   </header>
 
-  <section id="service" class="section-band" aria-labelledby="problem-heading">
-    <div class="wrap section-inner problem-layout">
-      <div>
-        <p class="eyebrow">{c.problem.label}</p>
-        <h2 id="problem-heading">{c.problem.title}</h2>
-        <p class="section-lead">{c.problem.lead}</p>
-        <p class="consequence">{c.problem.consequence}</p>
+  <div id="service" class="visual-argument wrap">
+    {chapters.map((chapter, index) => <section class:list={["chapter", { reverse: index % 2 === 1 }]} aria-labelledby={`${chapter.kind}-heading`}>
+      <div class="chapter-heading">
+        <p class="eyebrow">{chapter.label}</p>
+        <h2 id={`${chapter.kind}-heading`}>{chapter.title}</h2>
       </div>
-      <figure class="service-map">
-        <h3>{c.service.title}</h3>
-        <ServicePicture kind="hero" copy={c} />
-        <figcaption>{c.service.caption}</figcaption>
+      <figure class="chapter-picture">
+        <RequirementsPicture kind={chapter.kind} lang={lang}/>
+        {index === 0 && <figcaption>{c.service.caption}</figcaption>}
       </figure>
-    </div>
-  </section>
+      <div class="chapter-prose">
+        <p class="premise">{chapter.lead}</p>
+        <p>{chapter.consequence}</p>
+      </div>
+    </section>)}
+  </div>
 
-  <section class="wrap section-inner" aria-labelledby="choice-heading">
-    <div class="section-heading">
-      <p class="eyebrow">{c.choice.label}</p>
-      <h2 id="choice-heading">{c.choice.title}</h2>
-      <p class="section-lead">{c.choice.lead}</p>
-    </div>
-    <div class="choice-contrast">
-      {c.choice.contrast.map(item => <div><h3>{item.title}</h3><p>{item.detail}</p></div>)}
-    </div>
-    <p class="consequence">{c.choice.consequence}</p>
-  </section>
-
-  <section class="contributions section-band" aria-labelledby="contributions-heading">
+  <section class="operating-model section-band" aria-labelledby="contributions-heading">
     <div class="wrap section-inner">
-      <div class="section-heading">
-        <p class="eyebrow">{c.contributions.label}</p>
-        <h2 id="contributions-heading">{c.contributions.title}</h2>
-        <p class="section-lead">{c.contributions.lead}</p>
+      <div class="model-heading">
+        <div><p class="eyebrow">{c.contributions.label}</p><h2 id="contributions-heading">{c.contributions.title}</h2><p class="section-lead">{c.requirements.conclusion}</p></div>
+        <RequirementsPicture kind="model" lang={lang}/>
       </div>
       <div class="contribution-list">
         {c.contributions.items.map((item, index) => <section class="contribution">
@@ -62,76 +50,46 @@ const { copy: c, lang } = Astro.props;
           <p class="gap">{item.gap}</p><p class="action">{item.action}</p>
         </section>)}
       </div>
-      <p class="consequence">{c.contributions.result}</p>
+      <div class="model-limits"><p>{c.contributions.result}</p><p>{c.requirements.boundary}</p></div>
     </div>
   </section>
 
-  <section class="wrap section-inner" aria-labelledby="upkeep-heading">
+  <section class="wrap section-inner" aria-labelledby="demonstration-heading">
     <div class="section-heading">
-      <p class="eyebrow">{c.upkeep.label}</p>
-      <h2 id="upkeep-heading">{c.upkeep.title}</h2>
-      <p class="section-lead">{c.upkeep.lead}</p>
+      <p class="eyebrow">{c.demonstration.label}</p>
+      <h2 id="demonstration-heading">{c.demonstration.title}</h2>
+      <p class="section-lead">{c.demonstration.lead}</p>
     </div>
-    <ol class="upkeep-steps">
-      {c.upkeep.steps.map(item => <li><h3>{item.title}</h3><p>{item.detail}</p></li>)}
-    </ol>
-    <p class="consequence">{c.upkeep.consequence}</p>
+    <div class="example-summary"><p>{c.demonstration.recoverySummary}</p><p>{c.demonstration.lossSummary}</p></div>
+    <p class="consequence">{c.demonstration.lesson}</p>
+    <details>
+      <summary>{c.maintenance.title}</summary>
+      <div class="detail-body"><p class="detail-intro">{c.maintenance.lead}</p><ServicePicture kind="recovery" copy={c}/><p class="detail-note">{c.maintenance.cost}</p></div>
+    </details>
+    <details>
+      <summary>{c.loss.title}</summary>
+      <div class="detail-body"><p class="detail-intro">{c.loss.lead}</p><ServicePicture kind="loss" copy={c}/><p class="detail-note">{c.loss.caption}</p></div>
+    </details>
   </section>
 
-  <section class="section-band" aria-labelledby="demonstration-heading">
-    <div class="wrap section-inner">
-      <div class="section-heading">
-        <p class="eyebrow">{c.demonstration.label}</p>
-        <h2 id="demonstration-heading">{c.demonstration.title}</h2>
-        <p class="section-lead">{c.demonstration.lead}</p>
+  <section class="section-band" aria-labelledby="evidence-heading">
+    <div class="wrap section-inner evidence-layout">
+      <div>
+        <p class="eyebrow">{c.evidence.label}</p><h2 id="evidence-heading">{c.evidence.title}</h2>
+        <p class="section-lead">{c.evidence.lead}</p>
+        <a class="text-link" href={`/${lang}/implement/#${lang === "de" ? "beispiel-keycloak" : "worked-example-keycloak"}`}>{c.evidence.link}</a>
       </div>
-      <div class="example-summary">
-        <p>{c.demonstration.recoverySummary}</p>
-        <p>{c.demonstration.lossSummary}</p>
-      </div>
-      <p class="consequence">{c.demonstration.lesson}</p>
-      <details>
-        <summary>{c.maintenance.title}</summary>
-        <div class="detail-body">
-          <p class="detail-intro">{c.maintenance.lead}</p>
-          <ServicePicture kind="recovery" copy={c} />
-          <p class="detail-note">{c.maintenance.cost}</p>
-        </div>
-      </details>
-      <details>
-        <summary>{c.loss.title}</summary>
-        <div class="detail-body">
-          <p class="detail-intro">{c.loss.lead}</p>
-          <ServicePicture kind="loss" copy={c} />
-          <p class="detail-note">{c.loss.caption}</p>
-        </div>
-      </details>
+      <div class="evidence-record"><h3>{c.evidence.package}</h3><p class="version">{c.evidence.version}</p><ul>{c.evidence.cases.map(item => <li>{item}</li>)}</ul><p>{c.evidence.remainingDetail}</p></div>
     </div>
   </section>
 
-  <section class="wrap section-inner evidence-layout" aria-labelledby="evidence-heading">
-    <div>
-      <p class="eyebrow">{c.evidence.label}</p>
-      <h2 id="evidence-heading">{c.evidence.title}</h2>
-      <p class="section-lead">{c.evidence.lead}</p>
-      <a class="text-link" href={`/${lang}/implement/#${lang === "de" ? "beispiel-keycloak" : "worked-example-keycloak"}`}>{c.evidence.link}</a>
-    </div>
-    <div class="evidence-record">
-      <h3>{c.evidence.package}</h3><p class="version">{c.evidence.version}</p>
-      <ul>{c.evidence.cases.map(item => <li>{item}</li>)}</ul>
-      <p>{c.evidence.remainingDetail}</p>
-    </div>
-  </section>
-
-  <footer class="closing section-band">
-    <div class="wrap section-inner">
-      <h2>{c.closing.title}</h2><p class="section-lead">{c.closing.detail}</p>
-      <nav class="actions" aria-label={c.approachLink}>
-        <a class="primary-link" href={`/${lang}/derivation/`}>{c.closing.approach}</a>
-        <a class="text-link" href={`/${lang}/implement/`}>{c.closing.implement}</a>
-        <a class="text-link" href={`/${lang}/spec/`}>{c.closing.contract}</a>
-      </nav>
-    </div>
+  <footer class="closing wrap section-inner">
+    <h2>{c.closing.title}</h2><p class="section-lead">{c.closing.detail}</p>
+    <nav class="actions" aria-label={c.approachLink}>
+      <a class="primary-link" href={`/${lang}/derivation/`}>{c.closing.approach}</a>
+      <a class="text-link" href={`/${lang}/implement/`}>{c.closing.implement}</a>
+      <a class="text-link" href={`/${lang}/spec/`}>{c.closing.contract}</a>
+    </nav>
   </footer>
 </article>
 
@@ -139,45 +97,46 @@ const { copy: c, lang } = Astro.props;
   .service-story {
     --ink: var(--color-base-content);
     --accent: light-dark(#35666d, #9cc2c4);
-    --line: color-mix(in oklab, var(--ink) 23%, transparent);
+    --warning: light-dark(#a55c43, #e5a58b);
+    --line: color-mix(in oklab, var(--ink) 28%, transparent);
     --wash: color-mix(in oklab, var(--accent) 7%, var(--color-base-100));
     --muted: color-mix(in oklab, var(--ink) 78%, var(--color-base-100));
     color: var(--ink); overflow-wrap: anywhere; hyphens: auto;
   }
-  :global([data-theme="dark"]) .service-story { --accent: #9cc2c4; }
+  :global([data-theme="dark"]) .service-story { --accent: #9cc2c4; --warning: #e5a58b; }
   .wrap { max-width: 1200px; margin-inline: auto; padding-inline: 40px; }
-  .intro-header { padding-block: 80px 88px; }
-  .eyebrow { font-size: .72rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); line-height: 1.6; margin-bottom: 18px; }
-  h1 { max-width: 1000px; font-size: clamp(2.2rem, 4.5vw, 4rem); line-height: 1.12; letter-spacing: -.04em; font-weight: 500; text-wrap: balance; }
-  h2 { font-size: clamp(2rem, 3.5vw, 3rem); line-height: 1.12; letter-spacing: -.04em; font-weight: 500; text-wrap: balance; }
+  .intro-header { padding-block: 60px 48px; }
+  .eyebrow { font-size: .72rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); line-height: 1.6; margin-bottom: 16px; }
+  h1 { max-width: 1040px; font-size: clamp(2.25rem, 4.2vw, 3.8rem); line-height: 1.12; letter-spacing: -.04em; font-weight: 500; text-wrap: balance; }
+  h2 { font-size: clamp(1.8rem, 3vw, 2.6rem); line-height: 1.15; letter-spacing: -.035em; font-weight: 500; text-wrap: balance; }
   h3 { font-size: 1.15rem; line-height: 1.35; font-weight: 600; }
+  h1, h2 { hyphens: none; }
   p { line-height: 1.65; }
-  .hero-lead { max-width: 800px; margin-top: 30px; font-size: 1.4rem; line-height: 1.5; }
-  .requirements { max-width: 800px; margin-top: 36px; }
-  .requirements ul { list-style: disc; padding-left: 24px; margin-block: 24px; }
-  .requirements li { padding-left: 6px; margin-block: 18px; line-height: 1.65; }
-  .requirements p + p { margin-top: 24px; }
-  .section-inner { padding-block: 76px; }
+  .hero-lead { max-width: 800px; margin-top: 24px; font-size: 1.2rem; line-height: 1.6; color: var(--muted); }
+  .chapter { display: grid; grid-template-columns: 1.15fr 1fr; column-gap: 64px; padding-block: 44px 56px; border-top: 1px solid var(--line); align-items: center; }
+  .chapter-heading { grid-column: 1 / -1; max-width: 750px; margin-bottom: 24px; }
+  .chapter-picture { align-self: center; min-width: 0; padding-block: 12px; }
+  .chapter-prose { max-width: 32rem; }
+  .chapter-prose p + p { margin-top: 20px; }
+  .premise { font-size: 1.12rem; }
+  .chapter-prose p:last-child { color: var(--muted); }
+  .reverse .chapter-picture { grid-column: 2; grid-row: 2; }
+  .reverse .chapter-prose { grid-column: 1; grid-row: 2; }
+  figcaption { margin-top: 10px; font-size: .74rem; line-height: 1.6; color: var(--muted); text-align: center; }
+  .section-inner { padding-block: 72px; }
   .section-band { background: var(--wash); border-block: 1px solid var(--line); }
-  .section-heading { max-width: 760px; }
+  .section-heading { max-width: 800px; }
   .section-lead { font-size: 1.08rem; color: var(--muted); margin-top: 24px; max-width: 46rem; }
-  .consequence { margin-top: 30px; max-width: 48rem; font-size: 1.1rem; border-left: 3px solid var(--accent); padding-left: 22px; }
-  .problem-layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 72px; align-items: center; }
-  .service-map { padding: 24px; background: var(--color-base-100); border: 1px solid var(--line); border-radius: 6px; }
-  figcaption { margin-top: 18px; font-size: .8rem; line-height: 1.6; color: var(--muted); }
-  .choice-contrast { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 36px; }
-  .choice-contrast > div { padding-block: 24px; border-top: 2px solid var(--line); }
-  .choice-contrast > div:last-child { border-color: var(--accent); }
-  .choice-contrast p, .upkeep-steps p { margin-top: 12px; color: var(--muted); }
-  .contribution-list { margin-top: 36px; }
-  .contribution { display: grid; grid-template-columns: .8fr 1fr 1.2fr; gap: 36px; padding-block: 28px; border-top: 1px solid var(--line); align-items: start; }
+  .consequence { margin-top: 30px; max-width: 52rem; border-left: 3px solid var(--accent); padding-left: 22px; }
+  .model-heading { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: end; }
+  .model-heading .section-lead { margin: 0; }
+  .contribution-list { margin-top: 40px; }
+  .contribution { display: grid; grid-template-columns: .8fr 1fr 1.6fr; gap: 32px; padding-block: 24px; border-top: 1px solid var(--line); align-items: start; }
   .contribution-title { display: flex; gap: 16px; align-items: baseline; }
   .number { color: var(--accent); font-size: .8rem; font-variant-numeric: tabular-nums; }
   .gap { color: var(--muted); }
-  .action { border-left: 2px solid var(--accent); padding-left: 24px; }
-  .upkeep-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; margin-top: 36px; list-style: decimal; padding-left: 22px; }
-  .upkeep-steps li { padding: 18px 12px 0 4px; border-top: 2px solid var(--accent); }
-  .upkeep-steps li::marker { color: var(--accent); font-size: .85rem; }
+  .model-limits { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; border-top: 1px solid var(--line); padding-top: 28px; font-size: .95rem; }
+  .model-limits p:last-child { color: var(--muted); }
   .example-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 32px; }
   details { border-top: 1px solid var(--line); margin-top: 28px; }
   summary { padding-block: 22px; cursor: pointer; font-size: 1.15rem; font-weight: 500; color: var(--accent); }
@@ -197,25 +156,25 @@ const { copy: c, lang } = Astro.props;
   .actions .text-link { margin-top: 0; }
   .primary-link { padding: 14px 20px; background: var(--accent); color: var(--color-base-100); border-radius: 4px; font-weight: 600; }
   @media (max-width: 900px) {
-    .problem-layout, .evidence-layout { gap: 36px; }
-    .contribution { grid-template-columns: 1fr 1fr; gap: 20px 32px; }
+    .chapter, .model-heading, .model-limits, .evidence-layout { gap: 32px; }
+    .contribution { grid-template-columns: 1fr 1.5fr; gap: 16px 32px; }
     .contribution-title { grid-column: 1 / -1; }
   }
   @media (max-width: 680px) {
     .wrap { padding-inline: 24px; }
-    .intro-header, .section-inner { padding-block: 48px; }
-    .problem-layout, .choice-contrast, .contribution, .upkeep-steps, .example-summary, .evidence-layout { grid-template-columns: 1fr; gap: 24px; }
-    .hero-lead { font-size: 1.2rem; }
-    .service-map { max-width: 440px; }
-    .choice-contrast { gap: 0; }
+    .intro-header { padding-block: 40px 32px; }
+    .hero-lead { font-size: 1.1rem; }
+    .chapter { grid-template-columns: 1fr; gap: 0; padding-block: 32px 40px; }
+    .chapter-heading { grid-column: auto; margin-bottom: 12px; }
+    .chapter-picture, .reverse .chapter-picture { grid-column: 1; grid-row: 2; padding-block: 4px 24px; }
+    .chapter-prose, .reverse .chapter-prose { grid-column: 1; grid-row: 3; }
+    .chapter-prose p + p { margin-top: 16px; }
+    .premise { font-size: 1.05rem; }
+    .section-inner { padding-block: 48px; }
+    .model-heading, .contribution, .model-limits, .example-summary, .evidence-layout { grid-template-columns: 1fr; gap: 24px; }
+    .contribution { gap: 12px; }
     .contribution-title { grid-column: auto; }
-    .action { padding-left: 18px; }
-    .upkeep-steps { gap: 28px; }
     .evidence-record { padding-left: 20px; }
   }
-  @media (max-width: 360px) {
-    .wrap { padding-inline: 18px; }
-    h1 { font-size: 2rem; }
-    .service-map { padding: 16px; }
-  }
+  @media (max-width: 360px) { .wrap { padding-inline: 18px; } h1 { font-size: 2rem; } }
 </style>

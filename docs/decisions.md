@@ -22,9 +22,19 @@ Requirements establish what is needed; claims describe what evidence can substan
 
 Preserve the agreed causal wording when transferring it to the website and Approach pages. Do not turn it into a new writing brief, a slogan or a list of preferred mechanisms. Keep observation and consequence together; examples develop the argument rather than replace it. The application contract remains unchanged.
 
-The focused revision places this question and its four consequences directly at the beginning of both homepages and both Approach pages. It replaces the generic introduction and restores explicit causal wording about whole-service responsibility, changing prerequisites and reuse of operating procedures. The opening uses a readable single-column layout rather than splitting its reasoning into separate display blocks.
+The focused revision `efb003f` placed this question and its four consequences directly at the beginning of both homepages and both Approach pages. It replaced the generic introduction and restored explicit causal wording about whole-service responsibility, changing prerequisites and reuse of operating procedures. Its single-column opening preserved the reasoning but was rejected as excessively text-heavy.
 
 Verification of this revision: Astro check reported zero errors, warnings or hints and the build produced 14 pages. German prose lint passed. Both homepages and Approach pages were exercised at 320, 390, 768 and 1440 pixels without horizontal overflow. Desktop English and mobile German openings were visually inspected; language switching, the link into the operating explanation, recovery-example expansion and onward navigation to Approach worked without browser errors. No publication was performed.
+
+## Show the consequences, not a wall of principles
+
+The next visual revision keeps the governing question and distributes its consequences beside four explanatory pictures: connected parts produce a saved document edit; contractual permission differs from a prepared path to the same work; specialist knowledge becomes a maintained procedure usable by the operating team; changes make an earlier check insufficient until the affected path is exercised again. A fifth picture connects the authorized operator, application procedures, supplied infrastructure and useful result.
+
+The relationships are visible in the main reading path, not hidden in disclosures. The complete prose argument remains on Approach. Detailed reconstruction and provider-loss pictures remain optional worked examples; their consequential limits stay in the visible summary. Keycloak evidence remains separate from the illustrative document service.
+
+Independent rendered critique identified the delayed concrete example and the lack of visible relationships between contributions. The revised sequence addresses those findings without treating reduced word count or added icons as success. It also distinguishes uncertainty after change from demonstrated service failure: the changed release receives a question mark, not a failure cross. These are expert design and fidelity checks, not an audience-comprehension study.
+
+Final verification used the built site after restarting a development preview that had retained stale component styles. Both languages passed at 320, 390, 768 and 1440 pixels with both technical disclosures open: no page overflow or clipped SVG labels. Desktop/mobile pictures, uncertainty markers and dark mode were visually inspected; language switching, onward Approach navigation and 16 distinct internal links/anchors passed. The independent rendered re-review found no remaining blocker; source-based technical review found no material fidelity defect. Astro check reported zero diagnostics, the build produced 14 pages, and prose lint passed. The superseded hero picture and its unused copy/styles were removed. No publication was performed.
 
 ## Explain the operating model before demonstrating recovery
 
