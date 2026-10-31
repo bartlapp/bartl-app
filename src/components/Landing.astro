@@ -2,17 +2,19 @@
 // SPDX-License-Identifier: Apache-2.0
 import { landingCopy } from "@/content/landing";
 import type { Lang } from "@/i18n/ui";
+import ServiceHomepage from "@/components/ServiceHomepage.astro";
 
 interface Props {
   lang: Lang;
 }
 const { lang } = Astro.props;
-const c = landingCopy[lang];
+const c = landingCopy.de;
 const approach = `/${lang}/derivation/`;
 const implement = `/${lang}/implement/`;
 const contract = `/${lang}/spec/`;
 ---
 
+{lang === "en" ? <ServiceHomepage copy={landingCopy.en} /> : (
 <article>
   <header class="border-base-300 border-b">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
@@ -81,3 +83,4 @@ const contract = `/${lang}/spec/`;
     </div>
   </section>
 </article>
+)}

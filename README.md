@@ -205,7 +205,7 @@ The complete claim must be exercised with source access withheld, including prov
 
 | What | Where |
 | --- | --- |
-| Outcome-led DE/EN homepage layout and copy | `src/components/Landing.astro`, `src/content/landing.ts` |
+| Homepage routing, English visual candidate, and DE/EN copy | `src/components/Landing.astro`, `src/components/ServiceHomepage.astro`, `src/content/landing.ts` |
 | DE/EN homepage route | `src/pages/[lang]/index.astro` |
 | Approach, retaining the established derivation URL | `src/pages/[lang]/derivation.astro` |
 | Philosophy rendered directly, with German translation | `docs/philosophy.md`, `docs/philosophy.de.md` |
@@ -222,7 +222,7 @@ The complete claim must be exercised with source access withheld, including prov
 | Legal pages and copy | `src/pages/[lang]/`, `src/legal/` |
 | Static assets | `public/` |
 
-Both languages share page structure and navigation. The homepage carries the complete-service argument and a bounded Keycloak example; Approach and Implement render the maintained Markdown documents, not independent English website copies. German Markdown files are translations of those same documents. The Contract page explains the normative application contract above; it does not redefine it. WordPress remains historical supporting material on the technical path.
+Both languages share navigation and the four-page structure. The English homepage is a local visual review candidate; the German homepage retains the previous treatment until approval, as recorded in [Decisions](docs/decisions.md#high-fidelity-homepage-revision-english-candidate-awaiting-review). The homepage carries the complete-service argument and a bounded Keycloak example; Approach and Implement render the maintained Markdown documents, not independent English website copies. German Markdown files are translations of those same documents. The Contract page explains the normative application contract above; it does not redefine it. WordPress remains historical supporting material on the technical path.
 
 ## Develop
 

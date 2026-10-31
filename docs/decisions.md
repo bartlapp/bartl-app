@@ -26,9 +26,9 @@ The content baseline `b3aab7eb29b0f53e67933008debd799f6e2d262c` remains local. F
 
 Local verification on 31 October: Astro check reported no diagnostics and the static build generated 14 pages. Chromium exercised all four main pages in both languages at 1280, 390 and 320 pixels, checked 226 internal links/anchors across 12 content/legal pages, and exercised all seven Contract scenarios per language, language switching and dark mode. Desktop/mobile screenshots were inspected; no browser errors remained. Prose lint passed. These are website checks, not new application qualification.
 
-### Approved next work: high-fidelity homepage revision
+### High-fidelity homepage revision: English candidate awaiting review
 
-On 31 October Florian authorized one bounded visual revision before publication. Continue in a fresh session in `bartl-app`, from `polish-bartl-docs-2026-10-31`. Implement a rendered English candidate in the existing Astro site, not another outline or philosophy round. Retain the current four-page structure and canonical content ownership.
+On 31 October Florian authorized one bounded visual revision before publication. The rendered English candidate is implemented on `polish-bartl-docs-2026-10-31`, retaining the current four-page structure and canonical content ownership.
 
 Use one service throughout the homepage:
 
@@ -39,12 +39,16 @@ Use one service throughout the homepage:
 
 Place application, infrastructure and responsibility beside their actual contributions rather than repeating three prose columns. Short explanations must retain the causal links and necessary conditions; deeper discussion belongs on Approach, technical detail on Implement and Contract. Prefer static explanatory visuals. Interaction needs a real explanatory purpose; no carousel, decorative animation or framework change.
 
-Next deliverable is the actual English homepage at desktop and mobile sizes, visually inspected in the browser. Florian reviews whether it makes the idea understandable and compelling without distortion. After that approval, carry the treatment through German, verify and prepare publication. Neither the visual-work authorization nor the earlier exact-candidate publication approval authorizes publishing this rewrite.
+The English candidate uses a connected sign-in service diagram, a replacement-update sequence, a withdrawn-provider scenario and a separate Keycloak qualification record. `ServiceHomepage.astro` owns the visual treatment; English copy remains in `src/content/landing.ts`. The German homepage retains its previous rendering until Florian approves the English treatment.
+
+Local verification on 31 October: Astro check reported no diagnostics and the static build generated 14 pages. Chromium inspection covered desktop and mobile, light and dark modes. Layout checks at 320, 390, 768, 1280 and 1440 pixels found no overflowing homepage elements. All ten distinct local homepage links and anchors resolved. The service jump, Keycloak implementation link, theme toggle and language switch were exercised; no browser errors were recorded. A mobile collision with DaisyUI's `steps` class was corrected by using a component-specific class.
+
+Next decision: Florian reviews the rendered English homepage for clarity and visual quality. After approval, carry the treatment through German, verify and prepare publication. Neither the visual-work authorization nor the earlier exact-candidate publication approval authorizes publishing this rewrite.
 
 
 ## German and English pages share their structure
 
-The landing route renders `src/components/Landing.astro` for both languages, with copy in `src/content/landing.ts`. Approach and Implement share `DocumentArticle.astro`; Contract uses `src/content/spec.ts` with one layout. Header and footer use one primary navigation list. Copy remains language-specific, but section order, links, semantics and claim boundaries share their implementation.
+The landing route renders `src/components/Landing.astro` for both languages, with copy in `src/content/landing.ts`. During the English review, it selects `ServiceHomepage.astro` for English and retains the established German layout. After approval, the selected visual structure is to be shared again. Approach and Implement share `DocumentArticle.astro`; Contract uses `src/content/spec.ts` with one layout. Header and footer use one primary navigation list.
 
 ## Astro over a single-binary static site generator
 
