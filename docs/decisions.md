@@ -10,9 +10,23 @@ A lightweight record of non-obvious choices for this repo. Not formal ADRs - a f
 
 `src/content/spec.ts`, rendered by `src/pages/[lang]/spec.astro`, explains the application contract for website readers. It is neither a runtime implementation nor a second normative source. The startup mechanism is one contribution to Bartl, not its complete definition.
 
-The homepage leads with usable service and retained freedom to act, then connects application, infrastructure and responsibility through an illustrative document service. A separate, bounded Keycloak evidence section demonstrates application-package behavior. Startup pseudocode belongs on the technical Contract page. WordPress is removed from the current reader journey; historical publication records below remain historical evidence.
+The homepage derives the operating approach from useful work and retained freedom to act: healthy components do not establish a complete service, nominal alternatives do not establish usable choices, and repeatable operation needs maintained application procedures, usable infrastructure and responsible organization. Continuing maintenance precedes the recovery example. Keycloak supplies separate application-package evidence. Startup pseudocode belongs on the technical Contract page. WordPress is removed from the current reader journey; historical publication records below remain historical evidence.
 
 Historical talks and product contexts provide provenance. They do not define a second version of Bartl.
+
+## Explain the operating model before demonstrating recovery
+
+On 31 October, after publication of `f436267`, Florian reopened the explanation, not just its visual treatment. Existing wording, pictures and page structure are no longer constraints. The earlier reviews established fidelity and visual improvement, but did not establish that a newcomer could explain what to do differently and why.
+
+The revised bilingual homepage first establishes the gap between functioning components and useful service, then between a nominal choice and a prepared alternative. Application, infrastructure and organizational contributions follow from those gaps. Continuing maintenance explains why the capability must survive changes in software, dependencies and responsibility.
+
+Replacement updates and provider-loss recovery now demonstrate the approach rather than define it. Their main lessons remain visible; native expandable sections carry the existing detailed pictures and conditions. The document service stays illustrative, and Keycloak evidence retains its exact package scope. The Approach pages carry the same causal links into the existing detailed philosophy. Implement and Contract remain unchanged because the application behavior and integration method have not changed.
+
+The general philosophy does not prescribe a customer-specific broker or portfolio model. This revision is local and does not authorize publication.
+
+Verification: both homepages were exercised at 320, 390, 768 and 1440 pixels, including opening both technical examples. No page overflow or clipped SVG text was observed. Browser inspection caught and corrected a heading overlap caused by a shared CSS class name. Desktop and mobile views, dark mode, language switching and navigation into Approach were inspected. All eight main language/page combinations loaded at mobile width without overflow; 46 distinct internal main-content links and anchors resolved. German philosophy prose lint passed. These checks establish rendering and navigation, not independent reader comprehension.
+
+The final Astro check reported zero errors, warnings or hints; the static build produced 14 pages. The existing development environment warns that its installed Vite 8 is outside Astro's required Vite 7 range; dependency changes are outside this explanation revision.
 
 ## Documentation alignment and remaining work
 

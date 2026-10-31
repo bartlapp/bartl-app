@@ -2,17 +2,19 @@
 
 # Bartl: handlungsfähig bleiben
 
-Wenn wir Resilienz und Souveränität als Anforderungen ernst nehmen, wie müssen Anwendungen, Infrastruktur und Betriebsorganisation dann gestaltet sein?
+Menschen müssen ihre Arbeit erledigen können. Sie müssen ihre Daten nutzen, zusammenarbeiten und Ergebnisse liefern können, auch wenn sich Software, Provider und Anforderungen ändern. Wir sollten eine Anwendung aktualisieren, einen ungeeigneten Dienstleister ersetzen oder eine Störung überwinden können, ohne erst erfinden zu müssen, wie der Service dabei nutzbar bleibt.
 
-Resilienz bedeutet, daß wir die erforderliche Arbeit trotz einer Störung fortsetzen oder innerhalb vertretbarer Grenzen für Unterbrechung und Datenverlust wiederaufnehmen können. Souveränität bedeutet, selbst darüber entscheiden zu können, wie wir IT nutzen. Dazu gehört, eine untragbare Betriebsvereinbarung ablehnen zu können, ohne den Service zu verlieren. Weder die Zusagen eines Providers noch das vertragliche Recht zum Ausstieg stellen diese Fähigkeiten allein her.
+Dafür brauchen wir einen vollständigen Service, nicht nur gesunde Komponenten. Eine Anwendung kann laufen, während Menschen sich nicht anmelden, ihre Daten nicht erreichen oder eine erforderliche Abhängigkeit nicht nutzen können. Der Zustand einer Komponente ist wichtig, weil sie zur nutzbaren Leistung beiträgt. Er ist nicht das Ergebnis, das wir erhalten wollen.
 
-Diese Anforderungen betreffen den gewöhnlichen Betrieb, nicht nur Notfälle. Software muß nützlich bleiben, wenn sich Anforderungen ändern. Installation, Updates und Wiederherstellung müssen mit den verfügbaren Menschen und Mitteln die erforderliche Qualität liefern, ohne vom Gedächtnis einer bestimmten Person abzuhängen.
+Resilienz bedeutet, daß wir die erforderliche Arbeit trotz einer Störung fortsetzen oder innerhalb vertretbarer Grenzen für Unterbrechung und Datenverlust wiederaufnehmen können. Souveränität bedeutet, selbst darüber entscheiden zu können, wie wir IT nutzen. Dazu gehört, eine untragbare Betriebsvereinbarung ablehnen zu können, ohne den Service zu verlieren. Ein vertragliches Recht zum Ausstieg gibt uns wenig Freiheit, wenn es kein nutzbares Ziel gibt. Wir brauchen eine Alternative, deren Software, Daten, Infrastruktur, Zugang und Betriebsverantwortung so weit vorbereitet sind, daß wir sie innerhalb der akzeptierten Grenzen nutzen können.
 
-Bartl denkt von diesem Ergebnis zurück. Es verbindet die Beiträge von Anwendung, Infrastruktur und Organisation und fragt dann, ob deren gemeinsame Verfahren tatsächlich funktionieren. Es ist eine Betriebsphilosophie, keine bestimmte Runtime und keine Behauptung, daß diese Praktiken neu seien.
+Ein Spezialist weiß vielleicht, wie das einmal gelingt. Damit hat das Betriebsteam noch keine wiederholbar nutzbare Fähigkeit. Das technische Wissen muß in gepflegte Verfahren übergehen, die das vorgesehene Team mit den verfügbaren Menschen und Mitteln ausführen und prüfen kann. Entscheidungen und unerwartete Bedingungen brauchen weiterhin Urteilsvermögen. Der gewöhnliche Betrieb darf nicht davon abhängen, daß jemand den Lösungsweg immer wieder aus dem Gedächtnis zusammensetzt.
+
+Bartl denkt von diesem Ergebnis zurück. Die Anwendung muß ihr eigenes Betriebswissen bereitstellen, die Infrastruktur die dafür nutzbaren Bedingungen schaffen und die Organisation Verantwortung, Befugnisse und Mittel regeln. Erst ihr Zusammenwirken kann den Service liefern. Bartl ist diese Betriebsphilosophie, keine bestimmte Runtime und keine Behauptung, daß diese Praktiken neu seien.
 
 ## Was muß die Anwendung leisten?
 
-Die Anwendung muß ihren vollständigen Zustand kennen, ihn konsistent sichern und rekonstruieren können und wissen, welche Migrationen sie unterstützt. Sie muß unterscheiden, was erhalten bleiben muß und was neu aufgebaut oder verworfen werden kann, und das Ergebnis prüfen. Dieses Wissen gehört in ausführbare Verfahren, nicht in Anweisungen, die bei jeder Installation neu ausgelegt werden müssen.
+Die Infrastruktur kann nicht ableiten, welche Anwendungsdaten zusammengehören oder wie eine Softwareversion sie verändert. Die Anwendung muß deshalb ihren vollständigen Zustand kennen, ihn konsistent sichern und rekonstruieren können und wissen, welche Migrationen sie unterstützt. Sie muß unterscheiden, was erhalten bleiben muß und was neu aufgebaut oder verworfen werden kann, und das Ergebnis prüfen. Dieses Wissen gehört in ausführbare Verfahren, nicht in Anweisungen, die bei jeder Installation neu ausgelegt werden müssen.
 
 Ein Wiederherstellungspunkt enthält den vollständigen, konsistenten Anwendungszustand samt Inventar, Kompatibilitätsinformationen und Integritätsprüfungen. Seine Bestandteile bilden einen ausdrücklich identifizierten Satz und werden gemeinsam wiederhergestellt. Der Betreiber darf nicht getrennte Datenbank- und Dateisicherungen einander zuordnen müssen. Native Formate bleiben erhalten. Zusätzliche Verpackung braucht einen konkreten Nutzen, nicht nur weniger Dateien. Das unveränderliche Release und die zielspezifische Konfiguration bleiben getrennt. Erforderliche Anwendungsidentität muß die Wiederherstellung überstehen.
 
@@ -20,7 +22,7 @@ Die Anwendung legt außerdem fest, was ihre Umgebung bereitstellen muß. Dazu ge
 
 ## Was muß die Infrastruktur leisten?
 
-Die Infrastruktur muß diese Fähigkeiten über unterstützte Maschinenschnittstellen bereitstellen. Providerspezifische Bereitstellung schafft die Zielumgebung, ohne das Rekonstruktionsverfahren der Anwendung zu verändern. Jede Umgebung, die den Vertrag erfüllt, kann ein Ziel sein. Zugangsdaten, Kapazität, Zugriff und Bereitstellung müssen jedoch innerhalb der erforderlichen Zeit tatsächlich nutzbar sein.
+Diese Verfahren brauchen eine Umgebung, in der sie laufen können. Die Infrastruktur muß die von der Anwendung geforderten Fähigkeiten über unterstützte Maschinenschnittstellen bereitstellen. Providerspezifische Bereitstellung schafft die Zielumgebung, ohne das Rekonstruktionsverfahren der Anwendung zu verändern. Jede Umgebung, die den Vertrag erfüllt, kann ein Ziel sein. Zugangsdaten, Kapazität, Zugriff und Bereitstellung müssen jedoch innerhalb der erforderlichen Zeit tatsächlich nutzbar sein.
 
 Storage bewahrt das Wiederherstellungsartefakt auf und liefert es zurück. Er muß die Anwendung nicht verstehen. Ein unabhängiger Pfad oder Object Store kann genügen, wenn Zugriff, Dauerhaftigkeit, Schutz gegen Überschreiben und Löschen sowie regulatorische Anforderungen erfüllt sind. Schlüssel müssen verfügbar bleiben. Eine Prüfsumme kann nicht belegen, daß die Anwendung einen konsistenten Zustand gesichert hat.
 
@@ -30,7 +32,7 @@ Self-Healing ist nicht dasselbe wie Hochverfügbarkeit. Ein einzelner Node kann 
 
 ## Was muß die Organisation leisten?
 
-Jemand muß für den vollständigen Service verantwortlich bleiben. Dazu gehören Anwendung, Infrastruktur, Benutzerzugang und Abhängigkeiten einschließlich der Beiträge Dritter. Die Organisation legt die erforderliche Funktionalität sowie Grenzen für Schutz, Unterbrechung, Datenverlust und Kosten fest und stellt die dafür nötigen Befugnisse und Mittel bereit. Genehmigung und Beschaffung gehören zur Einsatzbereitschaft des Ziels. Was während der zulässigen Unterbrechung nicht beschafft werden kann, muß vorher vorbereitet sein.
+Funktionierende Anwendungsverfahren und verfügbare Infrastruktur entscheiden nicht darüber, welcher Service gebraucht wird oder wer ihn verändern darf. Jemand muß für den vollständigen Service verantwortlich bleiben. Dazu gehören Anwendung, Infrastruktur, Benutzerzugang und Abhängigkeiten einschließlich der Beiträge Dritter. Die Organisation legt die erforderliche Funktionalität sowie Grenzen für Schutz, Unterbrechung, Datenverlust und Kosten fest und stellt die dafür nötigen Befugnisse und Mittel bereit. Genehmigung und Beschaffung gehören zur Einsatzbereitschaft des Ziels. Was während der zulässigen Unterbrechung nicht beschafft werden kann, muß vorher vorbereitet sein.
 
 Menschen entscheiden, was wann und mit welchem Risiko geschehen soll. Jede bartlisierte Anwendung führt ihre unterstützten internen Verfahren ohne manuelle technische Eingriffe aus, prüft das Ergebnis und meldet Erfolg oder hält sicher an. Ein Installationsadministrator darf die Kundeninstallation betreiben und pflegen, indem er dokumentierte Befehle mit ihrer versionierten Kundenkonfiguration kopiert und ausführt und die dokumentierten Ergebnisse prüft. Er darf keine fehlenden Anwendungsverfahren erfinden oder die internen Schritte für Initialisierung, Restore oder Migration von Hand zusammensetzen müssen.
 
@@ -42,6 +44,8 @@ Wir müssen nicht alles selbst betreiben, aber beurteilen und ersetzen können, 
 
 ## Wie werden die Beiträge zu einem funktionierenden Service?
 
+Die Grenzen oben teilen die Arbeit auf, nicht das Ergebnis. Wir müssen prüfen, ob die Beiträge zusammenpassen und die benötigte Leistung für die Menschen erbringen.
+
 Ein vollständiger Service kann mehrere Anwendungen enthalten, ohne sie zu einer gemeinsamen Update- oder Restore-Einheit zu machen. Das Update einer Forge muß nicht den Dateidienst desselben Kunden rekonstruieren. Tatsächliche Zustandsabhängigkeiten bestimmen, was gemeinsam wiederhergestellt werden muß. Die vollständige Betriebsverantwortung umfaßt deren Integration und Übergabe.
 
 Rekonstruktion allein genügt nicht. Benutzer brauchen weiterhin Zugang, Identität und funktionierende Abhängigkeiten. Die alte Installation kann außerdem noch Anfragen bedienen oder Hintergrundarbeit ausführen. Eine DNS-Änderung entzieht ihr nicht zwangsläufig ihre Befugnisse.
@@ -52,7 +56,9 @@ Wenn die Aktivierung ohne Hilfe des Quellproviders nicht sicher erfolgen kann, u
 
 ## Wie halten wir diese Fähigkeit nutzbar?
 
-Wir müssen die Anwendung ohnehin aktualisieren. Warum nutzen wir diese Arbeit nicht, um herauszufinden, ob wir sie wiederherstellen können?
+Softwareversionen, Abhängigkeiten, Zugangsdaten und die zuständigen Menschen ändern sich. Ein Verfahren, das einmal funktioniert hat, kann unbrauchbar werden, während der aktuelle Service noch läuft. Die Fähigkeit zu erhalten gehört deshalb in den gewöhnlichen Betrieb. Bei Änderungen am Service müssen wir die Verfahren mitpflegen, sie erproben und korrigieren, was nicht mehr funktioniert.
+
+Updates durch Ersatzinstallationen sind eine Möglichkeit, diesen Grundsatz umzusetzen. Wir müssen die Anwendung ohnehin aktualisieren. Warum nutzen wir diese Arbeit nicht, um herauszufinden, ob wir sie wiederherstellen können?
 
 Installation, Update und Wiederherstellung brauchen zu großen Teilen dasselbe Wissen. Ihre gemeinsame Maschinerie wird gemeinsam gepflegt. Eine Ersatzinstallation wird aus einem Backup aufgebaut, das unterstützte Update angewendet, das Ergebnis getestet und anschließend die Produktion umgeschaltet. Das Update übt damit auch die Rekonstruktion. Der Kandidat braucht eigenen veränderlichen Zustand, kann aber bei ausreichender Kapazität auf derselben Maschine oder im selben Cluster laufen.
 

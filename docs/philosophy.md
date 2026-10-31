@@ -2,17 +2,19 @@
 
 # Bartl: retaining the ability to act
 
-If we take resilience and sovereignty seriously as requirements, how must applications, infrastructure and the operating organization be designed?
+People need to get their work done: use their data, collaborate and deliver results. They also need to keep doing that as software, providers and requirements change. We should be able to update an application, replace an unsuitable service provider or recover from a disruption without first having to invent how to keep the service usable.
 
-Resilience means that we can continue the required work despite disruption, or recover within acceptable interruption and data-loss limits. Sovereignty means retaining the ability to decide how we use IT, including rejecting an unacceptable operating arrangement without losing the service. A provider's promises or the contractual right to leave do not establish either capability on their own.
+That requires a complete service, not just healthy components. An application can be running while people cannot sign in, reach their data or use a required dependency. Component health matters because it contributes to useful work; it is not the result we are trying to preserve.
 
-These requirements affect ordinary operation, not just emergencies. Software must remain useful as needs change. Installation, updates and recovery must deliver the required quality with the people and resources available, without depending on a particular person's memory.
+Resilience means that we can continue the required work despite disruption, or recover within acceptable interruption and data-loss limits. Sovereignty means retaining the ability to decide how we use IT, including rejecting an unacceptable operating arrangement without losing the service. A contractual right to leave gives us little freedom if there is nowhere usable to go. We need an alternative whose software, data, infrastructure, access and operating responsibility are prepared well enough to use within the limits we accept.
 
-Bartl works backwards from that outcome. It connects what the application, infrastructure and organization must each contribute, then asks whether their combined procedures actually work. It is an operating philosophy, not a particular runtime or a claim that these practices are new.
+A specialist may know how to achieve this once. That does not yet give the operating team a repeatable capability. The technical knowledge must become maintained procedures that the intended team can execute and check with the people and resources available. Judgment remains necessary for decisions and unexpected conditions; ordinary operation must not depend on someone repeatedly reconstructing the method from memory.
+
+Bartl works backwards from that outcome. The application must supply its own operating knowledge, the infrastructure must provide usable conditions for it, and the organization must arrange responsibility, authority and resources. Only their combined operation can deliver the service. Bartl is this operating philosophy, not a particular runtime or a claim that these practices are new.
 
 ## What must the application provide?
 
-The application must know its complete state, how to capture it consistently, how to reconstruct it and which migrations it supports. It must distinguish what needs preserving from what can be rebuilt or discarded, and check the result. That knowledge belongs in executable procedures, not in instructions that someone must reinterpret for each installation.
+The infrastructure cannot infer which application data belongs together or how a software version changes it. The application must therefore know its complete state, how to capture it consistently, how to reconstruct it and which migrations it supports. It must distinguish what needs preserving from what can be rebuilt or discarded, and check the result. That knowledge belongs in executable procedures, not in instructions that someone must reinterpret for each installation.
 
 A recovery point contains the application's complete, consistent state, with inventory, compatibility information and integrity checks. Its components form one explicitly identified set and are restored together; an operator must not have to match separate database and file backups. Preserve native formats. Additional packaging needs a concrete benefit, not merely fewer files. The immutable release and target-specific configuration remain separate; required application identity must survive recovery.
 
@@ -20,7 +22,7 @@ The application also declares what its environment must supply: runtime, storage
 
 ## What must the infrastructure provide?
 
-The infrastructure must supply those capabilities through supported machine interfaces. Provider-specific provisioning establishes the target environment without changing the application's reconstruction procedure. Any environment satisfying the contract can be a target, but credentials, capacity, access and provisioning must actually be usable within the required time.
+Those procedures need an environment in which they can run. The infrastructure must supply the application's declared capabilities through supported machine interfaces. Provider-specific provisioning establishes the target environment without changing the application's reconstruction procedure. Any environment satisfying the contract can be a target, but credentials, capacity, access and provisioning must actually be usable within the required time.
 
 Storage preserves and retrieves the recovery artifact. It need not understand the application. An independent path or object store can suffice if access, durability, overwrite/deletion protection and regulatory requirements are met. Keys must remain available. A checksum cannot prove that the application captured a consistent state.
 
@@ -30,7 +32,7 @@ Self-healing is not the same as high availability. A single node can restart fai
 
 ## What must the organization provide?
 
-Someone must remain responsible for the complete service: application, infrastructure, user access and dependencies, including contributions supplied by others. The organization sets the required functionality, protection, interruption, data-loss and cost limits, and provides the authority and resources to meet them. Approval and procurement are part of target readiness. Prepare beforehand whatever cannot be obtained during the permitted interruption.
+Working application procedures and available infrastructure do not decide which service is needed or who may change it. Someone must remain responsible for the complete service: application, infrastructure, user access and dependencies, including contributions supplied by others. The organization sets the required functionality, protection, interruption, data-loss and cost limits, and provides the authority and resources to meet them. Approval and procurement are part of target readiness. Prepare beforehand whatever cannot be obtained during the permitted interruption.
 
 People decide what should happen, when and at which risk. Each bartlized application executes its supported internal procedures without manual technical intervention, verifies the result and reports success or stops safely. An installation administrator may install and maintain the customer installation by copying and executing documented commands with its versioned customer configuration and checking the documented results. The administrator must not have to invent missing application procedures or manually assemble the application's internal initialization, restore or migration steps.
 
@@ -42,6 +44,8 @@ We need not operate everything ourselves, but must retain the ability to judge a
 
 ## How do the contributions become a working service?
 
+The boundaries above divide the work, not the outcome. We have to check that the contributions fit together and deliver what people need.
+
 A complete service can contain several applications without making them one upgrade or restore unit. Updating a forge need not reconstruct the same customer's file service. Actual state dependencies determine what must recover together; the complete operating responsibility covers their integration and handover.
 
 Reconstruction alone is not enough. Users still need access, identity and working dependencies. The old installation may also still be serving requests or running background work. Changing DNS does not necessarily withdraw its authority.
@@ -52,7 +56,9 @@ If activation cannot be made safe without the source provider's help, the instal
 
 ## How do we keep that capability usable?
 
-We have to update the application anyway. Why not use that work to find out whether we can recover it?
+Software versions, dependencies, credentials and the people operating them change. A procedure that worked once can stop being usable even while the current service still runs. Maintaining the capability therefore belongs in ordinary operation: keep procedures current when changing the service, exercise them and correct what no longer works.
+
+Replacement-based updates are one way to put that principle into practice. We have to update the application anyway. Why not use that work to find out whether we can recover it?
 
 Installation, upgrade and recovery need much of the same knowledge. Maintain their shared machinery together. Build a replacement from a backup, apply the supported update, test it, then switch production. The upgrade now also exercises reconstruction. The candidate needs its own mutable state, but can run on the same machine or cluster if capacity permits.
 
