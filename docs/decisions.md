@@ -26,7 +26,7 @@ The content baseline `b3aab7eb29b0f53e67933008debd799f6e2d262c` remains local. F
 
 Local verification on 31 October: Astro check reported no diagnostics and the static build generated 14 pages. Chromium exercised all four main pages in both languages at 1280, 390 and 320 pixels, checked 226 internal links/anchors across 12 content/legal pages, and exercised all seven Contract scenarios per language, language switching and dark mode. Desktop/mobile screenshots were inspected; no browser errors remained. Prose lint passed. These are website checks, not new application qualification.
 
-### High-fidelity homepage revision: English candidate awaiting review
+### High-fidelity homepage revision: bilingual local candidate
 
 On 31 October Florian authorized one bounded visual revision before publication. The rendered English candidate is implemented on `polish-bartl-docs-2026-10-31`, retaining the current four-page structure and canonical content ownership.
 
@@ -39,16 +39,16 @@ Use one illustrative, product-independent document service throughout the main s
 
 Place application, infrastructure and responsibility beside their actual contributions rather than repeating three prose columns. Short explanations must retain the causal links and necessary conditions; deeper discussion belongs on Approach, technical detail on Implement and Contract. Prefer static explanatory visuals. Interaction needs a real explanatory purpose; no carousel, decorative animation or framework change.
 
-The first visual candidate `dc744f3` used Keycloak throughout. Florian retained its visual treatment but rejected identity-service deployment as the organizing subject of an operating philosophy. The revised English candidate preserves the composition, sequence and four-page structure while using the illustrative document service above. It makes no implementation or qualification claim for that service. `ServiceHomepage.astro` owns the visual treatment; English copy remains in `src/content/landing.ts`. The German homepage retains its previous rendering until Florian approves the English treatment.
+Florian accepted the document-service candidate `149a264`, retaining its design and bounded Keycloak evidence. Before German rollout he required two corrections: the introduction must explain continued service usefulness and usable alternatives, not recovery alone; the prepared alternative must be approved and ready within the agreed interruption, data-loss and protection limits. Both corrections and their German equivalents are implemented.
 
-Local verification of the document-service revision on 31 October: Astro check reported no diagnostics and the static build generated 14 pages. Chromium inspection covered desktop and mobile, light and dark modes. Layout checks at 320, 390, 768, 1280 and 1440 pixels found no overflowing homepage elements. Keycloak appears only in the English evidence section. All ten distinct local homepage links and anchors resolved. The service jump, Keycloak implementation link, theme toggle and language switch were exercised; the German route retained its existing layout and no browser errors were recorded.
+Both languages now use the same visual component and language-specific copy in `src/content/landing.ts`. The obsolete German layout and copy are removed. The illustrative document service remains distinct from exercised Keycloak package evidence.
 
-Next decision: Florian reviews the rendered English homepage for clarity and visual quality. After approval, carry the treatment through German, verify and prepare publication. Neither the visual-work authorization nor the earlier exact-candidate publication approval authorizes publishing this rewrite.
+Local verification on 31 October: Astro check reported no diagnostics; the static build generated 14 pages. Both languages were visually inspected at desktop and mobile sizes. Layout checks at 320, 390, 768 and 1440 pixels found no overflow after adding language-aware hyphenation and wrapping for long German words. All five distinct main-content links and anchors per language resolved, including the language-specific Keycloak section. No browser errors were recorded. The bilingual candidate remains local; publication is not authorized.
 
 
 ## German and English pages share their structure
 
-The landing route renders `src/components/Landing.astro` for both languages, with copy in `src/content/landing.ts`. During the English review, it selects `ServiceHomepage.astro` for English and retains the established German layout. After approval, the selected visual structure is to be shared again. Approach and Implement share `DocumentArticle.astro`; Contract uses `src/content/spec.ts` with one layout. Header and footer use one primary navigation list.
+The landing route renders `src/components/Landing.astro`, which selects language-specific copy for the shared `ServiceHomepage.astro`. Approach and Implement share `DocumentArticle.astro`; Contract uses `src/content/spec.ts` with one layout. Header and footer use one primary navigation list.
 
 ## Astro over a single-binary static site generator
 

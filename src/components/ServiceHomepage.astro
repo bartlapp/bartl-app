@@ -1,10 +1,12 @@
 ---
 // SPDX-License-Identifier: Apache-2.0
 import type { landingCopy } from "@/content/landing";
+import type { Lang } from "@/i18n/ui";
 interface Props {
-  copy: typeof landingCopy.en;
+  copy: (typeof landingCopy)[Lang];
+  lang: Lang;
 }
-const { copy: c } = Astro.props;
+const { copy: c, lang } = Astro.props;
 ---
 
 <article class="service-story">
@@ -18,7 +20,7 @@ const { copy: c } = Astro.props;
         <a class="primary-link" href="#service"
           >{c.storyLink}<span aria-hidden="true">↓</span></a
         >
-        <a class="text-link" href="/en/derivation/">{c.approachLink}</a>
+        <a class="text-link" href={`/${lang}/derivation/`}>{c.approachLink}</a>
       </div>
     </div>
     <figure id="service" class="service-map">
@@ -186,6 +188,7 @@ const { copy: c } = Astro.props;
           >
             {c.loss.targetDetail}
           </p>
+          <p class="destination-capacity">{c.loss.targetQualification}</p>
           <div class="application-node">
             <span class="node-mark" aria-hidden="true"
               ><svg
@@ -236,7 +239,7 @@ const { copy: c } = Astro.props;
           {c.evidence.title}
         </h2><p class="section-lead">{c.evidence.lead}</p><a
           class="text-link"
-          href="/en/implement/#worked-example-keycloak"
+          href={`/${lang}/implement/#${lang === "de" ? "beispiel-keycloak" : "worked-example-keycloak"}`}
           >{c.evidence.link}<span aria-hidden="true"> ↗</span></a
         >
       </div>
@@ -265,10 +268,10 @@ const { copy: c } = Astro.props;
 
   <section class="wrap closing">
     <h2>{c.closing.title}</h2><p>{c.closing.detail}</p><div class="actions">
-      <a class="primary-link" href="/en/derivation/">{c.closing.approach}</a><a
+      <a class="primary-link" href={`/${lang}/derivation/`}>{c.closing.approach}</a><a
         class="text-link"
-        href="/en/implement/">{c.closing.implement}</a
-      ><a class="text-link" href="/en/spec/">{c.closing.contract}</a>
+        href={`/${lang}/implement/`}>{c.closing.implement}</a
+      ><a class="text-link" href={`/${lang}/spec/`}>{c.closing.contract}</a>
     </div>
   </section>
 </article>
@@ -281,6 +284,8 @@ const { copy: c } = Astro.props;
     --wash: color-mix(in oklab, var(--accent) 7%, var(--color-base-100));
     --muted: color-mix(in oklab, var(--ink) 76%, var(--color-base-100));
     color: var(--ink);
+    overflow-wrap: anywhere;
+    hyphens: auto;
   }
   :global([data-theme="dark"]) .service-story {
     --accent: #9cc2c4;

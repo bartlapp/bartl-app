@@ -222,7 +222,7 @@ The complete claim must be exercised with source access withheld, including prov
 | Legal pages and copy | `src/pages/[lang]/`, `src/legal/` |
 | Static assets | `public/` |
 
-Both languages share navigation and the four-page structure. The English homepage is a local visual review candidate; the German homepage retains the previous treatment until approval, as recorded in [Decisions](docs/decisions.md#high-fidelity-homepage-revision-english-candidate-awaiting-review). The English candidate explains the complete-service argument through an illustrative document service, with separate Keycloak application-package evidence. Approach and Implement render the maintained Markdown documents, not independent English website copies. German Markdown files are translations of those same documents. The Contract page explains the normative application contract above; it does not redefine it. WordPress remains historical supporting material on the technical path.
+Both languages share navigation, the four-page structure and the visual homepage treatment. The bilingual homepage remains a local candidate, as recorded in [Decisions](docs/decisions.md#high-fidelity-homepage-revision-bilingual-local-candidate). It explains the complete-service argument through an illustrative document service, with separate Keycloak application-package evidence. Approach and Implement render the maintained Markdown documents, not independent English website copies. German Markdown files are translations of those same documents. The Contract page explains the normative application contract above; it does not redefine it. WordPress remains historical supporting material on the technical path.
 
 ## Develop
 
