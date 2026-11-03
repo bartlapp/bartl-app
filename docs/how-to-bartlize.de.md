@@ -35,6 +35,8 @@ Die Antwort gehört neben den Mechanismus in den Entwurf der Anwendung. Gibt es 
 
 Jeder zustandsverändernde Schritt erhält genau einen Verantwortlichen. Native Transaktionen, Ausschluß konkurrierender Ausführung, Prozeßüberwachung und Readiness werden genutzt, wo sie das erforderliche Verhalten bereits liefern. Ergänzt wird nur, was diese Fähigkeiten zum unterstützten Verfahren verbindet. Zustandsbeobachtung darf nicht zur vollständigen Schemazertifizierung oder Dauerüberwachung mit der Befugnis werden, eine gesunde Anwendung anzuhalten.
 
+Ermitteln, welche Beobachtungen für den Beginn eines Vorgangs erforderlich sind und von welchen Garantien der laufende Betrieb abhängt. Nicht verfügbare Beobachtung vom beobachteten Entzug der Betriebsberechtigung unterscheiden. Das gewählte Verhalten erklären und beschreiben, wie vor einer Ablösung festgestellt wird, daß der Stop abgeschlossen ist. Den Guard oder die Fehlerregeln eines anderen Pakets nicht übernehmen, ohne zu begründen, warum diese Anwendung sie benötigt.
+
 Ein fehlgeschlagener zustandsverändernder Versuch darf sichtbar nicht verfügbar bleiben und seine Diagnoseinformationen behalten, während ein Administrator das fehlgeschlagene Ziel ersetzt und mit unabhängig verfügbaren Eingaben erneut beginnt. Maßgeblicher Zustand und Backups bleiben erhalten. Automatische Reparatur, Wiederholung oder Rekonstruktion unklaren Fortschritts ist nicht erforderlich. Das schaltet gewöhnliche Prozeßneustarts der Plattform nicht ab.
 
 Den ersten vollständigen Pfad vor einer Erweiterung gegen diese Zuordnung prüfen. Vorhandener Code und bestandene Tests belegen weder die Notwendigkeit eines Mechanismus noch die Erlaubnis, Abhängigkeiten, Privilegien, Bedienerschritte oder neue Fehlerregeln hinzuzufügen.
@@ -45,13 +47,17 @@ Der Administrator liefert Release, Installationsidentität, wirksame Konfigurati
 
 Die Bedienungsanleitung bleibt von der Implementierungsbegründung getrennt. Sie nennt unterstützte Konfiguration, erforderliche Entscheidungen, optionale Abweichungen, Befehle und erwartete Ergebnisse. Nachweise und historische Einschränkungen bleiben ihren exakten Releases zugeordnet, statt mit aktuellen Anweisungen vermischt zu werden. Unabhängig verfügbare Software, Konfiguration, Backup-Historie und Schlüssel müssen einem Nachfolger genügen, die Anwendung ohne die ursprüngliche Installation oder die private Maschinerie des Autors zu betreiben.
 
+Unterstützten Stop und unterstützte Deinstallation zusammen mit der Installation festlegen. Bleibt bei der Deinstallation Zustand zur Wiederverwendung erhalten, beschreiben, wie eine nachfolgende autorisierte Installation ihn nutzen kann, ohne einen konkurrierenden Vorgänger zuzulassen. Diesen Ablauf erproben, bevor er als unterstützt gilt. Erhaltene Daten allein belegen kein nutzbares Verfahren zur Neuinstallation. Die zum Abschluß der Deinstallation erforderliche Koordination muß verfügbar bleiben, bis ihre Arbeit beendet ist.
+
 ## Den gelieferten Pfad qualifizieren
 
 Die [Nachweisfälle des Vertrags](https://codeberg.org/bartlapp/bartl-app#supported-configuration-and-catalogue-evidence) verwenden, keine zweite, von der Implementierung erfundene Checkliste. Das tatsächliche Paket und die Administratorschnittstelle erproben, einschließlich nutzbarer Wiederherstellung, unterstützter Migration und Fehlerverhalten.
 
 Neben dem erfolgreichen Betrieb auch die Grenzen unserer Eingriffe prüfen. Ein gewöhnlicher Neustart darf keine Recovery-Abhängigkeiten erhalten. Fehlgeschlagene Arbeit darf nicht stillschweigend initialisieren oder erneut ablaufen. Ein Abschlußsignal darf einen bewußten Stop nicht übergehen. Qualifizierungsaccounts und Funktionsprüfungen werden nicht automatisch zu Startabhängigkeiten.
 
-Exakte Artefaktidentitäten, beobachtete Ergebnisse und maßgebliche Grenzen festhalten. Die behauptete Ausfallgrenze testen. Wiederherstellung in einem anderen Namespace belegt nicht, daß Host- oder Providerverlust überstanden wird. Betroffene Nachweise werden erneuert, wenn sich das Paket ändert.
+Das für Betreiber bestimmte Release mit denselben unveränderlichen Artefakten qualifizieren, die Betreiber beziehen. Eine anhand des Source getestete Implementierung qualifiziert für sich allein kein veröffentlichtes Paket. Exakte Artefaktidentitäten, beobachtete Ergebnisse und maßgebliche Grenzen in der Release- oder Integrationsbeschreibung festhalten. Wiederholbare Prüfungen bleiben im Source, rohe Laufausgaben außerhalb von Git. Keine Nachweisdateien oder Qualifizierungsberichte je Session anlegen.
+
+Die behauptete Ausfallgrenze testen. Wiederherstellung in einem anderen Namespace belegt nicht, daß Host- oder Providerverlust überstanden wird. Betroffene Nachweise werden erneuert, wenn sich das Paket ändert.
 
 ## Beispiel: Keycloak
 

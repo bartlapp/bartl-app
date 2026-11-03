@@ -35,6 +35,8 @@ Put that answer beside the mechanism in the application's design. If neither has
 
 Assign each state-changing step one owner. Use native transactions, exclusion, process supervision and readiness where they already provide the needed behavior. Add only what connects those facilities into the supported procedure. Do not turn state observation into full-schema certification or continuous supervision with authority to stop a healthy application.
 
+Identify which observations are required to begin an operation and which guarantees continued operation depends on. Distinguish unavailable observation from an observed withdrawal of authority. Explain the chosen behavior and how stop completion is established before replacement. Do not copy another package's guard or failure policy without establishing why this application needs it.
+
 A failed state-changing attempt may remain visibly unavailable, with diagnostics retained, while an administrator replaces the failed target and retries from independently available inputs. Preserve authoritative state and backups. No automatic repair, replay or reconstruction of ambiguous progress is required. This does not disable ordinary platform process restarts.
 
 Review the first complete path against this mapping before extending it. Existing code and passing tests establish neither the necessity of a mechanism nor permission to add dependencies, privileges, operator steps or new failure policy.
@@ -45,13 +47,17 @@ The administrator supplies release, installation identity, effective configurati
 
 Keep the operator recipe separate from implementation reasoning. State the supported configuration, required choices, optional overrides, commands and expected results. Keep evidence and historical limitations attached to their exact releases, not interleaved with current instructions. Independently available software, configuration, backup history and keys must suffice for a successor to operate the application without the original installation or the author's private machinery.
 
+Define supported stop and removal alongside installation. Where removal retains state for reuse, describe how a subsequent authorized installation can use it without admitting a competing predecessor. Exercise that sequence before declaring it supported; retained data alone does not establish a usable reinstall procedure. Keep the coordination needed to complete removal available until its work has finished.
+
 ## Qualify the delivered path
 
 Use the [contract's evidence cases](https://codeberg.org/bartlapp/bartl-app#supported-configuration-and-catalogue-evidence), not a second checklist invented by the implementation. Exercise the actual package and administrator interface, including usable recovery, supported migration and failure behavior.
 
 Check the limits on our intervention as well as successful operation: ordinary restart must not acquire recovery dependencies; failed work must not silently initialize or replay; completion must not override an intentional stop. Qualification accounts and functional probes do not automatically become startup dependencies.
 
-Retain exact artifact identities, observed outcomes and consequential limits. Test the claimed failure boundary: recovery into another namespace does not establish survival of host or provider loss. Renew affected evidence when the package changes.
+Qualify the operator-facing release using the same immutable artifacts operators obtain. A source-tested implementation does not by itself qualify a published package. Retain exact artifact identities, observed outcomes and consequential limits in the release or integration description. Keep repeatable checks in source and raw run output outside Git; do not create per-session evidence files or qualification reports.
+
+Test the claimed failure boundary: recovery into another namespace does not establish survival of host or provider loss. Renew affected evidence when the package changes.
 
 ## Worked example: Keycloak
 
