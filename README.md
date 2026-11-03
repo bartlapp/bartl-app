@@ -75,7 +75,7 @@ await_native_success()
 serving()
 ```
 
-- `observe_local_state()` distinguishes existing owned state from confirmed absence. Failed observation stops execution; it never authorizes initialization. This is not full-schema certification.
+- `observe_local_state()` distinguishes existing owned state from confirmed absence. Failed observation prevents the startup decision from proceeding; it never authorizes initialization. This is not full-schema certification.
 - `observe_backup()` returns the latest complete verified backup for this customer/application, or absence when no store is configured or the configured store contains no backup for it. Lookup or integrity errors stop execution. Existing local state does not require backup access.
 - `restore()` reconstructs the backup through the supported native procedure; incomplete reconstruction must not become the usable target. `native_start()` uses the product's normal startup, including native initialization when state remains absent and supported migration when needed. Unsupported transitions and downgrades must not destructively change state; rely on native behavior and add only a demonstrated missing safeguard.
 - `await_native_success()` checks the native initialization or migration result and normal readiness. The application may run internally while ordinary access is withheld. `serving()` opens ordinary access after success; it is not a second command for the installation administrator.
@@ -90,11 +90,13 @@ Each application implements the decision within its owned state and supported co
 | Obligation | Required application contribution |
 | --- | --- |
 | State boundary | Inventory all owned mutable data and metadata and their consistency relationships. Identify shared or externally owned services separately; consuming them does not authorize resetting them. |
-| Observation | Distinguish existing owned state from confirmed absence. Dependency or observation failures stop execution rather than imply absence; no independent full-schema validity engine is required. |
+| Observation | Distinguish existing owned state from confirmed absence. Required observations must succeed before the dependent startup or state-changing step proceeds. Dependency or observation failure is not evidence of absence; no independent full-schema validity engine is required. |
 | State-driven lifecycle | Implement the startup decision above through normal native startup, including supported initialization and migration. |
 | Capture and reconstruction | Produce a complete consistent recovery point and reconstruct an authorized point without the original installation. Declare compatible software, keys, target requirements and all recovery dependencies. |
 | Safe execution | Exclude conflicting state changes and withhold ordinary access until native transition success. Failed transitions remain visibly stopped; discarding the failed target and ordinary retry is sufficient. If components exchange completion signals, they must identify the current installation and operation. |
 | Result verification | Use native transition results and normal readiness. Package qualification demonstrates agreed usable behavior; neither a privileged acceptance ceremony on every restart nor continuous schema policing is required. |
+
+Admission to new work, continued operation and withdrawal of authority are distinct decisions. Loss of observation alone does not establish that an already-running application has lost authority to operate. Each package declares its continued-operation and stop behavior when required observation is unavailable, including the resulting availability and safety limits. An unconfirmed stop request does not establish that execution has ended.
 
 Automate the procedures a competent administrator would perform using the product's native tools. Every custom mechanism must name the administrator action it automates or the demonstrated native gap it closes. Collaborating components may use an entrypoint or an explicit protocol; keep transition ownership and completion unambiguous. A stateless application declares an empty owned persistence inventory rather than inventing backup work.
 
@@ -113,7 +115,7 @@ Each application records its supported releases and transitions, persistence cho
 | Source-independent restore | Installing on an empty target restores the latest backup for the customer/application and reaches normal startup without a second technical release command. |
 | Supported release transition | Native startup performs supported migration; unsupported transitions and downgrades are rejected without destructive fallback, using native behavior or a justified minimal safeguard. |
 | Failed transition and retry | Failure remains visible and stopped across restarts. Discarding the failed target and an ordinary retry can succeed; no automatic resumption of ambiguous progress is required. Conflicting transitions are excluded and stale completion signals cannot release access. |
-| Observation and operation failures | Failed local observation, a failed configured-store lookup, damaged backups and failed native operations stop visibly without falling through to initialization. |
+| Observation and operation failures | Failed local observation, a failed configured-store lookup, damaged backups and failed native operations stop the affected startup or transition visibly without falling through to initialization. Loss of observation during established operation follows the package's declared behavior. |
 | Foreign state boundary | Failure of the application does not reset a shared database, another application or an external service. |
 | Application acceptance | The maintained procedure checks the agreed usable behavior after each supported transition; a successful container or job is insufficient. |
 
