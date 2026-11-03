@@ -8,7 +8,7 @@ The [application contract](https://codeberg.org/bartlapp/bartl-app#application-c
 
 ## Start with one supported configuration
 
-Name the application release, persistence and dependencies, target requirements and supported version transition. Identify the useful behavior that must survive reconstruction. Start with a configuration someone needs, not a speculative compatibility matrix.
+Name the application release, persistence and dependencies, target requirements and supported version transition. Identify the useful behavior that must survive reconstruction, the failures the profile covers, and its permitted interruption and data loss. State the dependencies and operating effort the intended team can accept. Choose the smallest native procedure that meets these limits, accounting for implementation, ongoing operation and maintenance. Start with a configuration someone needs, not a speculative compatibility matrix.
 
 Separate owned mutable state, derived or disposable state, immutable software and target configuration. Include external keys and dependencies needed for recovery. A shared database or external service is not ours to reset merely because the application uses it.
 
@@ -31,13 +31,15 @@ For each custom mechanism, answer:
 
 > Which concrete administrator action does it automate, or which demonstrated gap in the native procedure does it close?
 
-Put that answer beside the mechanism in the application's design. If neither has an answer, omit the mechanism. A hypothetical failure or an expansive acceptance criterion is not sufficient justification; challenge the criterion rather than build a subsystem to satisfy it.
+Put that answer beside the mechanism in the application's design. If neither has an answer, omit the mechanism. A failure within the declared supported failure model is a valid design input even if it has not occurred yet. Speculation outside that model is not sufficient justification; challenge an expansive acceptance criterion rather than build a subsystem to satisfy it.
 
 Assign each state-changing step one owner. Use native transactions, exclusion, process supervision and readiness where they already provide the needed behavior. Add only what connects those facilities into the supported procedure. Do not turn state observation into full-schema certification or continuous supervision with authority to stop a healthy application.
 
-Identify which observations are required to begin an operation and which guarantees continued operation depends on. Distinguish unavailable observation from an observed withdrawal of authority. Explain the chosen behavior and how stop completion is established before replacement. Do not copy another package's guard or failure policy without establishing why this application needs it.
+Identify which observations are required to begin an operation and which guarantees continued operation depends on. Distinguish unavailable observation from an observed withdrawal of authority. Explain the chosen behavior without copying another package's guard or failure policy unless this application needs it.
 
-A failed state-changing attempt may remain visibly unavailable, with diagnostics retained, while an administrator replaces the failed target and retries from independently available inputs. Preserve authoritative state and backups. No automatic repair, replay or reconstruction of ambiguous progress is required. This does not disable ordinary platform process restarts.
+A failed initialization, reconstruction or migration may remain visibly unavailable with diagnostics retained. An administrator may replace the failed target and retry only when independently preserved inputs can recover the required state within the accepted data-loss boundary. Preserve authoritative state and backups. No automatic repair, replay or reconstruction of ambiguous progress is required. This does not disable ordinary platform process restarts.
+
+Keep capture, publication and application resumption distinct. If only publication of a complete consistent capture fails, report the failed backup and protect the capture for retry; do not leave an otherwise healthy service stopped for that reason alone. Resumption still depends on valid state and current running authority, and must never override an intentional stop.
 
 Review the first complete path against this mapping before extending it. Existing code and passing tests establish neither the necessity of a mechanism nor permission to add dependencies, privileges, operator steps or new failure policy.
 
@@ -48,6 +50,8 @@ The administrator supplies release, installation identity, effective configurati
 Keep the operator recipe separate from implementation reasoning. State the supported configuration, required choices, optional overrides, commands and expected results. Keep evidence and historical limitations attached to their exact releases, not interleaved with current instructions. Independently available software, configuration, backup history and keys must suffice for a successor to operate the application without the original installation or the author's private machinery.
 
 Define supported stop and removal alongside installation. Where removal retains state for reuse, describe how a subsequent authorized installation can use it without admitting a competing predecessor. Exercise that sequence before declaring it supported; retained data alone does not establish a usable reinstall procedure. Keep the coordination needed to complete removal available until its work has finished.
+
+For replacement, distinguish preparing an isolated candidate from activating it as production. Establish exclusive production authority before activation through confirmed source stop or effective isolation, using the application's controls and the surrounding service procedure. If the source continues accepting writes, account for them through a final capture and reconstruction with renewed checks or a supported catch-up path, within the accepted data-loss boundary. After the replacement accepts writes, the old copy is not a lossless fallback.
 
 ## Qualify the delivered path
 

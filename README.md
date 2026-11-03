@@ -18,7 +18,7 @@ An installation administrator is the human responsible for operating a customer 
 
 Application recovery depends on an explicit target-environment contract rather than a particular provider. Provider-specific provisioning establishes that contract; it does not redefine application recovery. Any environment satisfying the contract can be a target, provided access, capacity and required dependencies are actually usable. The complete recovery path, including its execution and inputs, must remain available without help from the provider whose loss or withdrawal it is intended to withstand.
 
-The application startup pattern is one technical expression of this philosophy. It distinguishes existing from absent local state, restores the latest available backup only when state is absent, and uses native startup for initialization and supported migration. Errors stop execution rather than imply absence.
+The application startup pattern is one technical expression of this philosophy. It distinguishes existing from absent local state, restores the latest available backup only when state is absent, and uses native startup for initialization and supported migration. Errors stop the affected startup or transition rather than imply absence.
 
 ## Application contract and qualification
 
@@ -79,7 +79,7 @@ serving()
 - `observe_backup()` returns the latest complete verified backup for this customer/application, or absence when no store is configured or the configured store contains no backup for it. Lookup or integrity errors stop execution. Existing local state does not require backup access.
 - `restore()` reconstructs the backup through the supported native procedure; incomplete reconstruction must not become the usable target. `native_start()` uses the product's normal startup, including native initialization when state remains absent and supported migration when needed. Unsupported transitions and downgrades must not destructively change state; rely on native behavior and add only a demonstrated missing safeguard.
 - `await_native_success()` checks the native initialization or migration result and normal readiness. The application may run internally while ordinary access is withheld. `serving()` opens ordinary access after success; it is not a second command for the installation administrator.
-- A failed state-changing attempt stops visibly and remains stopped across ordinary restarts. Discarding the failed target and retrying the ordinary installation procedure is an acceptable recovery path. Automatic repair, replay or reconstruction of ambiguous progress is not required.
+- A failed initialization, reconstruction or migration stops visibly and remains stopped across ordinary restarts. Replacing the failed target and retrying the ordinary installation procedure is acceptable only when the required state remains independently recoverable within the accepted data-loss boundary. Automatic repair, replay or reconstruction of ambiguous progress is not required.
 
 Installing the customer's application invokes this procedure. The installation administrator supplies the selected release and installation configuration, not an initialization permission, a recovery mode or a second command to release successful reconstruction. The package also supplies native capture and publication into the configured backup store so another installation can use that history.
 
@@ -93,10 +93,12 @@ Each application implements the decision within its owned state and supported co
 | Observation | Distinguish existing owned state from confirmed absence. Required observations must succeed before the dependent startup or state-changing step proceeds. Dependency or observation failure is not evidence of absence; no independent full-schema validity engine is required. |
 | State-driven lifecycle | Implement the startup decision above through normal native startup, including supported initialization and migration. |
 | Capture and reconstruction | Produce a complete consistent recovery point and reconstruct an authorized point without the original installation. Declare compatible software, keys, target requirements and all recovery dependencies. |
-| Safe execution | Exclude conflicting state changes and withhold ordinary access until native transition success. Failed transitions remain visibly stopped; discarding the failed target and ordinary retry is sufficient. If components exchange completion signals, they must identify the current installation and operation. |
+| Safe execution | Exclude conflicting state changes and withhold ordinary access until native transition success. Failed transitions remain visibly stopped under the retry conditions above. Intentional stop remains effective across restarts and work completion. If components exchange completion signals, they must identify the current installation and operation; completion cannot override current stop intent. |
 | Result verification | Use native transition results and normal readiness. Package qualification demonstrates agreed usable behavior; neither a privileged acceptance ceremony on every restart nor continuous schema policing is required. |
 
 Admission to new work, continued operation and withdrawal of authority are distinct decisions. Loss of observation alone does not establish that an already-running application has lost authority to operate. Each package declares its continued-operation and stop behavior when required observation is unavailable, including the resulting availability and safety limits. An unconfirmed stop request does not establish that execution has ended.
+
+Failure is reported at the affected operation's boundary. If only publication of a complete consistent capture fails, report a failed backup and retain the protected capture for retry. That failure alone must not keep an otherwise healthy application stopped; resumption still requires valid state and current running authority. Failed capture, uncertain application state or unresolved authority does not establish permission to resume.
 
 Automate the procedures a competent administrator would perform using the product's native tools. Every custom mechanism must name the administrator action it automates or the demonstrated native gap it closes. Collaborating components may use an entrypoint or an explicit protocol; keep transition ownership and completion unambiguous. A stateless application declares an empty owned persistence inventory rather than inventing backup work.
 
@@ -104,38 +106,11 @@ The contract applies to a logical application instance, not to an independent in
 
 Preserve native application and platform capabilities for scaling, restart and supported updates rather than imposing a uniform topology. Document product limitations and justify restrictions introduced by the operating package. Supported profiles still require qualification; this principle does not promise arbitrary replica counts, high availability or uninterrupted upgrades.
 
-### Supported configuration and catalogue evidence
-
-Each application records its supported releases and transitions, persistence choices, target requirements and operating limits in its own maintained documentation. Start with one justified configuration, not a speculative matrix. Catalogue inclusion requires executable evidence for that configuration, with exact artifacts, outcomes and limitations:
-
-| Case | Required evidence |
-| --- | --- |
-| First initialization | Empty owned state produces a usable vanilla installation both without a configured backup store and with a configured store containing no backup. |
-| Normal restart | Existing state and identity survive ordinary native startup without backup access, reinitialization or unnecessary restore. |
-| Source-independent restore | Installing on an empty target restores the latest backup for the customer/application and reaches normal startup without a second technical release command. |
-| Supported release transition | Native startup performs supported migration; unsupported transitions and downgrades are rejected without destructive fallback, using native behavior or a justified minimal safeguard. |
-| Failed transition and retry | Failure remains visible and stopped across restarts. Discarding the failed target and an ordinary retry can succeed; no automatic resumption of ambiguous progress is required. Conflicting transitions are excluded and stale completion signals cannot release access. |
-| Observation and operation failures | Failed local observation, a failed configured-store lookup, damaged backups and failed native operations stop the affected startup or transition visibly without falling through to initialization. Loss of observation during established operation follows the package's declared behavior. |
-| Foreign state boundary | Failure of the application does not reset a shared database, another application or an external service. |
-| Application acceptance | The maintained procedure checks the agreed usable behavior after each supported transition; a successful container or job is insufficient. |
-
-These are common evidence requirements, not a mandate for a universal test runner. Reuse implementations only where applications actually share a responsibility. An isolated passing case does not establish the full contract. The service recovery contract below additionally covers target provisioning, access and authorized activation; catalogue evidence must state which of those conditions it has exercised.
-
-## Provider-independent recovery execution contract
-
-This is the design contract for the long-term goal of automated service recovery, beyond the current application-package scope. It does not require the current human-operated customer installation to automate the complete sequence, nor claim that the startup specification implements it. Its end-to-end obligations apply when claiming this automated recovery capability; the application contract above applies to each bartlized application now.
-
-> Recover this installation from the authorized recovery point into the authorized target environment, verify the required service and establish exclusive production authority without manual technical intervention.
-
-### Inputs and authorization
-
-The operation identifies the installation, exact releases and effective configuration, a complete and verified recovery point or an authorized selection policy, protected access to required credentials and keys, and the target profile. It also records the permitted interruption, data loss and treatment of the old installation's write authority. A changed target or risk outside that authorization requires a new decision, not an improvised technical workaround. Decision time remains part of end-to-end interruption.
-
 ### Portable recovery artifact and storage boundary
 
 A bartlized application produces a complete, consistent, verifiable recovery point. Its components form one explicitly identified complete set, with every dependency declared and independently available. Neither an object store nor a full-state blob is prescribed. A required backup/restore client may be part of the application contract. No universal archive format is prescribed.
 
-Under the application contract above, the application or its maintained operating package owns consistent capture, reconstruction, migration and application-level verification. It may use the chosen backup system's capabilities for these tasks. That system is responsible for storing, protecting, retaining and making the captured data available, not for application consistency.
+The application or its maintained operating package owns consistent capture, reconstruction, migration and application-level verification. It may use the chosen backup system's capabilities for these tasks. That system is responsible for storing, protecting, retaining and making the captured data available, not for application consistency.
 
 Required backup-system capabilities:
 
@@ -163,15 +138,38 @@ Storage durably publishes, protects and retrieves the artifact; it need not unde
 
 No application-aware backup server or workflow platform follows from this contract. Any additional machinery must justify its contribution. Artifact integrity does not replace consistency, final-state freshness, interrupted-operation handling or exclusive write authority.
 
+### Supported configuration and catalogue evidence
+
+Each application records its supported releases and transitions, persistence choices, target requirements, covered failures and operating limits in its own maintained documentation. Start with one justified configuration, not a speculative matrix. Catalogue inclusion requires executable evidence for that configuration, with exact artifacts, outcomes and limitations:
+
+| Case | Required evidence |
+| --- | --- |
+| First initialization | Empty owned state produces a usable vanilla installation both without a configured backup store and with a configured store containing no backup. |
+| Normal restart | Existing state and identity survive ordinary native startup without backup access, reinitialization or unnecessary restore. |
+| Source-independent restore | For a stateful application, produce a recovery point through the delivered package and restore it on an empty target without the source or a second technical release command. Verify the required data, identity and usable behavior, perform new useful work, then demonstrate that the recovered installation can produce another usable recovery point. |
+| Supported release transition | Native startup performs supported migration; unsupported transitions and downgrades are rejected without destructive fallback, using native behavior or a justified minimal safeguard. |
+| Failed transition and retry | Failure remains visible and stopped across restarts. Replacing a failed target and ordinary retry can succeed from independently preserved inputs within the accepted data-loss boundary; no automatic resumption of ambiguous progress is required. Conflicting transitions are excluded. Restart and queued or completed work cannot override intentional stop or release access through stale completion signals. |
+| Observation and operation failures | Failed local observation, a failed configured-store lookup, damaged backups and failed native operations stop the affected startup or transition visibly without falling through to initialization. Verify that failed backup publication is reported separately from application health and does not override stop intent. Loss of observation during established operation follows the package's declared behavior. |
+| Foreign state boundary | Failure of the application does not reset a shared database, another application or an external service. |
+| Application acceptance | The maintained procedure checks the agreed usable behavior after each supported transition; a successful container or job is insufficient. |
+
+These are common evidence requirements, not a mandate for a universal test runner. Reuse implementations only where applications actually share a responsibility. An isolated passing case does not establish the full contract. The service recovery requirements below additionally cover target readiness, access and authorized activation; catalogue evidence must state which of those conditions it has exercised.
+
+## Service recovery and activation
+
+These requirements apply to the complete installation when it is recovered or replaced, whether an installation administrator or automation executes the procedure. The application package supplies its native procedures, state boundary and controls; infrastructure and service integration supply the target, access paths and enforcement beyond the application's control. Safe activation is required now, not deferred until installation-wide automation exists. The separate automated execution contract below adds hands-free execution after authorization; it does not move all service responsibilities into the application package.
+
+### Inputs and authorization
+
+The operation identifies the installation, exact releases and effective configuration, a complete and verified recovery point or an authorized selection policy, protected access to required credentials and keys, and the target profile. It also records the permitted interruption, data loss and treatment of the old installation's write authority. A changed target or risk outside that authorization requires a new decision, not an improvised technical workaround. Decision time remains part of end-to-end interruption.
+
 ### Target and provider boundary
 
 The target profile declares the runtime and compatible versions, compute and temporary reconstruction capacity, persistent-storage semantics, network and service endpoints, and identity or other dependencies required by the application contracts. A compatible environment may be newly provisioned or already available. Access, authorization and capacity must be usable within the recovery objective; a provider name alone is not a target.
 
-A provider adapter supplies and verifies that environment through supported machine interfaces. It returns resource identities, endpoints and protected access references. The application recovery mechanism consumes the target contract without requiring changes for each provider. Initial onboarding of a provider must establish this mapping before hands-free recovery can be promised.
-
 ### Execution and result
 
-Recovery coordination, its bootstrap procedure, artifacts, state, credentials and decryption keys must remain usable outside the source failure or administrative domain being excluded. The executor cannot exist only inside the environment it must reconstruct. Normal customer service must not depend on the recovery coordinator being continuously available.
+Recovery procedures and any coordinator, their bootstrap, artifacts, state, credentials and decryption keys must remain usable outside the source failure or administrative domain being excluded. The execution path cannot exist only inside the environment it must reconstruct. Normal customer service must not depend on a recovery coordinator being continuously available.
 
 After authorization, the procedure checks inputs and target capabilities, establishes the environment, restores and migrates applications in dependency order, validates them, enforces the authorized transfer of write authority and activates the required access paths. Success means users can perform the agreed service with the required data and dependencies within the authorized limits. Running containers or a successful restore job alone do not establish that result. The outcome records actual recovery time, recovery point, acceptance results and active resource identities.
 
@@ -179,11 +177,11 @@ After authorization, the procedure checks inputs and target capabilities, establ
 
 Promotion establishes one authoritative production generation for the declared service. The previous generation must no longer accept work as that service or produce unauthorized effects through its live dependencies. It may remain running or retain and modify isolated local state only if those activities cannot be mistaken for production, affect live dependencies or re-enter the authoritative state without an explicitly authorized reconciliation.
 
-This is an enforced service boundary, not a universal requirement to power off the old machine. Each application/service integration must declare:
+This is an enforced service boundary, not a universal requirement to power off the old machine. For its declared failure model, each application/service integration must declare:
 
 - User-facing write paths, including direct access and existing connections, and background actors such as workers, schedulers and mirrors.
 - External effects, affected systems and credentials, and how old-generation authority is withdrawn at each relevant boundary.
-- The enforcement path for a reachable source and the path that remains usable without source-provider cooperation.
+- The enforcement path for a reachable source and, where source loss is covered, the path that remains usable without source-provider cooperation.
 - How a restarted or recovered old generation is prevented from reclaiming production authority.
 - How interrupted promotion, including a lost acknowledgement after activation, establishes the authoritative generation before further action.
 
@@ -191,11 +189,21 @@ The application supplies knowledge of its writers, effects and supported control
 
 For a planned replacement, stopping and draining the reachable source and preventing its restart may provide that enforcement. For provider-loss recovery, the enforcement path must be prepared independently of the source. If that path cannot be established, stop activation and report the missing capability; safe refusal is not a successful provider-loss recovery claim.
 
+An isolated candidate may be prepared and tested while the source still runs. Before activating it as production, account for writes accepted since its recovery point through a final capture and reconstruction with renewed checks or a supported catch-up procedure, within the authorized data-loss boundary. Preparing a replacement is not permission to accept production work.
+
 A service whose public access paths and write permissions are controlled only inside the source environment may be reconstructable elsewhere without being safely promotable there. If the source becomes unreachable but remains active, independent backups and a new DNS destination do not withdraw its production authority. Such an installation has not yet established complete provider-loss recovery.
 
 Selecting an older recovery point explicitly accepts only the permitted loss of intervening work. It does not authorize two generations to keep accepting production work. Changes retained in an abandoned copy must not silently merge back into production. If the replacement may have accepted writes or produced effects before completion was recorded, do not automatically reactivate the old generation.
 
 Evidence must cover the declared failure model, including stale access, background effects, interrupted activation and return of the old generation. The retained result identifies the active generation and the observed enforcement at its boundaries. This contract selects no universal lease protocol, watchdog or fencing product and does not establish implementation evidence.
+
+## Provider-independent recovery execution contract
+
+This is the additional contract for the long-term goal of automated service recovery. The application and service obligations above apply regardless of who executes the procedure. This contract requires the complete authorized sequence to run without manual technical intervention; it does not require the current human-operated installation to automate that sequence.
+
+> Recover this installation from the authorized recovery point into the authorized target environment, verify the required service and establish exclusive production authority without manual technical intervention.
+
+A provider adapter supplies and verifies the declared target environment through supported machine interfaces. It returns resource identities, endpoints and protected access references. The application recovery mechanism consumes the target contract without requiring changes for each provider. Initial onboarding of a provider must establish this mapping before hands-free recovery can be promised.
 
 ### Interruption and safe failure
 
