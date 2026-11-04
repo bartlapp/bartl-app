@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
-import contract from "../../README.md?raw";
+import contract from "../../docs/application-contract.md?raw";
 
 // Only presentation metadata lives here; the algorithm comes from the contract.
 const algorithm = contract.match(/### Startup decision\s+```text\n([\s\S]*?)\n```/)?.[1];
-if (!algorithm) throw new Error("README startup decision code block is missing");
+if (!algorithm) throw new Error("Contract startup decision code block is missing");
 
 const all = "ready upgrade downgrade restore initialize invalid backup-error";
 const scenarios = [
@@ -18,7 +18,7 @@ const scenarios = [
 ];
 const lines = algorithm.split("\n");
 if (lines.length !== scenarios.length) {
-  throw new Error("Startup decision scenario annotations must match the README algorithm");
+  throw new Error("Startup decision scenario annotations must match the contract algorithm");
 }
 
 export const startupCode = lines.map((line, index) => ({
