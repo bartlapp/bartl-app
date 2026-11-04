@@ -24,7 +24,7 @@ Preserve the agreed causal wording when transferring it to the website and Appro
 
 The focused revision `efb003f` placed this question and its four consequences directly at the beginning of both homepages and both Approach pages. It replaced the generic introduction and restored explicit causal wording about whole-service responsibility, changing prerequisites and reuse of operating procedures. Its single-column opening preserved the reasoning but was rejected as excessively text-heavy.
 
-Verification of this revision: Astro check reported zero errors, warnings or hints and the build produced 14 pages. German prose lint passed. Both homepages and Approach pages were exercised at 320, 390, 768 and 1440 pixels without horizontal overflow. Desktop English and mobile German openings were visually inspected; language switching, the link into the operating explanation, recovery-example expansion and onward navigation to Approach worked without browser errors. No publication was performed.
+Verification of this intermediate revision: Astro check reported zero errors, warnings or hints and the build produced 14 pages. German prose lint passed. Both homepages and Approach pages were exercised at 320, 390, 768 and 1440 pixels without horizontal overflow. Desktop English and mobile German openings were visually inspected; language switching, the link into the operating explanation, recovery-example expansion and onward navigation to Approach worked without browser errors.
 
 ## Show the consequences, not a wall of principles
 
@@ -34,7 +34,7 @@ The relationships are visible in the main reading path, not hidden in disclosure
 
 Independent rendered critique identified the delayed concrete example and the lack of visible relationships between contributions. The revised sequence addresses those findings without treating reduced word count or added icons as success. It also distinguishes uncertainty after change from demonstrated service failure: the changed release receives a question mark, not a failure cross. These are expert design and fidelity checks, not an audience-comprehension study.
 
-Final verification used the built site after restarting a development preview that had retained stale component styles. Both languages passed at 320, 390, 768 and 1440 pixels with both technical disclosures open: no page overflow or clipped SVG labels. Desktop/mobile pictures, uncertainty markers and dark mode were visually inspected; language switching, onward Approach navigation and 16 distinct internal links/anchors passed. The independent rendered re-review found no remaining blocker; source-based technical review found no material fidelity defect. Astro check reported zero diagnostics, the build produced 14 pages, and prose lint passed. The superseded hero picture and its unused copy/styles were removed. No publication was performed.
+Final verification used the built site after restarting a development preview that had retained stale component styles. Both languages passed at 320, 390, 768 and 1440 pixels with both technical disclosures open: no page overflow or clipped SVG labels. Desktop/mobile pictures, uncertainty markers and dark mode were visually inspected; language switching, onward Approach navigation and 16 distinct internal links/anchors passed. The independent rendered re-review found no remaining blocker; source-based technical review found no material fidelity defect. Astro check reported zero diagnostics, the build produced 14 pages, and prose lint passed. The superseded hero picture and its unused copy/styles were removed. The resulting revision was published as recorded below.
 
 ## Explain the operating model before demonstrating recovery
 
@@ -44,13 +44,13 @@ The first causal revision, `9f46c92`, established the gap between functioning co
 
 Replacement updates and provider-loss recovery now demonstrate the approach rather than define it. Their main lessons remain visible; native expandable sections carry the existing detailed pictures and conditions. The document service stays illustrative, and Keycloak evidence retains its exact package scope. The Approach pages carry the same causal links into the existing detailed philosophy. Implement and Contract remain unchanged because the application behavior and integration method have not changed.
 
-The general philosophy does not prescribe a customer-specific broker or portfolio model. This revision is local and does not authorize publication.
+The general philosophy does not prescribe a customer-specific broker or portfolio model.
 
 Verification: both homepages were exercised at 320, 390, 768 and 1440 pixels, including opening both technical examples. No page overflow or clipped SVG text was observed. Browser inspection caught and corrected a heading overlap caused by a shared CSS class name. Desktop and mobile views, dark mode, language switching and navigation into Approach were inspected. All eight main language/page combinations loaded at mobile width without overflow; 46 distinct internal main-content links and anchors resolved. German philosophy prose lint passed. These checks establish rendering and navigation, not independent reader comprehension.
 
 The final Astro check reported zero errors, warnings or hints; the static build produced 14 pages. The existing development environment warns that its installed Vite 8 is outside Astro's required Vite 7 range; dependency changes are outside this explanation revision.
 
-## Documentation alignment and remaining work
+## Documentation alignment and website revisions
 
 The 31 October 2026 correction aligned the local contract and both website languages with native startup and bounded failure handling. At that stage the website documented the historical WordPress mechanism and its checksum, publication and migration limits; it did not qualify that implementation under the current contract.
 
@@ -58,13 +58,13 @@ The correctness candidate `8c66e3f715c34e40c3462cdcc4d925ba6a164a8d` and WordPre
 
 The subsequent website rewrite implements the approved homepage argument and four-page structure. Approach keeps `/derivation/`, Contract keeps `/spec/`, and Implement adds `/implement/`; established URLs remain usable without compatibility routes. Approach and Implement render the existing English Markdown and maintained German translations directly. The old mechanism-first derivation copy and unused static startup components are removed.
 
-The content baseline `b3aab7eb29b0f53e67933008debd799f6e2d262c` remains local. Florian rejected its visual treatment as boring and excessively text-heavy; the substantive argument remains the constraint, not permission to publish this presentation. No application runtime or HZD material is changed. Codeberg issues remain the remote work channel.
+Florian rejected the visual treatment of content baseline `b3aab7eb29b0f53e67933008debd799f6e2d262c` as boring and excessively text-heavy. Its substantive argument informed the subsequent revisions. No application runtime or HZD material changed. Codeberg issues remain the remote work channel.
 
 Local verification on 31 October: Astro check reported no diagnostics and the static build generated 14 pages. Chromium exercised all four main pages in both languages at 1280, 390 and 320 pixels, checked 226 internal links/anchors across 12 content/legal pages, and exercised all seven Contract scenarios per language, language switching and dark mode. Desktop/mobile screenshots were inspected; no browser errors remained. Prose lint passed. These are website checks, not new application qualification.
 
-### High-fidelity homepage revision: bilingual local candidate
+### High-fidelity homepage revision
 
-On 31 October Florian authorized one bounded visual revision before publication. The rendered English candidate is implemented on `polish-bartl-docs-2026-10-31`, retaining the current four-page structure and canonical content ownership.
+On 31 October Florian authorized one bounded visual revision before publication. It retained the four-page structure and canonical content ownership.
 
 Use one illustrative, product-independent document service throughout the main story:
 
@@ -79,23 +79,19 @@ Florian accepted the document-service candidate `149a264`, retaining its design 
 
 Both languages now use the same visual component and language-specific copy in `src/content/landing.ts`. The obsolete German layout and copy are removed. The illustrative document service remains distinct from exercised Keycloak package evidence.
 
-Local verification on 31 October: Astro check reported no diagnostics; the static build generated 14 pages. Both languages were visually inspected at desktop and mobile sizes. Layout checks at 320, 390, 768 and 1440 pixels found no overflow after adding language-aware hyphenation and wrapping for long German words. All five distinct main-content links and anchors per language resolved, including the language-specific Keycloak section. No browser errors were recorded. The bilingual candidate remains local; publication is not authorized.
+Local verification on 31 October: Astro check reported no diagnostics; the static build generated 14 pages. Both languages were visually inspected at desktop and mobile sizes. Layout checks at 320, 390, 768 and 1440 pixels found no overflow after adding language-aware hyphenation and wrapping for long German words. All five distinct main-content links and anchors per language resolved, including the language-specific Keycloak section. No browser errors were recorded.
 
 The subsequent visual revision uses recurring document, file/database and permission objects instead of labelled containers and a numbered step list. Reconstruction preserves recognizable state while changing the application release. Provider-loss pictures distinguish the withdrawn source from surviving recovery inputs, execution, access and dependencies. The production path visibly closes at the old installation while the replacement alone receives production traffic. Supporting text retains consistency, final-write coordination, authorization and independent-enforcement conditions. These remain illustrations, not new qualification evidence.
 
 The picture revision was inspected in both languages at desktop and mobile sizes, including dark mode. Bounds checks at 320, 390, 768 and 1440 pixels found no page overflow or clipped SVG labels. Across the eight main language/page combinations, all 104 checked internal links and anchors resolved; neither visible text nor HTML contained WordPress. Astro check reported no diagnostics, the build generated 14 pages, and German prose lint passed. Browser inspection corrected clipped labels and routes crossing labels before the local candidate was retained.
 
-### Release checks and publication proposal, 31 October
+### Website publication, 31 October 2026
 
-Florian accepted the visual direction and explanation at `6c9c17e6057621e78601f6b7fe48d0d882479a0e`. The release pass preserves that content and design. Its only UI fix enables wrapping and hyphenation on the privacy page after the German title overflowed at mobile widths.
+The bilingual visual revision was published as `f436267edfc71e2a4a8208d518b85f6862fedb21`; [deployment 41209763880](https://github.com/bartlapp/bartl-app/actions/runs/41209763880) succeeded. Release verification covered both languages at 320, 390, 768 and 1440 pixels, navigation, all seven Contract scenarios per language, 104 main-page internal links, six external targets, legal pages, the root entrypoint, 404 and dark mode. The release pass corrected mobile wrapping of the German privacy heading. Astro check, build and prose checks passed.
 
-Release verification: all eight main language/page combinations rendered at 320, 390, 768 and 1440 pixels without page overflow or clipped diagram labels. Navigation and language switching retained all four page destinations on desktop and mobile. All seven Contract scenarios per language responded correctly. All 104 main-page internal links/anchors and six distinct external targets resolved. The unpublished footer commit link becomes available only after publication. Legal pages, the root entrypoint and the 404 page were exercised; the privacy fix passed at all four widths. Dark mode was inspected; no browser errors remained. Astro check reported zero diagnostics, the build produced 14 pages, and prose checks passed. The illustrative document service remains separate from qualified Keycloak evidence.
+The subsequent requirements-led explanation and visual relationships were published as `fd52d2076e28d901b3d3ae2e00821351d428da56`; [deployment 41215356952](https://github.com/bartlapp/bartl-app/actions/runs/41215356952) succeeded. Codeberg and its GitHub mirror matched the candidate; live English/German rendering and language switching were verified. The checks recorded above concern presentation and technical fidelity, not new application qualification or an audience-comprehension study.
 
-The proposed destination is `refs/heads/main` at `ssh://git@codeberg.org/bartlapp/bartl-app.git`. SSH fetch and the live Codeberg API agreed on destination tip `8c66e3f715c34e40c3462cdcc4d925ba6a164a8d`, an ancestor of the candidate. Forgejo's API reports `/api/v1`; authenticated user `fke` is active, unrestricted and not prohibited from login. The repository is not archived, grants push/admin access, and reports `main` unprotected, no effective protection rule, zero required approvals, no required status checks, and effective push/merge permission. The proposal is an ordinary fast-forward preserving all seven outgoing commits, including referenced review versions, not a squash or history rewrite. Recheck the destination tip and effective policy immediately before any authorized push.
-
-Deployment follows the existing Codeberg push mirror to `ssh://github.com/bartlapp/bartl-app.git` (`sync_on_commit: true`, no last error). The GitHub mirror tip matches Codeberg. A push to GitHub `main` triggers `.github/workflows/deploy.yml`: Node 22, `npm ci`, Astro check/build, upload `dist/`, then GitHub Pages deployment to `bartl.app`. The public API reports an active workflow and a `github-pages` environment restricted to `main`, with no review or wait rule. The latest run `41203824566` succeeded at the destination tip.
-
-Authenticated GitHub inspection returned 401; the Pages settings endpoint was unavailable without authentication. Public branch, rules, workflow, environment, branch-policy and run evidence was available. No direct GitHub write or settings change is proposed. Codeberg policy/access preflight passed; GitHub administrative settings were not verified. After authorization, verify mirror convergence, the deployment run at the exact candidate SHA and the live bilingual pages. Publication has not been authorized or performed.
+Deployment uses the Codeberg push mirror to GitHub and `.github/workflows/deploy.yml` for GitHub Pages at `bartl.app`. These completed publications do not authorize future writes; each new publication requires its own authorization and current policy/access checks.
 
 
 ## German and English pages share their structure

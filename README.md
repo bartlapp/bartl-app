@@ -215,7 +215,7 @@ The complete claim must be exercised with source access withheld, including prov
 
 | What | Where |
 | --- | --- |
-| Homepage routing, English visual candidate, and DE/EN copy | `src/components/Landing.astro`, `src/components/ServiceHomepage.astro`, `src/content/landing.ts` |
+| Homepage routing, shared visual layout, and DE/EN copy | `src/components/Landing.astro`, `src/components/ServiceHomepage.astro`, `src/content/landing.ts` |
 | DE/EN homepage route | `src/pages/[lang]/index.astro` |
 | Approach, retaining the established derivation URL | `src/pages/[lang]/derivation.astro` |
 | Philosophy rendered directly, with German translation | `docs/philosophy.md`, `docs/philosophy.de.md` |
@@ -232,7 +232,7 @@ The complete claim must be exercised with source access withheld, including prov
 | Legal pages and copy | `src/pages/[lang]/`, `src/legal/` |
 | Static assets | `public/` |
 
-Both languages share navigation, the four-page structure and the visual homepage treatment. The bilingual homepage remains a local candidate, as recorded in [Decisions](docs/decisions.md#high-fidelity-homepage-revision-bilingual-local-candidate). It explains the complete-service argument through an illustrative document service, with separate Keycloak application-package evidence. Approach and Implement render the maintained Markdown documents, not independent English website copies. German Markdown files are translations of those same documents. The Contract page explains the normative application contract above; it does not redefine it.
+Both languages share navigation, the four-page structure and the visual homepage treatment. The bilingual homepage was published on 31 October 2026; [Decisions](docs/decisions.md#website-publication-31-october-2026) records the exact revisions and deployments. It explains the complete-service argument through an illustrative document service, with separate Keycloak application-package evidence. Approach and Implement render the maintained Markdown documents, not independent English website copies. German Markdown files are translations of those same documents. The Contract page explains the normative application contract above; it does not redefine it.
 
 ## Develop
 
