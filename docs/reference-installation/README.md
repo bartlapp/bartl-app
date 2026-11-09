@@ -20,7 +20,7 @@ Complete this page, then:
 4. [Exercise lifecycle and recovery](recovery.md).
 5. [Verify reinstall and backup retrieval, then remove the lab](teardown.md).
 
-Run the blocks once, in order. After a failure, establish the actual state before continuing; do not rerun whole chapters.
+Use one workstation Bash session and run the blocks once, in order. On failure or interruption, [tear down the lab](teardown.md#delete-all-resources-created-for-this-exercise). Correct the cause, then start again from this page.
 
 ## Prerequisites and cost
 
@@ -66,7 +66,7 @@ Check the cost of three servers and three IPv4 addresses, including taxes and tr
 
 ## Create a working directory
 
-Use a new absolute path outside your source repositories. Everything created here is temporary: finish by deleting the cloud lab and this entire directory.
+Use an absolute path outside your source repositories. If a previous lab exists there, [delete its cloud resources and local directory](teardown.md#delete-all-resources-created-for-this-exercise) before running setup. Everything created here is temporary.
 
 Set `SSH_KEY_NAME` to a name from `hcloud ssh-key list`. If your loaded public key is not registered yet, register it using the [K3s guide](https://github.com/bartlapp/base-k3s/blob/main/README.md) first.
 
@@ -94,7 +94,7 @@ test ! -e "$WORK_DIR" &&
 ) && cd "$WORK_DIR"
 ```
 
-If setup fails, stop; do not reuse an existing directory. `values/` holds configuration, `evidence/` holds results used by later checks, and `.lab/` holds cluster access and resource records. All three are deleted at the end.
+If setup fails, [clean up](teardown.md#delete-all-resources-created-for-this-exercise) before trying again. `values/` holds configuration, `evidence/` holds results used by later checks, and `.lab/` holds cluster access and resource records. All three are deleted at the end.
 
 ### Use the pinned packages
 
@@ -173,9 +173,9 @@ kubectl --kubeconfig "$KC" get namespaces,pvc --all-namespaces
 
 The three `kube-system` UIDs must differ. C must have no application namespaces or PVCs. Always select the target cluster explicitly by kubeconfig.
 
-## Resume a workstation session
+## Prepare workstation commands
 
-After the base setup, create the token-free session file:
+After the base setup, create the shared variables and helpers used by the following chapters:
 
 ```bash
 cat > .lab/workstation.env <<'ENV'
@@ -207,13 +207,6 @@ current_condition() {
 ENV
 source .lab/workstation.env
 git -C "$K3S_SOURCE" rev-parse HEAD > evidence/base-k3s-revision.txt
-```
-
-In a new Bash session, repeat the token setup above, then edit the path and load the session:
-
-```bash
-export WORK_DIR="$HOME/bartl-lab"
-source "$WORK_DIR/.lab/workstation.env"
 ```
 
 If your public IPv4 address changes, run "Update administrator access" in each base checkout and update application allowlists. After an SSH `exit`, continue on the workstation.

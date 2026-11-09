@@ -1,6 +1,6 @@
 # Reinstall, verify the backup and remove the installation
 
-On the workstation, load the [session](README.md#resume-a-workstation-session):
+On the workstation, load the [variables and helpers](README.md#prepare-workstation-commands):
 
 ```bash
 source "${WORK_DIR:?}/.lab/workstation.env"
@@ -83,10 +83,18 @@ The check must read `recovered.txt`, written after takeover on C, from the resto
 
 ## Delete all resources created for this exercise
 
-On the workstation, delete the three DNS A records. Before each deletion, confirm that the displayed record belongs to this installation. Do not delete the zone or other records.
+Use this cleanup after a completed or interrupted run. For an interrupted run, skip the application checks above and remove only resources actually created. Keep `$WORK_DIR` until cloud cleanup is complete: it contains the access files and resource identities needed for deletion. If nothing was provisioned, go straight to [local deletion](#delete-the-local-directory).
+
+For an earlier attempt, use its `installation.env` and `.lab/` records to identify its resources, not a newly generated installation name.
+
+On the workstation, delete the lab's DNS A records. For a partial run, edit this list to include only names created, or use `DNS_HOSTS=()` if none. Before each deletion, confirm that the displayed record belongs to this installation. Do not delete the zone or other records.
 
 ```bash
-for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
+DNS_HOSTS=("$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST")
+```
+
+```bash
+for host in "${DNS_HOSTS[@]}"; do
   subname=${host%.$DNS_ZONE}
   desec "$DNS_API/rrsets/$subname/A/" | jq .
   desec --request DELETE "$DNS_API/rrsets/$subname/A/"
@@ -94,7 +102,7 @@ for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
 done
 ```
 
-Follow the [K3s teardown procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) in each checkout below, in order: B, C, A. Match each server, Primary IP and firewall to its creation record. Deleting A also discards the synthetic data, backups and credentials.
+Follow the [K3s teardown procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) for each cluster created, in order: B, C, A. Skip clusters never provisioned. Match each server, Primary IP and firewall to its creation record. Deleting A also discards the synthetic data, backups and credentials.
 
 ```bash
 cd "$WORK_DIR/.lab/b"

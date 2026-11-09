@@ -2,7 +2,7 @@
 
 After [verifying the test data](verification.md), run this chapter on the workstation in `$WORK_DIR` unless an SSH session is specified. A remains available; B is the source and C the replacement.
 
-Load the [session](README.md#resume-a-workstation-session):
+Load the [workstation variables and helpers](README.md#prepare-workstation-commands):
 
 ```bash
 source "${WORK_DIR:?}/.lab/workstation.env"

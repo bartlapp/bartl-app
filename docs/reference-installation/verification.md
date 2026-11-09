@@ -1,6 +1,6 @@
 # Exercise the service before and after recovery
 
-On the workstation, load the [session](README.md#resume-a-workstation-session):
+On the workstation, load the [variables and helpers](README.md#prepare-workstation-commands):
 
 ```bash
 source "${WORK_DIR:?}/.lab/workstation.env"
