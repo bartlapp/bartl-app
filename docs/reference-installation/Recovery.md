@@ -1,16 +1,18 @@
-# Lifecycle, Recovery und kontrollierte Übernahme
+# Recover on C and return the service to use
 
-Vor dem ersten Block auf der Workstation den [Sitzungseinstieg](README.md#workstation-sitzungen-wieder-aufnehmen) laden:
+Recovery is complete when people can use the replacement and their new work reaches a backup. This chapter first exercises the applications on B, then closes writes, captures their final state and powers B off. Only then do we reconstruct on C, check the service and open access.
+
+Start with the installed applications and [verified test data](Pruefung.md). A continues to provide backup storage; B is the source and C the independent replacement. Run commands on the workstation in `$INSTALL_REPO` unless a block explicitly opens an SSH session.
+
+Load the [workstation session](README.md#resume-a-workstation-session):
 
 ```bash
 source "${INSTALL_REPO:?}/.lab/workstation.env"
 ```
 
-Voraussetzung sind die installierten Anwendungen und [geprüften Testdaten](Pruefung.md). Alle Befehle dieses Kapitels laufen auf der Workstation in `$INSTALL_REPO`, soweit keine SSH-Sitzung bezeichnet ist. A bleibt Backup-Dienst, B ist Quelle, C das unabhängige Ziel.
+## Check the generation, not just the condition
 
-## Jede Operation an ihrer aktuellen Generation prüfen
-
-`kubectl wait` allein kann eine alte Condition akzeptieren. Nach jeder Änderung die Generation und die angeforderte Condition gemeinsam prüfen. Die folgende Funktion beobachtet nur; sie koordiniert keine Anwendung und verändert keinen Zustand:
+`kubectl wait` can accept a condition left over from an earlier operation. After each change, check that both the observed generation and the requested condition belong to the current generation. This helper reads status without changing it:
 
 ```bash
 current_condition() {
@@ -22,9 +24,9 @@ current_condition() {
 }
 ```
 
-Bei `False`, Timeout oder einem fehlgeschlagenen Job anhalten. Status und Logs behalten. Keine Failure-Marker, Finalizer oder Restic-Locks löschen, um fortfahren zu können. Ein Timeout beendet den serverseitigen Job nicht.
+Stop on `False`, a timeout or a failed job, and retain status and logs. Do not remove failure markers, finalizers or Restic locks to force progress. A client timeout does not stop the server-side job.
 
-## Erste Backups auf A veröffentlichen
+## Publish the first backups to A
 
 ```bash
 export KUBECONFIG="$KB"
@@ -45,11 +47,11 @@ kubectl -n forgejo get forgejoapplication/forgejo -o json |
 jq -e '.success==true and (.snapshot|test("^[a-f0-9]{64}$"))' evidence/forgejo-source-backup.json
 ```
 
-Keycloak prüft den nativen Dump und liest den veröffentlichten Snapshot vollständig zurück. Forgejo erfaßt seinen Zustand bei gestoppten Writern, nimmt den Dienst wieder auf und veröffentlicht den geschützten Capture. Helm-Erfolg ersetzt diese anwendungsspezifischen Belege nicht.
+Keycloak validates its native dump and reads the published snapshot back in full. Forgejo captures state with its writers stopped, resumes service and publishes the protected capture. Check those application-specific results; a successful Helm command does not establish that a backup is usable.
 
-## Paket-Upgrades
+## Upgrade the packages
 
-Erst nach erfolgreichen Backups fortfahren. Die CRDs aus dem ausgewählten neuen Chart explizit aktualisieren; Helm übernimmt bestehende CRD-Definitionen nicht automatisch. Keine alten Paketdefaults mit `--reuse-values` übernehmen.
+Proceed only after both backups succeed. Apply the CRDs from the selected new chart explicitly because Helm does not update existing CRD definitions automatically. Use the installation's declared values rather than carrying old package defaults forward with `--reuse-values`.
 
 ```bash
 mkdir .lab/restic-chart .lab/keycloak-chart
@@ -70,11 +72,11 @@ kubectl --kubeconfig "$KB" -n keycloak get keycloakapplication/keycloak \
   -o jsonpath='{.status.packageRelease}{"\n"}'
 ```
 
-Erwartet werden Restic 0.2.1 und Keycloak-Paket 0.5.1. Keycloak bleibt nativ 26.6.2. Der native Forgejo-Upgrade erfolgt später bei der Rekonstruktion auf C, nicht durch Änderung unabhängiger Image-Tags.
+Expect Restic 0.2.1 and Keycloak package 0.5.1. Native Keycloak remains at 26.6.2. Forgejo's native version changes later, during reconstruction on C, rather than through independently selected image tags.
 
-## Restart ohne Backup-Zugriff
+## Restart without access to backups
 
-Restic über seine Anwendungsschnittstelle stoppen, dann die beiden Serving-Deployments neu starten. Dies ist ein Restart-Test, keine alternative Stop-Schnittstelle und kein Skalieren gegen die Controller-Absicht.
+A restart with existing state must work while the backup service is unavailable. Stop Restic through its application interface, restart the two serving deployments, then bring Restic back. The deployment restarts test that path; they are not a substitute for the supported stop interface or permission to scale against the controller's declared intent.
 
 ```bash
 helm upgrade backup "$RESTIC_CHART" --kubeconfig "$KA" -n backup \
@@ -92,9 +94,9 @@ kubectl --kubeconfig "$KA" -n backup wait resticapplication/backup-restic --for=
 current_condition "$KA" backup resticapplication/backup-restic Ready
 ```
 
-## Dauerhafter Stop und Start
+## Stop and start through the application interfaces
 
-Forgejo vor Keycloak stoppen; in umgekehrter Reihenfolge starten. Die unveränderten Werte enthalten noch die laufende Absicht. Für einen dauerhaften Betriebsstop außerhalb dieser kurzen Übung auch die Werte versionieren.
+Stop Forgejo before Keycloak; start them in the reverse order so identity is available before the service that depends on it. For this short exercise, the values files still declare a running installation. If the stop is meant to persist beyond the exercise, version the stopped state in those files as well.
 
 ```bash
 helm upgrade forgejo "$FORGEJO_CHART" --kubeconfig "$KB" -n forgejo \
@@ -113,9 +115,9 @@ kubectl --kubeconfig "$KB" -n forgejo wait forgejoapplication/forgejo --for=cond
 current_condition "$KB" forgejo forgejoapplication/forgejo Ready
 ```
 
-## Finale Schreibgrenze festlegen und B ausschalten
+## Close writes, capture the final state and power off B
 
-Ab hier keine weiteren Benutzer- oder Konfigurationsänderungen auf B zulassen. Zuerst HTTP- und SSH-Zugänge zu Forgejo entfernen. Der Keycloak-Stop beendet anschließend Identitätsänderungen. Die beiden Snapshots bleiben getrennte, explizit dokumentierte Recovery-Punkte; die Sequenz behauptet keinen atomaren Stack-Snapshot.
+Allow no further user or configuration changes on B from this point. First remove HTTP and SSH access to Forgejo. Stopping Keycloak then closes identity changes. Retain the two snapshots as separate, explicitly recorded recovery points; this sequence does not create an atomic snapshot of the whole installation.
 
 ```bash
 export KUBECONFIG="$KB"
@@ -143,7 +145,7 @@ kubectl -n keycloak get pvc -o json > evidence/keycloak-source-pvc.json
 kubectl -n forgejo get pvc -o json > evidence/forgejo-source-pvc.json
 ```
 
-Jetzt die gestoppte Absicht in den B-Wertedateien festhalten, damit eine spätere Anwendung dieser Dateien B nicht reaktiviert. Nur die gezeigten Felder in der vorhandenen Datei ändern; alle übrigen Werte behalten. Die mit `-` markierten Zeilen zeigen den bisherigen, die mit `+` markierten den gewünschten Wert. Die Markierungen selbst gehören nicht in die YAML-Datei.
+Record the stopped state in B's values files now. Otherwise, applying them later could reactivate the source. Change only the fields shown below and retain all other values. In these diffs, `-` marks the old value and `+` the replacement; neither marker belongs in the YAML file.
 
 In `values/keycloak-b.yaml`:
 
@@ -168,7 +170,7 @@ In `values/forgejo-b.yaml`:
 +  enabled: false
 ```
 
-Keycloaks dokumentierter source-unabhängiger Recovery-Test hält erst den Controller an und dann PostgreSQL. Die Anwendung ist bereits über ihre eigene Schnittstelle gestoppt. Danach die ganze VM über die unabhängig erreichbare Hetzner-API ausschalten:
+With the application already stopped through its own interface, follow Keycloak's documented source-independent recovery test: stop its controller, then PostgreSQL. Finally, power off the entire VM through the independently accessible Hetzner API:
 
 ```bash
 helm get values keycloak --kubeconfig "$KB" -n keycloak --all > values/keycloak-b-effective.yaml
@@ -181,13 +183,13 @@ hcloud server poweroff "$INSTALLATION-b"
 hcloud server describe "$INSTALLATION-b" --output json | jq -e '.status=="off"'
 ```
 
-Stop-Punkt: Ohne bestätigten Stop und erfolgreiche finale Backups keine Aktivierung von C. DNS allein ist kein Fencing. B bleibt bis zum Rückbau ausgeschaltet; nach neuen Writes auf C niemals als vermeintlichen Rollback wieder starten.
+Do not activate C without successful final backups and a confirmed stop. Changing DNS does not fence the source. Keep B powered off until teardown; once C has accepted new writes, restarting B is not a rollback.
 
-## C isolieren und Eingaben rekonstruieren
+## Isolate C and supply the recovery inputs
 
-C verwendet neue PVCs und neue PostgreSQL-Credentials. Installation, Instanz, Hostnamen, Forgejo-Identity-Secrets, Repository-Schlüssel und der gesicherte Keycloak-Recovery-Administrator bleiben unverändert. Keine Source-PVCs mounten und keine Daten aus B kopieren.
+Reconstruction must not borrow the source's mutable state. Give C new PVCs and new PostgreSQL credentials; do not mount source PVCs or copy data from B. Preserve the installation and instance identities, hostnames, Forgejo identity secrets, repository keys and retained Keycloak recovery administrator.
 
-C erhält zunächst nur HTTPS-Zugriff von Workstation, Testclient A und seiner eigenen öffentlichen Adresse. HTTP bleibt für ACME erreichbar. Die Anwendungen bekommen keine zusätzliche Keycloak-Maintenance-Allowlist: diese würde auch die benötigte native Kommunikation zwischen Forgejo und Keycloak einschränken.
+Initially, allow HTTPS to C only from the workstation, test client A and C's own public address. Keep HTTP available for ACME. Do not add a Keycloak maintenance allowlist: it would also restrict the native communication Forgejo needs with Keycloak.
 
 ```bash
 hcloud firewall delete-rule "$INSTALLATION-c" --direction in --protocol tcp --port 443 --source-ips 0.0.0.0/0,::/0
@@ -198,13 +200,13 @@ kubectl create namespace keycloak
 kubectl create namespace forgejo
 ```
 
-Auf A neue DB-Credentials anlegen:
+Open an SSH session on A to create the new database credentials:
 
 ```bash
 (cd .lab/a; ssh -F .lab/ssh.config k3s)
 ```
 
-In der geöffneten SSH-Sitzung auf A:
+In that SSH session:
 
 ```bash
 umask 077
@@ -218,7 +220,7 @@ openssl rand -hex 32 | tr -d '\n' > database-admin-c/password
 exit
 ```
 
-Zurück auf der Workstation die geschützten Eingaben von A unmittelbar in C anlegen. Kein neuer Bootstrap-Administrator und keine neuen Forgejo-Identity-Secrets:
+Back on the workstation, stream the protected inputs from A directly into C. Reuse the retained recovery administrator and Forgejo identity secrets; do not generate replacements.
 
 ```bash
 (cd .lab/a; ssh -F .lab/ssh.config k3s 'bash -se' <<'REMOTE'
@@ -294,7 +296,7 @@ ssh:
 EOF
 ```
 
-Die vollständigen Zielwerte behalten die expliziten Installationsentscheidungen, nicht alte Paketdefaults. Die vorhandenen Source-Hostnamen werden auf C übernommen. Keycloak startet mit neuen Datenbank-Credentials, aber dem gesicherten Recovery-Administrator; Forgejo übernimmt sein geschütztes natives Konfigurationsmaterial von A.
+These complete target values preserve the installation's explicit choices without inheriting old package defaults. C takes over the existing hostnames. Keycloak receives new database credentials and its retained recovery administrator; Forgejo receives its protected native configuration from A.
 
 ```bash
 export KUBECONFIG="$KC"
@@ -315,7 +317,7 @@ kubectl -n forgejo get forgejoapplication/forgejo -o json > evidence/forgejo-rec
 kubectl -n forgejo logs -l forgejo.bartl.sh/role=prepare --all-containers=true --tail=-1 > evidence/forgejo-recovery-native.log
 ```
 
-Der letzte JSON-Beleg im Forgejo-Prepare-Log muß den finalen Snapshot aus `evidence/forgejo-final-backup.json`, dieselbe logische Identity und Version 17.0.1 nennen. Die eigentliche Rekonstruktion und native Migration erledigt das Paket. Es gibt keinen Restore-Schalter und keine manuelle Datenbankmigration.
+Check the last JSON receipt in the Forgejo prepare log. It must name the final snapshot recorded in `evidence/forgejo-final-backup.json`, the same logical identity and version 17.0.1. The package performs reconstruction and native migration; there is no restore switch to set or database migration to perform manually.
 
 ```bash
 for app in keycloak forgejo; do
@@ -328,9 +330,9 @@ done
 hcloud server describe "$INSTALLATION-b" --output json | jq -e '.status=="off"'
 ```
 
-## Hostnamen kontrolliert auf C übernehmen
+## Move the hostnames while C remains restricted
 
-Bei deSEC die bestehenden A-Records einzeln lesen, ihre Zugehörigkeit und bisherige B-Adresse bestätigen und dann auf C ändern. Die komplette vorherige TTL abwarten, nicht nur eine erfolgreiche API-Antwort. Die hier angelegten Records haben 900 Sekunden TTL. Vor einer neuen HTTP-01-Anforderung zusätzlich beide autoritativen und beide öffentlichen Resolver prüfen.
+For each existing deSEC A record, read it, confirm that it belongs to this installation and still points to B, then change it to C. Wait out the entire previous TTL, which is 900 seconds for these records. API success alone does not establish that clients see the new address. Before requesting HTTP-01 certificates, check both authoritative servers and both public resolvers:
 
 ```bash
 for host in "$KC_HOST" "$FORGEJO_HOST"; do
@@ -348,7 +350,7 @@ for host in "$KC_HOST" "$FORGEJO_HOST"; do
 done
 ```
 
-Alle Antworten müssen C nennen. Die Anwendungen bleiben währenddessen hinter der eingeschränkten Firewall. Danach die behaltenen TLS-Manifeste auf C anwenden und Ready abwarten:
+Every answer must point to C. Leave the restricted firewall in place while applying the retained TLS manifests and waiting for the certificates to become Ready:
 
 ```bash
 export KUBECONFIG="$KC"
@@ -367,15 +369,15 @@ curl --fail --silent --show-error "https://$KC_HOST/realms/reference/.well-known
   jq -e --arg issuer "https://$KC_HOST/realms/reference" '.issuer==$issuer'
 ```
 
-Bei einer invaliden ACME-Anforderung nicht blind erneut anwenden. `kubectl describe challenge -n keycloak` zeigt unter anderem, welche Adresse die CA tatsächlich erreichte. Erst die DNS- oder Routing-Ursache klären. Falls danach eine native Neuanforderung nötig ist, das [cert-manager-Verfahren](https://cert-manager.io/docs/usage/certificate/) mit der zuständigen Administration ausführen und erneut Certificate-Ready abwarten. Keine TLS-Ausnahme verwenden.
+If an ACME request is invalid, diagnose it before trying again. `kubectl describe challenge -n keycloak` includes the address the CA actually reached. Resolve the DNS or routing cause with the responsible administrator. If a new request is then needed, follow the native [cert-manager procedure](https://cert-manager.io/docs/usage/certificate/) below and wait for Certificate Ready again. Do not bypass TLS validation.
 
-Nur nach geklärter Ursache und Freigabe durch die zuständige Administration ist folgende native Neuanforderung vorgesehen. Auf der Workstation die Sitzung auf C öffnen:
+Use this renewal procedure only after the cause is resolved and the responsible administrator approves it. From the workstation, open an SSH session on C:
 
 ```bash
 (cd "$INSTALL_REPO/.lab/c"; ssh -F .lab/ssh.config k3s)
 ```
 
-In dieser SSH-Sitzung den festen Upstream-Client herunterladen und verifizieren:
+In that session, download and verify the pinned upstream client before running it:
 
 ```bash
 umask 077
@@ -388,9 +390,9 @@ KUBECONFIG=/etc/rancher/k3s/k3s.yaml ./cmctl renew keycloak-tls -n keycloak
 exit
 ```
 
-Zurück auf der Workstation `kubectl --kubeconfig "$KC" -n keycloak wait certificate/keycloak-tls --for=condition=Ready --timeout=15m` ausführen. Erst danach fortfahren.
+Back on the workstation, run `kubectl --kubeconfig "$KC" -n keycloak wait certificate/keycloak-tls --for=condition=Ready --timeout=15m`. Continue only after it succeeds.
 
-Den SSH-Service auf C aus dessen aktuellem Paket-Service-Selector erzeugen. Den öffentlichen Hostschlüssel separat speichern, damit der ursprüngliche Vertrauensanker erhalten bleibt:
+Create C's SSH service from the selector of its current package service. Save the recovered public host key separately so the original remains available as the trust anchor:
 
 ```bash
 export KUBECONFIG="$KC"
@@ -407,13 +409,13 @@ kubectl -n forgejo exec "$POD" -- cat /data/data/ssh/forgejo.ed25519.pub \
 cmp evidence/forgejo-host-key.pub evidence/forgejo-recovered-host-key.pub
 ```
 
-Bei identischen Schlüsseln bleibt `cmp` ohne Ausgabe und endet mit Exitcode 0. Bei einer Abweichung anhalten und die Ursache mit dem zuständigen Betreiber klären; den ursprünglichen Schlüssel nicht ersetzen. Anschließend sämtliche [Recovery-Funktionsprüfungen](Pruefung.md#dieselben-daten-nach-recovery-prüfen) einschließlich frischem Browser-Login durchführen.
+Matching keys produce no `cmp` output and exit with code 0. If they differ, stop and resolve the cause with the responsible operator; do not replace the original key. Then run all [post-recovery service checks](Pruefung.md#verify-the-same-data-after-recovery), including a fresh browser login.
 
-Stop-Punkt: Ohne erfolgreichen nativen Login durch den vollständig wiederhergestellten Stack, unveränderte Identitäten und Rechte, erhaltene Daten und erfolgreiche neue Writes keine Öffnung. Ein `500` beim OIDC-Start verlangt Forgejo-Logs; insbesondere darf eine zusätzliche Keycloak-Maintenance-Regel die Discovery nicht blockieren. Eine vorhandene Middleware ist allein kein Wirksamkeitsbeleg: maßgeblich ist ihre Referenz am Ingress.
+Keep public access closed until native login through the recovered installation works, identities and permissions are unchanged, data is retained and new writes succeed. An HTTP `500` when starting OIDC requires Forgejo logs; in particular, check that no additional Keycloak maintenance rule blocks discovery. A middleware's existence does not establish that it is active. Check its reference on the Ingress.
 
-## Restic mit behaltenem PVC neu installieren
+## Reinstall Restic without replacing its PVC
 
-Nur Restic 0.2.1 darf die Finalisierung ausführen. Keine alten 0.2.0-Finalizer umgehen. Während dieser Station keine Backups, Restore-Jobs oder Maintenance parallel starten.
+This step checks that removing and reinstalling the backup service preserves its repository storage. Only Restic 0.2.1 may perform finalization; do not bypass old 0.2.0 finalizers. Run no backups, restore jobs or other maintenance concurrently with this step.
 
 ```bash
 export KUBECONFIG="$KA"
@@ -441,11 +443,11 @@ for app in keycloak forgejo; do
 done
 ```
 
-Die Maintenance-Jobs führen `check --read-data` mit separaten administrativen Credentials und nativen Locks aus. Der nachfolgende Backup-Betrieb und native Abruf aus den behaltenen Repositories werden in den folgenden Stationen geprüft. Keine automatische Retention oder Löschung alter Snapshots einführen.
+The maintenance jobs run `check --read-data` with separate administrative credentials and native locks. The remaining steps check new backups and native retrieval from the retained repositories. Keep the snapshot history; do not introduce automatic retention or deletion here.
 
-## C öffnen und anschließend sichern
+## Open C and back up new work
 
-Jetzt die laufende Absicht in den C-Wertedateien festhalten. Nur die gezeigten Felder in der vorhandenen Datei ändern; alle übrigen Werte behalten. Wie oben zeigen `-` und `+` den bisherigen und den gewünschten Wert; die Markierungen nicht in die YAML-Datei übernehmen.
+Record C's running state in its values files before opening access. Change only the fields shown and retain the rest. As above, `-` and `+` mark the old and new values; omit the markers from the YAML.
 
 In `values/keycloak-c.yaml`:
 
@@ -467,13 +469,13 @@ In `values/forgejo-c.yaml`:
 +  enabled: true
 ```
 
-B-Werte bleiben gestoppt. HTTPS öffentlich öffnen; Git-SSH bleibt für die vorgesehenen Lab-Administratoren und A freigegeben.
+Leave B's values stopped. HTTPS will become public; Git over SSH remains restricted to the intended lab administrators and A. First confirm that B is still off:
 
 ```bash
 hcloud server describe "$INSTALLATION-b" --output json | jq -e '.status=="off"'
 ```
 
-Nur bei Ausgabe `true` fortfahren. Bei `false` oder einem Fehler anhalten; C nicht öffentlich öffnen.
+Proceed only if the result is `true`. On `false` or an error, stop and keep C closed to the public.
 
 ```bash
 hcloud firewall add-rule "$INSTALLATION-c" --direction in --protocol tcp --port 443 --source-ips 0.0.0.0/0,::/0
@@ -500,6 +502,6 @@ kubectl -n keycloak get cronjob keycloak-backup
 kubectl -n forgejo get cronjob forgejo-backup
 ```
 
-Beide Schedules müssen aktiv sein. Der Durchlauf führt deren Backup-Schnittstellen manuell aus und prüft die erzeugten Belege; die Anzeige eines aktivierten Schedules ist kein Nachweis eines bereits erfolgten Nachtlaufs.
+Both backup schedules must be active. This sequence invokes their backup interfaces manually and checks the resulting records. An enabled schedule does not establish that an overnight run has already succeeded.
 
-Weiter mit [Removal, Reinstall und Rückbau](Rueckbau.md).
+Continue with [Reinstall Forgejo and remove the lab](Rueckbau.md).

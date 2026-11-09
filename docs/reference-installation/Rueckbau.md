@@ -1,16 +1,16 @@
-# Removal, Reinstall und Rückbau
+# Reinstall, verify the backup and remove the installation
 
-Vor dem ersten Block auf der Workstation den [Sitzungseinstieg](README.md#workstation-sitzungen-wieder-aufnehmen) laden:
+Before the first workstation command, load the [workstation session](README.md#resume-a-workstation-session):
 
 ```bash
 source "${INSTALL_REPO:?}/.lab/workstation.env"
 ```
 
-Diese Übungen benutzen die bereits veröffentlichten und geprüften Backups. Sie unterscheiden die Entfernung eines Pakets von der Vernichtung seiner Daten. Kein Namespace wird vor abgeschlossener Finalisierung entfernt.
+Removing a package and destroying its data are different operations. First reinstall Forgejo with its state retained and read the new work from its subsequent backup. Then retain the operational evidence and remove the lab. These exercises use backups whose publication and verification are already complete. Never delete a namespace before finalization has finished.
 
-## Forgejo auf C entfernen und mit behaltenem Zustand starten
+## Reinstall Forgejo on C with its state retained
 
-Voraussetzung: Die Publikation des neuen Backups nach Übernahme ist abgeschlossen. State- und Capture-PVC sowie Konfigurations- und Backup-Secrets behalten. Zuerst den Application-CR bei laufendem Controller löschen, danach Helm entfernen.
+Proceed only after the new backup following takeover has finished publishing. Keep the state and capture PVCs, configuration Secrets and backup Secrets. Delete the Application CR while its controller is still running, then uninstall the Helm release:
 
 ```bash
 export KUBECONFIG="$KC"
@@ -28,7 +28,7 @@ kubectl -n forgejo get pvc -o json | jq -e --slurpfile before evidence/forgejo-b
   '([.items[].metadata.uid]|sort)==([$before[0].items[].metadata.uid]|sort)'
 ```
 
-Der neue Application-CR hat eine neue Owner-UID. Deshalb den installationsverwalteten SSH-Service erneut aus dem aktuellen Paket-Service-Selector erzeugen und anwenden; nicht den alten Selector behalten. Danach HTTPS-Zugriff, Git-SSH, die neue Datei `recovered.txt`, die Leseberechtigung von `reference-user` und den nativen Keycloak-Login erneut prüfen.
+The new Application CR has a new owner UID. Regenerate the installation-managed SSH Service from the current package Service selector and apply it; the old selector no longer identifies the application. Then recheck HTTPS access, Git over SSH, the new file `recovered.txt`, `reference-user`'s read permission and the native Keycloak login.
 
 ```bash
 kubectl -n forgejo get service forgejo -o json | jq '{apiVersion:"v1",kind:"Service",
@@ -44,9 +44,9 @@ kubectl -n forgejo get forgejoapplication/forgejo -o json |
   jq '.status.backup' > evidence/forgejo-reinstalled-backup.json
 ```
 
-## Neue Arbeit aus dem anschließenden Backup lesen
+## Read new work from the subsequent backup
 
-Den bereinigten Snapshot-Beleg von der Workstation nach A übertragen und dort eine SSH-Sitzung öffnen. Keine Anwendungsdaten auf die Workstation laden.
+Transfer the sanitized snapshot record from the workstation to A and open an SSH session there. Keep application data off the workstation.
 
 ```bash
 jq -e '.success==true and (.snapshot|test("^[a-f0-9]{64}$"))' evidence/forgejo-reinstalled-backup.json
@@ -55,7 +55,7 @@ jq -e '.success==true and (.snapshot|test("^[a-f0-9]{64}$"))' evidence/forgejo-r
  ssh -F .lab/ssh.config k3s)
 ```
 
-Auf A den nativen, qualifizierten Restic-Client herunterladen, verifizieren und den ausgewählten Punkt in ein neues Verzeichnis zurückspielen:
+On A, download and verify the qualified native Restic client, then restore the selected snapshot into a new directory:
 
 ```bash
 cd /root/bartl-reference
@@ -71,7 +71,7 @@ export RESTIC_REPOSITORY="rest:https://$BACKUP_HOST/forgejo/"
 export RESTIC_PASSWORD_FILE=/root/bartl-reference/repositories/forgejo/reader/password
 export RESTIC_REST_USERNAME=reader
 export RESTIC_REST_PASSWORD="$(cat repositories/forgejo/reader/restPassword)"
-: "${SNAPSHOT:?Vollständige Kennung des geprüften Backups von C einsetzen}"
+: "${SNAPSHOT:?Supply the full ID of the verified backup from C}"
 ./restic restore "$SNAPSHOT" --target /root/bartl-reference/reinstalled-restore
 repo=/root/bartl-reference/reinstalled-restore/capture/state/data/repositories/reference-admin/reference.git
 actual=$(git --git-dir="$repo" show main:recovered.txt)
@@ -79,21 +79,21 @@ test "$actual" = 'New write on recovered C'
 exit
 ```
 
-Damit ist nicht nur ein weiterer Snapshot vorhanden: Die erst nach Übernahme auf C geschriebene Datei ist aus dessen anschließendem Backup nativ lesbar. Keinen Live-Mount des Forgejo-PVC für diese Kontrolle verwenden.
+This checks more than the existence of another snapshot: the file written only after takeover on C is natively readable from its subsequent backup. Do not use a live mount of the Forgejo PVC for this check.
 
-## Belege behalten, Testdaten verwerfen
+## Retain evidence and discard test data
 
-Das Installationsrepo behält ausschließlich die expliziten Werte, festen Paketreferenzen, Secret-Verwahrungsreferenzen und bereinigten Nachweise. Kein `kubectl get secrets -o yaml`, keine Credentials, keine Datenbankdumps oder vollständigen Restores committen. Die kleinen Belege umfassen:
+Keep only explicit installation values, pinned package references, secret custody references and sanitized evidence in the installation repository. Never commit `kubectl get secrets -o yaml` output, credentials, database dumps or complete restores. Retain small records showing:
 
-- aktuelle Application-Generationen, Versionen und Operationsergebnisse;
-- finale und nach Recovery erzeugte vollständige Snapshot-IDs;
-- verschiedene Source-/Target-PVC-UIDs;
-- erhaltene fachliche Inhalte, native Identitäten und Rechte;
-- bestätigten Source-Stop, Route und aktive Backup-Schedules;
-- tatsächlichen Rückbau und Kostenobergrenze;
-- Betreiber, Preisstand, Budget und Löschtermin sowie die tatsächlichen Secret-Verwahrungsreferenzen.
+- current Application generations, versions and operation results;
+- full snapshot IDs for the final captures and backups created after recovery;
+- distinct source and target PVC UIDs;
+- preserved application content, native identities and permissions;
+- confirmed source shutdown, routing and active backup schedules;
+- actual resource removal and the cost upper bound;
+- the operator, pricing date, budget, deletion deadline and actual secret custody references.
 
-Auf der Workstation auch die vollständigen wirksamen Helm-Werte der verbleibenden Releases sichern. Die gestoppten B-Werte wurden bereits vor dem Ausschalten behalten. Diese Pakete erhalten ausschließlich Secret-Referenzen als Helm-Werte; dennoch jeden Export vor dem Commit auf Secret-Inhalte prüfen.
+From the workstation, export the complete effective Helm values of the remaining releases. The stopped B values were already retained before shutdown. These packages accept only Secret references through Helm values, but inspect every export for secret contents before committing it.
 
 ```bash
 helm get values backup --kubeconfig "$KA" -n backup --all > values/restic-a-effective.yaml
@@ -101,11 +101,11 @@ helm get values keycloak --kubeconfig "$KC" -n keycloak --all > values/keycloak-
 helm get values forgejo --kubeconfig "$KC" -n forgejo --all > values/forgejo-c-effective.yaml
 ```
 
-Die synthetischen Daten, Credentials und Restores auf A werden beim Lab-Rückbau verworfen. Für eine dauerhaft zu übergebende Kundeninstallation müßten diese Recovery-Eingaben zuvor in kundenseitig kontrollierter geschützter Verwahrung liegen. Der abgeschlossene Lab-Durchlauf benötigt sie nicht nach dem Rückbau.
+Lab removal discards the synthetic data, credentials and restores held on A. For a lasting customer handover, first place these recovery inputs in protected custody controlled by the customer. A completed lab run does not need them after teardown.
 
-## Alle eigens angelegten Ressourcen löschen
+## Delete all resources created for this exercise
 
-Zurück auf der Workstation zuerst die drei eigenen DNS-A-Records entfernen. Vor jeder Löschung den Record lesen und seine Zugehörigkeit bestätigen. Keine Zone oder fremde Records löschen.
+Back on the workstation, remove your three DNS A records first. Before each deletion, read the record and confirm that it belongs to this installation. Do not delete the zone or anyone else's records.
 
 ```bash
 for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
@@ -116,18 +116,18 @@ for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
 done
 ```
 
-Dann für jeden der drei K3s-Checkouts die [vorhandene Rückbauanleitung](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) vollständig ausführen. Sie bindet die Löschung an den jeweiligen Erzeugungsbeleg und prüft Server, Primary IPs und Firewall einzeln. Reihenfolge B, C, A; A zuletzt löschen, nachdem die notwendigen Belege behalten sind.
+Then follow the existing [K3s teardown procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) in full for each of the three checkouts. It binds deletion to the corresponding creation record and checks each server, Primary IP and firewall separately. Remove B, then C, then A. Delete A only after retaining the required evidence.
 
 ```bash
 cd "$INSTALL_REPO/.lab/b"
-# K3s: Delete the entire lab, einschließlich Identitätsprüfung und Bestätigung.
+# K3s: Delete the entire lab, including identity checks and confirmation.
 cd "$INSTALL_REPO/.lab/c"
-# Denselben dokumentierten Rückbau für C ausführen.
+# Follow the same documented teardown procedure for C.
 cd "$INSTALL_REPO/.lab/a"
-# Denselben dokumentierten Rückbau für A ausführen.
+# Follow the same documented teardown procedure for A.
 ```
 
-Das sind Verzeichniswechsel zur bestehenden Anleitung, keine ausführbare Gesamt-Löschroutine. Jede Löschung bleibt eine bewußte menschliche Station. Anschließend das Projektinventar prüfen und nur die Abwesenheit der eigenen Ressourcen als Erfolg werten:
+These directory changes lead to the existing procedure; they are not a complete executable deletion routine. Each deletion requires a deliberate operator action. Afterwards, inspect the project inventory. Success means that this installation's resources are absent, not that the whole project is empty.
 
 ```bash
 hcloud server list
@@ -138,11 +138,11 @@ hcloud load-balancer list
 unset KUBECONFIG
 ```
 
-Aus Erzeugungs- und Löschzeit je Server die begonnenen Stunden einschließlich IPv4 berechnen, Preisstand und Reserve notieren und gegen das in `evidence/operator-inputs.txt` festgehaltene eigene Budget prüfen. Die endgültige Providerrechnung ist von dieser Obergrenze zu unterscheiden.
+Use each server's creation and deletion times to calculate billable hours, rounding each started hour up and including IPv4. Record the pricing date and reserve, then compare the result with your approved budget in `evidence/operator-inputs.txt`. Distinguish this upper bound from the provider's final invoice.
 
-## Privates Installationsrepo abschließen
+## Close the private installation record
 
-Erst nach Prüfung der Dateien explizite Pfade stagen. Das Repo hat keinen Remote und bleibt privat. Keine `.lab/`-Dateien oder Testdaten hinzufügen.
+Review the files before staging the explicit paths below. The repository has no remote and remains private. Do not add `.lab/` files or test data.
 
 ```bash
 cd "$INSTALL_REPO"
@@ -152,7 +152,7 @@ git diff --cached --stat
 git diff --cached --check
 ```
 
-Den staged Inhalt auf Secrets prüfen; dann ein lokaler Commit mit dem verifizierten Betriebsstand. Einen Remote nur nach gesonderter Festlegung von Ziel und privater Sichtbarkeit einrichten.
+Inspect the staged contents for secrets, then commit the verified operating state locally. Configure a remote only after separately deciding its destination and private visibility.
 
 ```bash
 git commit -m 'Record verified reference installation'

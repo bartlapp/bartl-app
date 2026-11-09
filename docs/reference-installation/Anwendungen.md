@@ -1,14 +1,14 @@
-# Anwendungen installieren
+# Install the applications
 
-Vor dem ersten Block auf der Workstation den [Sitzungseinstieg](README.md#workstation-sitzungen-wieder-aufnehmen) laden:
+The three K3s bases are ready. Install the backup service on A and Keycloak on B; leave C without applications until recovery. Start on the workstation by loading the [session environment](README.md#resume-a-workstation-session):
 
 ```bash
 source "${INSTALL_REPO:?}/.lab/workstation.env"
 ```
 
-Fortsetzung der [K3s-Basis](README.md). Alle Workstation-Befehle laufen in `$INSTALL_REPO`, außer wenn der Block ausdrücklich die SSH-Sitzung auf A eröffnet. `KA`, `KB` und `KC` bezeichnen die drei absoluten kubeconfig-Pfade aus der Hauptanleitung. C bleibt bis zur Recovery ohne Anwendungen.
+Run workstation commands from `$INSTALL_REPO`. The instructions explicitly identify each SSH session on A and when to return. `KA`, `KB` and `KC` are the absolute kubeconfig paths established in the [base setup](README.md); use the specified path for every cluster operation.
 
-## Endpunkte vorbereiten
+## Prepare the endpoints
 
 ```bash
 cd "$INSTALL_REPO"
@@ -19,7 +19,7 @@ C_IP=$(cat ".lab/c/.lab/$INSTALLATION-c/host")
 ADMIN_IP=$(curl --ipv4 --fail --silent --show-error https://api.ipify.org)
 ```
 
-Bei deSEC zunächst die Zone und vorhandenen Records lesen. Die Funktion übergibt den Token über stdin, nicht als Prozeßargument:
+Read your deSEC zone and its existing records before creating anything. The helper passes the token through stdin so that it does not appear in process arguments:
 
 ```bash
 desec() {
@@ -31,7 +31,7 @@ desec "$DNS_API/"
 desec "$DNS_API/rrsets/" | jq .
 ```
 
-Nur unbenutzte Namen anlegen. Die drei Records nacheinander erstellen; bei HTTP 429 die angegebene Wartezeit einhalten, bei unklarem Ergebnis zuerst den Record lesen. Kein bestehender Record wird überschrieben.
+Use names that are not already in use. Create the three records in sequence without overwriting existing records. If deSEC returns HTTP 429, wait for the interval it specifies. If a request's outcome is unclear, read the record before trying again.
 
 ```bash
 for pair in "$BACKUP_HOST $A_IP" "$KC_HOST $B_IP" "$FORGEJO_HOST $B_IP"; do
@@ -43,7 +43,7 @@ for pair in "$BACKUP_HOST $A_IP" "$KC_HOST $B_IP" "$FORGEJO_HOST $B_IP"; do
 done
 ```
 
-Die 900 Sekunden TTL dienen dem geplanten Handover. Vor Zertifikatsanforderungen müssen beide autoritativen Server und die öffentlichen Resolver die richtige IPv4 liefern. Keine zusätzlichen AAAA-Records anlegen.
+The 900-second TTL prepares for the later handover. Before requesting certificates, check that both authoritative nameservers and the public resolvers return the intended IPv4 address. Do not add AAAA records.
 
 ```bash
 for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
@@ -53,16 +53,16 @@ for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
 done
 ```
 
-Stop-Punkt: Autoritative Antworten benötigen das Flag `aa`; sämtliche Antworten müssen zur vorgesehenen VM gehören. Bei einem lokalen Problem mit der Auflösung des Nameserver-Namens dessen Adresse durch DNS ermitteln und dieselbe autoritative Gegenstelle direkt befragen. Nicht die Workstation-DNS-Konfiguration oder TLS-Prüfung verändern.
+Do not continue until the authoritative answers carry the `aa` flag and every answer points to the intended VM. If local resolution of a nameserver's name fails, obtain its address through DNS and query that same authoritative server directly. Do not change the workstation's DNS configuration or weaken TLS verification.
 
-## A: getrennte Backup-Repositories
+## A: keep the backup repositories separate
 
 ```bash
 kubectl --kubeconfig "$KA" create namespace backup
 (cd .lab/a; ssh -F .lab/ssh.config k3s)
 ```
 
-Die folgenden Befehle laufen in dieser SSH-Sitzung auf A. Sie erzeugen die geschützten Eingaben ausschließlich dort. Reader, Writer und Admin erhalten je Anwendung verschiedene Paßwörter; Reader und Writer verwenden denselben Repository-Schlüssel.
+The next block runs in the SSH session on A. It creates the protected inputs there, not on the workstation. Each application gets separate reader, writer and administrator passwords. Within one repository, reader and writer use the same repository encryption key.
 
 ```bash
 set -euo pipefail
@@ -89,7 +89,7 @@ done
 exit
 ```
 
-Zurück auf der Workstation. Den Restic-PVC und öffentlich vertrauenswürdiges TLS anlegen. Traefik reicht TLS unverändert an den Restic-Service weiter. Entscheidend ist Service-Port 443, nicht Pod-Port 8443.
+You are back on the workstation. Create the Restic PVC and a publicly trusted TLS certificate. Traefik passes TLS through to Restic without terminating it. Route to Service port 443, not Pod port 8443.
 
 ```bash
 cat > values/restic-a.yaml <<'YAML'
@@ -174,7 +174,7 @@ curl --silent --show-error --output /dev/null --write-out '%{http_code}\n' \
   "https://$BACKUP_HOST/keycloak/config"
 ```
 
-Die letzte Antwort muß `401` sein, bei gültiger TLS-Prüfung. Ein TLS-Fehler ist kein erfolgreicher Zugriffsschutz. Reader-Zugriff mit den geschützten Credentials auf A prüfen; die verschlüsselte Repository-Konfiguration nicht ins Terminal ausgeben:
+The final request must return `401` with valid TLS verification. A TLS failure does not demonstrate access control. Next, check authenticated reader access from A without printing the encrypted repository configuration:
 
 ```bash
 (cd .lab/a;
@@ -182,7 +182,7 @@ Die letzte Antwort muß `401` sein, bei gültiger TLS-Prüfung. Ein TLS-Fehler i
  ssh -F .lab/ssh.config k3s)
 ```
 
-In der geöffneten SSH-Sitzung auf A:
+In the SSH session now open on A:
 
 ```bash
 cd /root/bartl-reference/repositories/keycloak/reader
@@ -195,17 +195,17 @@ exit
 
 ## B: Keycloak
 
-Die [Keycloak-Anleitung](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#install-keycloak) liefert die vollständigen TLS-, Secret- und Installationsblöcke. Für diesen Durchlauf gelten folgende Eingaben und Abweichungen:
+The [Keycloak installation guide](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#install-keycloak) owns the complete TLS, Secret and installation procedure. Use the inputs below for this exercise:
 
-- Cluster B, Namespace und Release `keycloak`.
-- Chart `$KEYCLOAK_SOURCE`, später Upgrade auf `$KEYCLOAK_CHART`.
-- Installation `$INSTALLATION`, Instanz `keycloak`, Hostname `https://$KC_HOST`.
-- Datenbank 5 GiB auf `local-path`.
-- Credentials auf A unter `/root/bartl-reference/keycloak/` erzeugen und dort behalten. Nicht den Beispielblock ausführen, der die Bootstrap-Credentials nach Secret-Erstellung löscht; sie werden für Recovery benötigt.
-- Recovery-Administrator ist derselbe gesicherte native Administrator, kein neu erzeugter Benutzer.
-- Backup sofort gegen das leere Repository auf A konfigurieren. Keine zweite oder provisorische Backup-Gegenstelle auf B anlegen.
+- Install on B, with both namespace and release named `keycloak`.
+- Start with chart `$KEYCLOAK_SOURCE`; the later upgrade uses `$KEYCLOAK_CHART`.
+- Use installation `$INSTALLATION`, instance `keycloak` and hostname `https://$KC_HOST`.
+- Allocate 5 GiB for the database on `local-path`.
+- Generate credentials on A under `/root/bartl-reference/keycloak/` and retain them there. Do not run the guide's example block that deletes bootstrap credentials after creating the Secret: recovery needs those credentials.
+- Use the same protected native administrator for recovery. Do not generate a replacement user.
+- Configure backup against the empty repository on A from the outset. Do not create a second or temporary backup endpoint on B.
 
-Die vollständigen gewünschten Werte auf der Workstation schreiben:
+Write the complete intended values on the workstation:
 
 ```bash
 cat > values/keycloak-b.yaml <<EOF
@@ -240,13 +240,13 @@ EOF
 kubectl --kubeconfig "$KB" create namespace keycloak
 ```
 
-In der SSH-Sitzung auf A die drei Credentials-Verzeichnisse vorbereiten:
+Prepare the three credential directories on A. Open an SSH session from the workstation:
 
 ```bash
 (cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)
 ```
 
-In der geöffneten SSH-Sitzung auf A:
+In that SSH session:
 
 ```bash
 umask 077
@@ -262,7 +262,7 @@ openssl rand -hex 32 | tr -d '\n' > bootstrap/password
 exit
 ```
 
-Secrets von A über stdin unmittelbar in B anlegen, ohne lokale Secret-Datei:
+Back on the workstation, stream the Secrets directly from A into B through stdin. This avoids creating local files containing secret contents:
 
 ```bash
 (cd .lab/a; ssh -F .lab/ssh.config k3s 'bash -se' <<'REMOTE'
@@ -284,7 +284,7 @@ REMOTE
 ) | kubectl --kubeconfig "$KB" create -f -
 ```
 
-Auf der Workstation die TLS-Manifeste für beide Anwendungen aus den gemeinsamen Eingaben erzeugen:
+Generate the TLS manifests for both applications on the workstation, using the shared installation inputs:
 
 ```bash
 for app in keycloak forgejo; do
@@ -324,6 +324,8 @@ EOF
 done
 ```
 
+Apply Keycloak's TLS manifest, wait for the certificate, then install the package:
+
 ```bash
 export KUBECONFIG="$KB"
 kubectl apply -f values/keycloak-tls.yaml
@@ -336,4 +338,4 @@ curl --fail --silent --show-error \
   "https://$KC_HOST/realms/master/.well-known/openid-configuration" | jq .issuer
 ```
 
-Stop-Punkt: `status.observedGeneration` und die Ready-Condition müssen zur aktuellen Generation gehören. Die Administration über `https://$KC_HOST/admin/` muß mit dem gesicherten Administrator funktionieren. Erst dann Forgejo installieren.
+Stop here unless `status.observedGeneration` and the Ready condition both refer to the current generation. Sign in to `https://$KC_HOST/admin/` with the protected administrator credentials and verify that administration works. Only then continue with [Forgejo](Forgejo.md).

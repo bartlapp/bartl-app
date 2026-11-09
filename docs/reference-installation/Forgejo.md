@@ -1,16 +1,16 @@
-# Forgejo mit nativer Keycloak-Anbindung
+# Integrate Forgejo with Keycloak
 
-Vor dem ersten Block auf der Workstation den [Sitzungseinstieg](README.md#workstation-sitzungen-wieder-aufnehmen) laden:
+Keycloak must be usable before Forgejo can delegate sign-in to it. Continue from [Install the applications](Anwendungen.md), starting on the workstation with the [session environment](README.md#resume-a-workstation-session):
 
 ```bash
 source "${INSTALL_REPO:?}/.lab/workstation.env"
 ```
 
-Fortsetzung von [Anwendungen installieren](Anwendungen.md). Die fachliche Integration benutzt ausschließlich Forgejos native OAuth2/OpenID-Connect-Quelle. Keinen Login-Proxy und keine automatische Kontoverknüpfung nach E-Mail-Adresse einführen.
+Use Forgejo's native OAuth2/OpenID Connect authentication source. Do not insert a login proxy or enable automatic account linking by email address.
 
-## Geschützte Konfiguration auf A
+## Prepare the protected configuration on A
 
-Die gemeinsamen nicht geheimen Eingaben einmal auf A ablegen und dort laden:
+Copy the shared nonsecret installation inputs to A, then open an SSH session there:
 
 ```bash
 (cd "$INSTALL_REPO/.lab/a";
@@ -18,7 +18,7 @@ Die gemeinsamen nicht geheimen Eingaben einmal auf A ablegen und dort laden:
  ssh -F .lab/ssh.config k3s)
 ```
 
-In der geöffneten SSH-Sitzung auf A:
+In that SSH session:
 
 ```bash
 source /root/bartl-reference/installation.env
@@ -97,11 +97,11 @@ EOF
 exit
 ```
 
-`app-b.ini` ist geheim. Die drei Identity-Secrets werden bei Recovery nicht neu erzeugt. Der Dateiname des SSH-Hostschlüssels legt dessen Algorithmus nicht fest; später den tatsächlich erzeugten öffentlichen Schlüssel sichern und vergleichen.
+Treat `app-b.ini` as a secret. Retain the three identity secrets for recovery rather than generating new ones. The SSH host-key filename does not determine its algorithm; later, save the public key that Forgejo actually generates and compare it after recovery.
 
-## Storage, Secrets und Paket auf B
+## Install storage, Secrets and the package on B
 
-Auf der Workstation:
+Back on the workstation, create the state and capture PVCs, stream the Secrets from A into B, and write the installation values:
 
 ```bash
 cd "$INSTALL_REPO"
@@ -153,7 +153,7 @@ ssh:
 EOF
 ```
 
-Das im vorigen Kapitel erzeugte `values/forgejo-tls.yaml` anwenden. Vor dem Install muß das Zertifikat Ready sein.
+Apply `values/forgejo-tls.yaml`, generated in the previous chapter. Wait for the certificate to become Ready before installing Forgejo:
 
 ```bash
 kubectl apply -f values/forgejo-tls.yaml
@@ -167,13 +167,13 @@ kubectl -n forgejo get forgejoapplication/forgejo -o json | jq -e '
   any(.status.conditions[]; .type=="Ready" and .status=="True" and .observedGeneration==$g)'
 ```
 
-Anonyme API-Aufrufe dürfen wegen `REQUIRE_SIGNIN_VIEW=true` abgewiesen werden. Die native Version deshalb mit dem lokalen Administrator prüfen, nicht durch Aufweichen der Anmeldung. Dazu auf der Workstation eine SSH-Sitzung auf A öffnen:
+With `REQUIRE_SIGNIN_VIEW=true`, Forgejo may reject anonymous API requests. Check the native version as the local administrator rather than relaxing sign-in requirements. Open an SSH session on A from the workstation:
 
 ```bash
 (cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)
 ```
 
-In dieser SSH-Sitzung:
+In that SSH session:
 
 ```bash
 source /root/bartl-reference/installation.env
@@ -183,9 +183,9 @@ printf 'user = "reference-admin:%s"\n' "$(cat bootstrap/password)" |
 exit
 ```
 
-## Eigenständiger Git-SSH-Zugang
+## Provide a separate Git SSH endpoint
 
-Der HTTP-Ingress stellt keinen SSH-Zugang bereit. Der folgende installationsverwaltete Service übernimmt den wirklichen Selector des Paket-Service; die Owner-UID nicht aus einem früheren Install kopieren.
+HTTP ingress does not provide SSH access. Back on the workstation, create an installation-managed Service using the package Service's actual selector. Do not copy an owner UID from an earlier installation.
 
 ```bash
 export KUBECONFIG="$KB"
@@ -203,15 +203,17 @@ cat evidence/forgejo-host-key.pub |
   (cd .lab/a; ssh -F .lab/ssh.config k3s 'cat > /root/bartl-reference/forgejo/host-key.pub')
 ```
 
-Der Hostschlüssel stammt aus dem administrativ authentifizierten Clusterzugang. Kein ungeprüftes `ssh-keyscan` als Vertrauensanker verwenden.
+This public host key comes through the administratively authenticated cluster connection. Do not use an unverified `ssh-keyscan` result as the trust anchor.
 
-## Realm, Benutzer und OIDC-Client
+## Create the realm, user and OIDC client
 
-Die folgenden Blöcke laufen auf A. Sie erzeugen synthetische Daten über Keycloaks native Admin-API. `jq`, Git und Git LFS werden nur auf A installiert. Zuerst auf der Workstation die SSH-Sitzung öffnen:
+Create the synthetic identities through Keycloak's native Admin API on A. The commands below install `jq`, Git and Git LFS there, where the test data belongs. First open the SSH session from the workstation:
 
 ```bash
 (cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)
 ```
+
+In that SSH session:
 
 ```bash
 apt-get install -y jq git git-lfs
@@ -250,9 +252,9 @@ kc "https://$KC_HOST/admin/realms/reference/clients?clientId=forgejo" |
 exit
 ```
 
-C übernimmt die bestehenden Hostnamen erst bei ausgeschaltetem B und zunächst eingeschränktem HTTPS-Zugang. Für diese Sequenz genügt der oben gezeigte stabile Callback; kein zusätzlicher Kandidaten-Callback ist erforderlich.
+During recovery, C takes over the existing hostnames only after B is powered off, with HTTPS access initially restricted. The stable callback configured above is sufficient for that sequence; no additional candidate callback is needed.
 
-Auf der Workstation die native Forgejo-Quelle anlegen. Das Client-Secret läuft über stdin, nicht durch lokale Dateien oder die Shell-History:
+Back on the workstation, add the native authentication source to Forgejo. Stream the client secret through stdin so that it does not enter local files or shell history:
 
 ```bash
 export KUBECONFIG="$KB"
@@ -266,8 +268,8 @@ REMOTE
 ) | kubectl -n forgejo exec -i "$POD" -- /bin/sh -s
 ```
 
-## Browser-Abnahme
+## Verify browser access
 
-`https://$FORGEJO_HOST/user/login` in einem frischen Browserkontext öffnen. "Sign in with keycloak" wählen. Auf Keycloak als `reference-user` mit dem auf A gespeicherten `user-password` anmelden. Die Rückleitung muß zum Forgejo-Dashboard dieses Benutzers führen. Das Paßwort nicht ins Installationsrepo kopieren.
+Open `https://$FORGEJO_HOST/user/login` in a fresh browser context and choose "Sign in with keycloak". Sign in to Keycloak as `reference-user`, using the `user-password` retained on A. The callback must take you to that user's Forgejo dashboard. Do not copy the password into the installation repository.
 
-Erfolg bedeutet eine neue vollständige Anmeldung über den stabilen Issuer und Callback, nicht bloß ein noch gültiges Forgejo-Session-Cookie. Das lokale Forgejo-Administratorkonto bleibt als unabhängiger Recovery-Zugang erhalten. Anschließend [fachliche Testdaten und Zugriffskontrollen](Pruefung.md) durchführen.
+This check requires a complete new sign-in through the stable issuer and callback. An existing Forgejo session cookie does not demonstrate that the integration works. Keep the local Forgejo administrator account as an independent recovery access path. Then continue with [service data and access checks](Pruefung.md).
