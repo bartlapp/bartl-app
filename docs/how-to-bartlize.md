@@ -6,6 +6,8 @@ Turn the supported procedures a competent administrator would perform into a mai
 
 The [application contract](https://codeberg.org/bartlapp/bartl-app/src/branch/main/docs/application-contract.md) defines the behavior. This guide explains how to implement it, without prescribing Kubernetes or a shared runtime.
 
+Developers start with the procedure below. Administrators start with [the customer installation repository](#customer-installation-repository) and [operation and handover](#operate-and-hand-over-an-installation). The required project knowledge lives in the `bartlapp` repositories and their referenced upstream documentation. Actual installation values and protected inputs belong to the customer, not to this guide or a private development repository.
+
 ## Start with one supported configuration
 
 Name the release, persistence, dependencies, target requirements and supported version transition. Establish the useful behavior that must survive reconstruction, covered failures, permitted interruption and data loss, and the dependencies and operating effort the team can accept. Choose the smallest native procedure meeting those limits, counting implementation, operation and maintenance. Start with a configuration someone needs, not a speculative compatibility matrix.
@@ -47,6 +49,48 @@ Exercise the actual package and administrator interface against the [contract's 
 Qualify the same immutable artifacts operators obtain. Source-tested code does not qualify a published package. Keep repeatable checks in source, raw output outside Git, and exact artifact identities, observed results and consequential limits in the release/integration description. Do not create per-session evidence files or qualification reports. Keep historical limits attached to their exact releases, outside current instructions.
 
 Test the claimed failure boundary: another namespace does not establish survival of host or provider loss. Renew affected evidence when the package changes.
+
+## Kubernetes operating packages
+
+The current Keycloak, Paperless, Forgejo and Restic packages use Kubernetes and Helm. This is their selected implementation, not a requirement for every Bartl application. Start from a package's supported profile and native procedures, not by copying its controller wholesale. [Keycloak's design](https://codeberg.org/bartlapp/bartl-keycloak/src/branch/main/DESIGN.md) explains one implementation; the other packages document their different state and capture boundaries.
+
+Helm selects the immutable package, effective configuration and run/stop intent. One namespace-scoped application controller owns lifecycle decisions for one logical application, including its owned database and supporting components. It reconciles workloads, finite native Jobs and access. Native tools retain initialization, migration, capture and restore semantics. Entrypoints, Jobs and Helm hooks must not make competing lifecycle decisions. Keep intent, observed generation and completed operation distinct; a successful Helm command is not application acceptance.
+
+Use a separate cluster for each independently handed-over customer installation in this operating model. Applications within it retain independent releases, state and lifecycles. Additional clusters, HA, replicated storage and database failover follow the agreed failure model, not a fixed node count. [base-k3s](https://codeberg.org/bartlapp/base-k3s) supplies a single-node Hetzner recipe, not a general HA or provider-loss guarantee. Runtime, storage semantics, networking, TLS, credentials and resource capacity must satisfy each selected package.
+
+The [Restic package](https://codeberg.org/bartlapp/bartl-restic) owns backup storage, protection, replication and endpoint recovery; each application owns consistent capture and reconstruction. Give each application its own repository, encryption key and scoped reader/writer credentials. Keep destructive maintenance authority separate. Native reader locks require narrowly permitted lock writes, not backup-content mutation. For primary-provider loss, independently usable secondary history, keys and access must already exist. Primary publication alone does not establish that protection.
+
+The installation administrator coordinates applications, infrastructure, endpoints and source retirement through their documented interfaces. No company or installation controller is required. A future controller may automate that sequence; it must not become necessary for ordinary application operation or successor handover. Required application controllers, native procedures, backup interfaces and scheduling remain with the installation.
+
+## Customer installation repository
+
+Create a customer-controlled repository for the installation before provisioning it. Its README is the administrator's entry point and the intended input boundary for future installation automation. Today it names the effective files and documented commands; no additional controller schema or private compiler is required.
+
+Keep shared procedures in `bartlapp`. The customer repository records their concrete application:
+
+| Record | Required installation content |
+| --- | --- |
+| Composition and identity | Stable installation/application identities, selected services and dependencies, cluster/context/namespace/Helm-release mapping, endpoints and responsible operators. Placement and package version are not application identity. |
+| Releases and configuration | Exact chart/image references, supported transitions, complete effective Helm values and resource/storage requirements. Retain independently obtainable artifacts; a source commit or mutable tag is insufficient. |
+| Protected inputs | References to customer-controlled credentials, identity secrets, keys, certificates and recovery access, with a documented retrieval procedure. Recovery must not require the lost cluster, its Keycloak or the author. Never commit plaintext secrets or live kubeconfigs. |
+| Operating decisions | Permitted interruption and data loss, source-retirement method, backup/replication schedules, retention policy, capacity and alerting responsibilities, useful acceptance checks and required handling of restored identities or records. |
+| Procedure and results | Dependency order, links to package commands, installation-specific deviations, active target/resource identities, selected recovery points, acceptance results and unresolved failures. Keep desired values separate from observed outcomes. |
+
+For example, use `README.md` for that entry point, `installation.env` for nonsecret release/endpoints, `values/` for complete per-service Helm values and `evidence/` for selected installation results. Ignore `.lab/` for temporary protected access files. These names illustrate the [reference walkthrough](https://codeberg.org/bartlapp/bartl-app/src/branch/main/docs/reference-installation/README.md), not a new machine-readable schema. An ignored directory is not independent secret storage or backup.
+
+The repository must remain reachable during the covered failure and transferable to a successor. It describes where software, backup history and protected inputs are retained; Git does not replace any of them. Customer choices are recorded here once, not copied into shared package documentation. A new customer supplies their own decisions rather than inheriting the example's risk acceptance.
+
+## Operate and hand over an installation
+
+Select the package releases and create complete installation values first. Establish the base, independently usable access and backup service, then identity and dependent applications in their documented order. Follow each package's installation and current-generation status checks, then verify the agreed useful behavior through the real access path. The [manual Restic/Keycloak/Forgejo walkthrough](https://codeberg.org/bartlapp/bartl-app/src/branch/main/docs/reference-installation/README.md) provides a complete worked sequence in German, using only operator-supplied infrastructure, DNS and credentials.
+
+During operation, check scheduled and manual backup outcomes, capture age, independent replication where required, storage/staging capacity, certificate validity and application health. Assign alert delivery and response to an operator through a path that survives the covered failure. Configure retention and maintenance through the backup service's supported procedures with separate authority. Do not assume that installing a chart provides monitoring or qualified automatic retention; keep history until a safe supported retention procedure and sufficient capacity are established.
+
+For upgrades and recovery, retain the chosen release and effective values, use the supported native transition and independently available recovery inputs, and check the resulting application before promotion. Account for final writes and every old access/write path; DNS changes alone are not retirement. Verify new work and a subsequent usable backup after recovery. Do not turn a failed or ambiguous transition into success by deleting markers, changing status or rolling software back against migrated state.
+
+For stop, removal and retained-state reinstall, follow the selected package's procedure and wait for its current operation to finish or fail visibly. Keep finalization machinery alive until it has drained owned work. Retain or destroy data only under the customer's explicit decision, then remove only identified infrastructure and DNS resources. Application removal and infrastructure teardown are separate operations.
+
+A successor receives administrative control, the installation repository, usable release artifacts and licenses, backup history, protected inputs and the operating/acceptance procedures. Confirm that backups and necessary scheduling continue without our services; arrange replacement monitoring, stop old automation and revoke outgoing access. The successor may supply their own tools, but must not invent missing application procedures.
 
 ## Worked example: Keycloak
 
