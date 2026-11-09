@@ -6,12 +6,12 @@ Source of [bartl.app](https://bartl.app), the bilingual website for Bartl. Devel
 
 - [Operating philosophy](docs/philosophy.md): why resilience and sovereignty change how we build and operate services.
 - [Application contract](docs/application-contract.md): required application behavior, complete-service recovery and the additional automation goal.
-- [How to bartlize and operate](docs/how-to-bartlize.md): native procedures, the selected Kubernetes package architecture, customer installation repositories, qualification and handover.
+- [How to bartlize and operate](docs/how-to-bartlize.md): native procedures, the selected Kubernetes package architecture, installation inputs, qualification and handover.
 - [Reference installation walkthrough](docs/reference-installation/README.md): build three independent bases, install Restic, Keycloak and Forgejo, exercise replacement/recovery and remove the lab using your own inputs.
 
 Application repositories own their supported configurations, operator instructions, design and release evidence. Historical experiments do not govern current implementation.
 
-For development, start with the contract and implementation guide, then the relevant package's design, source and release evidence. For operation, start with your customer installation repository and the selected packages' procedures. Together with independently available artifacts, protected inputs and infrastructure access, these are the handover boundary; no company-internal repository or chat history is required. Cross-application work is performed by the administrator until an installation controller exists.
+For development, start with the contract and implementation guide, then the relevant package's design, source and release evidence. For operation, use the selected packages' procedures with the effective installation configuration. Handover requires independently available artifacts, protected inputs and infrastructure access, not a separate installation repository or chat history. Cross-application work is performed by the administrator until an installation controller exists.
 
 ## Website maintenance
 

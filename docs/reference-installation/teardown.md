@@ -3,7 +3,7 @@
 On the workstation, load the [session](README.md#resume-a-workstation-session):
 
 ```bash
-source "${INSTALL_REPO:?}/.lab/workstation.env"
+source "${WORK_DIR:?}/.lab/workstation.env"
 ```
 
 Use only fully published and verified backups. Never delete a namespace before finalization finishes.
@@ -50,7 +50,7 @@ From the workstation, transfer the sanitized snapshot record to A and connect th
 
 ```bash
 jq -e '.success==true and (.snapshot|test("^[a-f0-9]{64}$"))' evidence/forgejo-reinstalled-backup.json
-(cd "$INSTALL_REPO/.lab/a";
+(cd "$WORK_DIR/.lab/a";
  scp -F .lab/ssh.config ../../evidence/forgejo-reinstalled-backup.json k3s:/root/bartl-reference/forgejo-reinstalled-backup.json
  ssh -F .lab/ssh.config k3s)
 ```
@@ -83,17 +83,16 @@ The check must read `recovered.txt`, written after takeover on C, from the resto
 
 ## Retain evidence and discard test data
 
-Retain explicit installation values, pinned package references, secret custody references and sanitized evidence. Never commit Secret contents, credentials, database dumps or complete restores. Keep small records of:
+Retain installation values, pinned package references and sanitized evidence in `$WORK_DIR`. Keep credentials, database dumps and complete restores off the workstation. Keep small records of:
 
 - current Application generations, versions and operation results;
 - full snapshot IDs for the final captures and backups created after recovery;
 - distinct source and target PVC UIDs;
 - preserved application content, native identities and permissions;
 - confirmed source shutdown, routing and active backup schedules;
-- actual resource removal and the cost upper bound;
-- the operator, pricing date, budget, deletion deadline and actual secret custody references.
+- actual resource removal.
 
-On the workstation, export effective Helm values; B's stopped values are already retained. The packages use Secret references, but inspect every export for secret contents before committing.
+On the workstation, export effective Helm values; B's stopped values are already retained. The packages use Secret references, but inspect every export for secret contents before retaining it.
 
 ```bash
 helm get values backup --kubeconfig "$KA" -n backup --all > values/restic-a-effective.yaml
@@ -101,7 +100,7 @@ helm get values keycloak --kubeconfig "$KC" -n keycloak --all > values/keycloak-
 helm get values forgejo --kubeconfig "$KC" -n forgejo --all > values/forgejo-c-effective.yaml
 ```
 
-Removing A discards its synthetic data, credentials and restores. For a lasting customer handover, first put recovery inputs in customer-controlled protected custody.
+Removing A discards its synthetic data, credentials and restores. Retain recovery inputs independently of A first if the installation will continue beyond the lab.
 
 ## Delete all resources created for this exercise
 
@@ -119,11 +118,11 @@ done
 Follow the [K3s teardown procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) in each checkout below, in order: B, C, A. Match each server, Primary IP and firewall to its creation record. Retain the required evidence before deleting A.
 
 ```bash
-cd "$INSTALL_REPO/.lab/b"
+cd "$WORK_DIR/.lab/b"
 # K3s: Delete the entire lab, including identity checks and confirmation.
-cd "$INSTALL_REPO/.lab/c"
+cd "$WORK_DIR/.lab/c"
 # Follow the same documented teardown procedure for C.
-cd "$INSTALL_REPO/.lab/a"
+cd "$WORK_DIR/.lab/a"
 # Follow the same documented teardown procedure for A.
 ```
 
@@ -136,24 +135,4 @@ hcloud firewall list
 hcloud volume list
 hcloud load-balancer list
 unset KUBECONFIG
-```
-
-Calculate the cost upper bound from each server's creation and deletion times, rounding each started hour up and including IPv4. Record the pricing date and reserve, and compare it with the approved budget in `evidence/operator-inputs.txt`. This is not the provider's final invoice.
-
-## Close the private installation record
-
-Review the files, then stage only the paths below. Keep the repository private and without a remote. Exclude `.lab/` and test data.
-
-```bash
-cd "$INSTALL_REPO"
-git status --short --branch
-git add README.md .gitignore installation.env values evidence
-git diff --cached --stat
-git diff --cached --check
-```
-
-Inspect staged contents for secrets before committing. Adding a remote requires a separate decision on destination and private visibility.
-
-```bash
-git commit -m 'Record verified reference installation'
 ```

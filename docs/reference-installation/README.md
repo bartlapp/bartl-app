@@ -22,7 +22,7 @@ Complete this page, then:
 
 Run the blocks once, in order. After a failure, establish the actual state before continuing; do not rerun whole chapters.
 
-## Establish the budget before creating servers
+## Prerequisites and cost
 
 You need:
 
@@ -62,78 +62,45 @@ hcloud api /pricing | jq '.pricing | {
 }'
 ```
 
-Budget for three servers and three IPv4 addresses, including taxes, traffic charges and a reserve. Retain the current rates, currency, pricing date and calculation with the approval.
+Check the cost of three servers and three IPv4 addresses, including taxes and traffic, against your approved budget. Use only your dedicated project; add no volumes, load balancers, snapshots or paid backups. Plan when to delete the lab. Teardown is manual, and powered-off servers still cost money.
 
-Before provisioning, confirm capacity and set a UTC deletion deadline. Use only the approved project and budget; add no volumes, load balancers, snapshots or paid backups. Teardown is manual. Delete the lab by the deadline even if the exercise is interrupted; powered-off servers still cost money.
+## Create a working directory
 
-## Create the private installation repository
+Use a new absolute path outside your source repositories. Configuration, access files and results must remain available without the Forgejo being recovered.
 
-Keep installation values and results in a private local repository, independent of the Forgejo being recovered. Use a new absolute path and an SSH key already registered in your Hetzner project.
-
-Edit the values below. The protected-storage reference must identify custody accessible without B; lasting operation also requires independence from A.
+Set `SSH_KEY_NAME` to a name from `hcloud ssh-key list`. If your loaded public key is not registered yet, register it using the [K3s guide](https://github.com/bartlapp/base-k3s/blob/main/README.md) first.
 
 ```bash
-export INSTALL_REPO="$HOME/repos/bartl-installation"
+export WORK_DIR="$HOME/bartl-lab"
 export K3S_SOURCE="$HOME/repos/bartlapp/base-k3s"
-HCLOUD_PROJECT=''
-DNS_ZONE=''
-SSH_KEY_NAME=''
-MAX_COST=''             # Approved total, including reserve
-BUDGET_CURRENCY='EUR'
-DELETE_BY_UTC=''        # ISO 8601 UTC timestamp
-SECRET_CUSTODY_REF=''   # Storage reference, not secret contents
+DNS_ZONE=''             # Your delegated deSEC zone
+SSH_KEY_NAME=''         # Registered Hetzner key name
 ```
 
-Create the repository:
+Create the directory:
 
 ```bash
 export INSTALLATION="bartl-$(date -u +%Y%m%d%H%M%S)-$(openssl rand -hex 3)"
 export DNS_SUFFIX="$INSTALLATION.$DNS_ZONE"
 (
 set -euo pipefail
-: "${INSTALL_REPO:?}" "${HCLOUD_PROJECT:?}" "${DNS_ZONE:?}" "${SSH_KEY_NAME:?}"
-: "${MAX_COST:?}" "${BUDGET_CURRENCY:?}" "${DELETE_BY_UTC:?}" "${SECRET_CUSTODY_REF:?}"
-case "$INSTALL_REPO" in /*) ;; *) printf 'Absolute path required\n' >&2; exit 1;; esac
+: "${WORK_DIR:?}" "${DNS_ZONE:?}" "${SSH_KEY_NAME:?}"
+case "$WORK_DIR" in /*) ;; *) printf 'Absolute path required\n' >&2; exit 1;; esac
 umask 077
-test ! -e "$INSTALL_REPO"
-mkdir -m 700 "$INSTALL_REPO"
-git init --initial-branch=work-reference-installation "$INSTALL_REPO"
-cd "$INSTALL_REPO"
+test ! -e "$WORK_DIR"
+mkdir -m 700 "$WORK_DIR"
+cd "$WORK_DIR"
 mkdir values evidence .lab
-printf '%s\n' "Project: $HCLOUD_PROJECT" "Approved limit: $MAX_COST $BUDGET_CURRENCY" \
-  "Delete by UTC: $DELETE_BY_UTC" "Protected custody reference: $SECRET_CUSTODY_REF" > evidence/operator-inputs.txt
-printf '.lab/\n' > .gitignore
-cat > README.md <<EOF
-# Installation $INSTALLATION
-
-Record progress, deviations and verified results here at each write boundary.
-
-## Scope and authority
-
-- Hetzner project: $HCLOUD_PROJECT
-- deSEC DNS zone: $DNS_ZONE
-- Approved total budget, including reserve: $MAX_COST $BUDGET_CURRENCY
-- Deletion deadline in UTC: $DELETE_BY_UTC
-- Protected storage reference, without secret contents: $SECRET_CUSTODY_REF
-
-Recover Keycloak and Forgejo from B onto C with B powered off. A supplies backups and recovery inputs. Verify login, retained data and permissions, new writes and their backups.
-
-## Operation and evidence
-
-Follow the [walkthrough](https://github.com/bartlapp/bartl-app/blob/main/docs/reference-installation/README.md). Keep package pins and nonsecret inputs in [installation.env](installation.env); configuration, infrastructure manifests and exported effective Helm values in [values/](values/); sanitized results in [evidence/](evidence/).
-
-For each secret, record its name, purpose, owner and custody reference, never its contents. Before deleting A, either discard the synthetic recovery inputs or retain them independently for continuing operation.
-EOF
 )
 ```
 
-If initialization fails, stop and resolve the input or directory state. Do not overwrite an existing repository. Otherwise:
+If setup fails, stop and resolve the input or directory state. Do not overwrite an existing directory. Otherwise:
 
 ```bash
-cd "$INSTALL_REPO"
+cd "$WORK_DIR"
 ```
 
-Keep `.lab/` protected and outside Git. It holds kubeconfigs, SSH host keys and resource-creation records.
+Keep Helm values and manifests in `values/`, sanitized results in `evidence/`, and protected kubeconfigs, SSH host keys and resource-creation records in `.lab/`. None of these directories requires Git.
 
 ### Use the pinned packages
 
@@ -173,17 +140,17 @@ Follow the [K3s guide](https://github.com/bartlapp/base-k3s/blob/main/README.md)
 Clone `https://github.com/bartlapp/base-k3s.git` to `$K3S_SOURCE` if absent. Separate working copies prevent one cluster's kubeconfig and SSH configuration from overwriting another's:
 
 ```bash
-git clone --no-hardlinks "$K3S_SOURCE" "$INSTALL_REPO/.lab/a"
-git clone --no-hardlinks "$K3S_SOURCE" "$INSTALL_REPO/.lab/b"
-git clone --no-hardlinks "$K3S_SOURCE" "$INSTALL_REPO/.lab/c"
+git clone --no-hardlinks "$K3S_SOURCE" "$WORK_DIR/.lab/a"
+git clone --no-hardlinks "$K3S_SOURCE" "$WORK_DIR/.lab/b"
+git clone --no-hardlinks "$K3S_SOURCE" "$WORK_DIR/.lab/c"
 ```
 
 Repeat for `SLOT=a`, `SLOT=b` and `SLOT=c`:
 
 ```bash
 SLOT=a
-cd "$INSTALL_REPO/.lab/$SLOT"
-source "$INSTALL_REPO/installation.env"
+cd "$WORK_DIR/.lab/$SLOT"
+source "$WORK_DIR/installation.env"
 export NAME="$INSTALLATION-$SLOT"
 export LOCATION SERVER_TYPE SSH_KEY_NAME
 SSH_PUBLIC_KEY=$(ssh-add -L)
@@ -198,10 +165,10 @@ Each cluster must have one Ready node; available CoreDNS, local-path, Traefik an
 After all three passes, on the workstation:
 
 ```bash
-cd "$INSTALL_REPO"
-export KA="$INSTALL_REPO/.lab/a/.lab/kubeconfig"
-export KB="$INSTALL_REPO/.lab/b/.lab/kubeconfig"
-export KC="$INSTALL_REPO/.lab/c/.lab/kubeconfig"
+cd "$WORK_DIR"
+export KA="$WORK_DIR/.lab/a/.lab/kubeconfig"
+export KB="$WORK_DIR/.lab/b/.lab/kubeconfig"
+export KC="$WORK_DIR/.lab/c/.lab/kubeconfig"
 for config in "$KA" "$KB" "$KC"; do
   kubectl --kubeconfig "$config" config current-context
   kubectl --kubeconfig "$config" get namespace kube-system \
@@ -218,15 +185,15 @@ After the base setup, create the token-free session file:
 
 ```bash
 cat > .lab/workstation.env <<'ENV'
-: "${INSTALL_REPO:?Absolute path of your installation repository required}"
+: "${WORK_DIR:?Absolute path of your working directory required}"
 : "${HCLOUD_TOKEN:?Load your own project token from protected custody}"
 : "${DESEC_TOKEN:?Load your own deSEC zone token from protected custody}"
 export HCLOUD_TOKEN DESEC_TOKEN
-cd "$INSTALL_REPO"
+cd "$WORK_DIR"
 source installation.env
-export KA="$INSTALL_REPO/.lab/a/.lab/kubeconfig"
-export KB="$INSTALL_REPO/.lab/b/.lab/kubeconfig"
-export KC="$INSTALL_REPO/.lab/c/.lab/kubeconfig"
+export KA="$WORK_DIR/.lab/a/.lab/kubeconfig"
+export KB="$WORK_DIR/.lab/b/.lab/kubeconfig"
+export KC="$WORK_DIR/.lab/c/.lab/kubeconfig"
 A_IP=$(cat ".lab/a/.lab/$INSTALLATION-a/host")
 B_IP=$(cat ".lab/b/.lab/$INSTALLATION-b/host")
 C_IP=$(cat ".lab/c/.lab/$INSTALLATION-c/host")
@@ -251,16 +218,14 @@ git -C "$K3S_SOURCE" rev-parse HEAD > evidence/base-k3s-revision.txt
 In a new Bash session, repeat the token setup above, then edit the path and load the session:
 
 ```bash
-export INSTALL_REPO="$HOME/repos/bartl-installation"
-source "$INSTALL_REPO/.lab/workstation.env"
+export WORK_DIR="$HOME/bartl-lab"
+source "$WORK_DIR/.lab/workstation.env"
 ```
 
 If your public IPv4 address changes, run "Update administrator access" in each base checkout and update application allowlists. After an SSH `exit`, continue on the workstation.
 
 ## Keep recovery inputs accessible
 
-Secrets are generated on A. Record only their names, purposes, owners and custody references in the installation repository.
-
-For lasting handover, retain repository keys, credentials, native configuration, identity secrets and recovery/infrastructure access in customer-controlled storage independent of A. Verify access without the services being recovered. Agree retention, acceptable data loss, recovery time and deletion responsibility before continuing beyond the lab.
+Secrets are generated on A. Keep them there for the exercise; do not copy them into configuration or evidence files. For continued operation beyond the lab, retain the required keys, credentials and recovery access independently of A before deleting it.
 
 Continue with [Install the applications](applications.md).

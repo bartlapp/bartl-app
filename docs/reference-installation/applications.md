@@ -3,15 +3,15 @@
 Install Restic on A and Keycloak on B; leave C empty for recovery. On the workstation:
 
 ```bash
-source "${INSTALL_REPO:?}/.lab/workstation.env"
+source "${WORK_DIR:?}/.lab/workstation.env"
 ```
 
-Run workstation commands from `$INSTALL_REPO`. `KA`, `KB` and `KC` are the absolute kubeconfig paths from the [base setup](README.md).
+Run workstation commands from `$WORK_DIR`. `KA`, `KB` and `KC` are the absolute kubeconfig paths from the [base setup](README.md).
 
 ## Prepare the endpoints
 
 ```bash
-cd "$INSTALL_REPO"
+cd "$WORK_DIR"
 source installation.env
 A_IP=$(cat ".lab/a/.lab/$INSTALLATION-a/host")
 B_IP=$(cat ".lab/b/.lab/$INSTALLATION-b/host")
@@ -241,7 +241,7 @@ kubectl --kubeconfig "$KB" create namespace keycloak
 Open A from the workstation:
 
 ```bash
-(cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)
+(cd "$WORK_DIR/.lab/a"; ssh -F .lab/ssh.config k3s)
 ```
 
 On A:

@@ -3,7 +3,7 @@
 Complete [Keycloak installation](applications.md) first. On the workstation:
 
 ```bash
-source "${INSTALL_REPO:?}/.lab/workstation.env"
+source "${WORK_DIR:?}/.lab/workstation.env"
 ```
 
 Use Forgejo's native OAuth2/OpenID Connect authentication source. Do not insert a login proxy or enable automatic account linking by email address.
@@ -13,7 +13,7 @@ Use Forgejo's native OAuth2/OpenID Connect authentication source. Do not insert 
 Copy the nonsecret inputs to A and open SSH:
 
 ```bash
-(cd "$INSTALL_REPO/.lab/a";
+(cd "$WORK_DIR/.lab/a";
  scp -F .lab/ssh.config ../../installation.env k3s:/root/bartl-reference/installation.env
  ssh -F .lab/ssh.config k3s)
 ```
@@ -104,7 +104,7 @@ Treat `app-b.ini` as a secret and retain all three identity secrets for recovery
 Back on the workstation:
 
 ```bash
-cd "$INSTALL_REPO"
+cd "$WORK_DIR"
 export KUBECONFIG="$KB"
 kubectl create namespace forgejo
 for claim in forgejo-state forgejo-capture; do
@@ -170,7 +170,7 @@ kubectl -n forgejo get forgejoapplication/forgejo -o json | jq -e '
 `REQUIRE_SIGNIN_VIEW=true` may reject anonymous API requests. Check the version as the local administrator; do not relax sign-in requirements. Open A from the workstation:
 
 ```bash
-(cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)
+(cd "$WORK_DIR/.lab/a"; ssh -F .lab/ssh.config k3s)
 ```
 
 On A; require version `16.0.7`:
@@ -210,7 +210,7 @@ Trust this key from the authenticated cluster connection, not an unverified `ssh
 Open A from the workstation:
 
 ```bash
-(cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)
+(cd "$WORK_DIR/.lab/a"; ssh -F .lab/ssh.config k3s)
 ```
 
 On A, create the synthetic identities through Keycloak's Admin API:
@@ -270,6 +270,6 @@ REMOTE
 
 ## Verify browser access
 
-In a fresh browser context, open `https://$FORGEJO_HOST/user/login` and choose "Sign in with keycloak". Use `reference-user` and the `user-password` retained on A; keep the password out of the installation repository. Require a new Keycloak sign-in and callback to that user's Forgejo dashboard, not access through an existing Forgejo cookie.
+In a fresh browser context, open `https://$FORGEJO_HOST/user/login` and choose "Sign in with keycloak". Use `reference-user` and the `user-password` retained on A; keep the password out of configuration and evidence files. Require a new Keycloak sign-in and callback to that user's Forgejo dashboard, not access through an existing Forgejo cookie.
 
 Keep the local Forgejo administrator for independent recovery access. Continue with [service data and access checks](verification.md).

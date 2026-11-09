@@ -1,11 +1,11 @@
 # Recover on C and return the service to use
 
-After [verifying the test data](verification.md), run this chapter on the workstation in `$INSTALL_REPO` unless an SSH session is specified. A remains available; B is the source and C the replacement.
+After [verifying the test data](verification.md), run this chapter on the workstation in `$WORK_DIR` unless an SSH session is specified. A remains available; B is the source and C the replacement.
 
 Load the [session](README.md#resume-a-workstation-session):
 
 ```bash
-source "${INSTALL_REPO:?}/.lab/workstation.env"
+source "${WORK_DIR:?}/.lab/workstation.env"
 ```
 
 ## Check the generation, not just the condition
@@ -370,7 +370,7 @@ If ACME fails, inspect `kubectl describe challenge -n keycloak` for the address 
 Only if renewal is needed and the responsible administrator approves it, follow the [cert-manager procedure](https://cert-manager.io/docs/usage/certificate/) below. From the workstation, open C:
 
 ```bash
-(cd "$INSTALL_REPO/.lab/c"; ssh -F .lab/ssh.config k3s)
+(cd "$WORK_DIR/.lab/c"; ssh -F .lab/ssh.config k3s)
 ```
 
 On C:

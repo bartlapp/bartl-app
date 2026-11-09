@@ -3,7 +3,7 @@
 On the workstation, load the [session](README.md#resume-a-workstation-session):
 
 ```bash
-source "${INSTALL_REPO:?}/.lab/workstation.env"
+source "${WORK_DIR:?}/.lab/workstation.env"
 ```
 
 Keep all working copies, attachments and packages on A under `/root/bartl-reference/forgejo`, not on the workstation. Complete the [browser acceptance checks](forgejo.md#verify-browser-access) first: native login must have created `reference-user`.
@@ -13,7 +13,7 @@ Keep all working copies, attachments and packages on A under `/root/bartl-refere
 Open an SSH session from the workstation:
 
 ```bash
-(cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)
+(cd "$WORK_DIR/.lab/a"; ssh -F .lab/ssh.config k3s)
 ```
 
 Run the following on A:
@@ -111,7 +111,7 @@ Exit the SSH session and continue with [Lifecycle and recovery](recovery.md). Re
 
 ## Verify the same data after recovery
 
-After the controlled hostname takeover, open a new session from the workstation with `(cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)`. The checks use fresh working copies: old client data cannot prove recovery.
+After the controlled hostname takeover, open a new session from the workstation with `(cd "$WORK_DIR/.lab/a"; ssh -F .lab/ssh.config k3s)`. The checks use fresh working copies: old client data cannot prove recovery.
 
 ```bash
 cd /root/bartl-reference/forgejo
