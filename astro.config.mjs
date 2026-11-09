@@ -6,8 +6,7 @@ import compressor from "astro-compressor";
 import remarkBreaks from "remark-breaks";
 
 // Commit that produced this build. On GitHub Actions it comes from the
-// environment (which equals the Codeberg source commit, since the mirror
-// preserves SHAs); locally it falls back to the working git HEAD.
+// environment; locally it falls back to the working git HEAD.
 const commitRef =
   process.env.GITHUB_SHA ?? execSync("git rev-parse HEAD").toString().trim();
 const commitShort = commitRef.slice(0, 7);

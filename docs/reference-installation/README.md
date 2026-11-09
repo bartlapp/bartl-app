@@ -10,7 +10,7 @@ Der Installation Administrator führt jeden dienstübergreifenden Schritt selbst
 
 Die Übung verwendet ausschließlich synthetische Anwendungsdaten. Testdaten, Images, Backups, Datenbanken und Build-Artefakte gehören nicht auf die Workstation. Auf ihr liegen nur Git-Quellen, Installationswerte, geschützte Clusterzugänge und kleine Betriebsnachweise. Für diese Übung entstehen keine Builds. Der Backup-Host A hält später auch die geschützten Recovery-Eingaben und den Testclient; der Ausfall von A gehört nicht zu diesem Durchlauf.
 
-Maßgeblich sind die [Kubernetes-Betriebspakete](https://codeberg.org/bartlapp/bartl-app/src/branch/main/docs/how-to-bartlize.md#kubernetes-operating-packages), das [Kundeninstallationsrepo](https://codeberg.org/bartlapp/bartl-app/src/branch/main/docs/how-to-bartlize.md#customer-installation-repository) und die [Betriebs- und Übergabeanforderungen](https://codeberg.org/bartlapp/bartl-app/src/branch/main/docs/how-to-bartlize.md#operate-and-hand-over-an-installation). Die Paket-READMEs für [Restic](https://codeberg.org/bartlapp/bartl-restic/src/branch/main/README.md), [Keycloak](https://codeberg.org/bartlapp/bartl-keycloak/src/branch/main/README.md) und [Forgejo](https://codeberg.org/bartlapp/bartl-forgejo/src/branch/main/README.md) besitzen die jeweiligen nativen Betriebsverfahren. Die festen öffentlichen OCI-Artefakte unten erfordern keinen Zugriff auf private Sources.
+Maßgeblich sind die [Kubernetes-Betriebspakete](https://github.com/bartlapp/bartl-app/blob/main/docs/how-to-bartlize.md#kubernetes-operating-packages), das [Kundeninstallationsrepo](https://github.com/bartlapp/bartl-app/blob/main/docs/how-to-bartlize.md#customer-installation-repository) und die [Betriebs- und Übergabeanforderungen](https://github.com/bartlapp/bartl-app/blob/main/docs/how-to-bartlize.md#operate-and-hand-over-an-installation). Die Paket-READMEs für [Restic](https://github.com/bartlapp/bartl-restic/blob/main/README.md), [Keycloak](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md) und [Forgejo](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md) besitzen die jeweiligen nativen Betriebsverfahren. Die festen öffentlichen OCI-Artefakte unten erfordern keinen Zugriff auf private Sources.
 
 ## Reihenfolge
 
@@ -104,7 +104,7 @@ A hält Backup-Dienst, Recovery-Eingaben und Testclient. B betreibt Keycloak und
 
 ## Betrieb und Nachweise
 
-Die [manuelle Ablaufanleitung](https://codeberg.org/bartlapp/bartl-app/src/branch/main/docs/reference-installation/README.md) besitzt die vollständigen Aufbau-, Prüf-, Recovery- und Rückbauschritte. Dienstübergreifende Schritte bleiben menschliche Aufgaben.
+Die [manuelle Ablaufanleitung](https://github.com/bartlapp/bartl-app/blob/main/docs/reference-installation/README.md) besitzt die vollständigen Aufbau-, Prüf-, Recovery- und Rückbauschritte. Dienstübergreifende Schritte bleiben menschliche Aufgaben.
 
 [installation.env](installation.env) hält die ausgewählten unveränderlichen Pakete und nicht geheimen Eingaben. [values/](values/) hält die deklarierte Absicht, eigene Infrastrukturmanifeste und vor dem Abschalten exportierte wirksame Helm-Werte. [evidence/](evidence/) hält die eigenen Eingaben und die im Ablauf erzeugten bereinigten Resultate. Secret-Namen, Zweck, Eigentümer und tatsächliche Verwahrungsreferenzen werden dort ohne Secret-Inhalte festgehalten.
 
@@ -154,9 +154,9 @@ Erwartet werden Restic 0.2.0 und 0.2.1, Keycloak 0.5.0 und 0.5.1 sowie Forgejo-P
 
 ## Drei unabhängige K3s-Basen aufbauen
 
-Die [bestehende K3s-Anleitung](https://codeberg.org/bartlapp/base-k3s/src/branch/main/README.md) besitzt die Provisionierungs-, SSH-, Installations- und Rückbaubefehle. Nicht drei Nodes zu einem gemeinsamen Cluster verbinden. Jeder Durchlauf installiert einen eigenen K3s-Server ohne Join-Token eines anderen Clusters.
+Die [bestehende K3s-Anleitung](https://github.com/bartlapp/base-k3s/blob/main/README.md) besitzt die Provisionierungs-, SSH-, Installations- und Rückbaubefehle. Nicht drei Nodes zu einem gemeinsamen Cluster verbinden. Jeder Durchlauf installiert einen eigenen K3s-Server ohne Join-Token eines anderen Clusters.
 
-Das Repository `base-k3s` unter dem oben gesetzten Pfad als Geschwisterrepo der Bartl-Repositories aus `https://codeberg.org/bartlapp/base-k3s.git` klonen, falls es noch nicht vorhanden ist. Drei getrennte Arbeitskopien verhindern, daß die `.lab/kubeconfig` oder `.lab/ssh.config` der K3s-Anleitung den vorherigen Cluster überschreibt:
+Das Repository `base-k3s` unter dem oben gesetzten Pfad als Geschwisterrepo der Bartl-Repositories aus `https://github.com/bartlapp/base-k3s.git` klonen, falls es noch nicht vorhanden ist. Drei getrennte Arbeitskopien verhindern, daß die `.lab/kubeconfig` oder `.lab/ssh.config` der K3s-Anleitung den vorherigen Cluster überschreibt:
 
 ```bash
 git clone --no-hardlinks "$K3S_SOURCE" "$INSTALL_REPO/.lab/a"

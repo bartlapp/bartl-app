@@ -195,7 +195,7 @@ exit
 
 ## B: Keycloak
 
-Die [Keycloak-Anleitung](https://codeberg.org/bartlapp/bartl-keycloak/src/branch/main/README.md#install-keycloak) liefert die vollständigen TLS-, Secret- und Installationsblöcke. Für diesen Durchlauf gelten folgende Eingaben und Abweichungen:
+Die [Keycloak-Anleitung](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#install-keycloak) liefert die vollständigen TLS-, Secret- und Installationsblöcke. Für diesen Durchlauf gelten folgende Eingaben und Abweichungen:
 
 - Cluster B, Namespace und Release `keycloak`.
 - Chart `$KEYCLOAK_SOURCE`, später Upgrade auf `$KEYCLOAK_CHART`.

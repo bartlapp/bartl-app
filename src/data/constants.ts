@@ -5,7 +5,7 @@ export const SITE = {
   url: "https://bartl.app",
   description:
     "Keep a complete service usable and retain useful alternatives through how we build applications, provide infrastructure and organize responsibility.",
-  codeberg: "https://codeberg.org/bartlapp/bartl-app",
+  github: "https://github.com/bartlapp/bartl-app",
 } as const;
 
 export const PRIMARY_NAVIGATION = [

@@ -2,7 +2,7 @@
 
 # Anwendungsvertrag
 
-Die [Betriebsphilosophie](https://codeberg.org/bartlapp/bartl-app/src/branch/main/docs/philosophy.de.md) erklärt, warum Bartl Anwendung, Infrastruktur und Betriebsverantwortung verbindet. Dieser Vertrag bestimmt ihre erforderlichen Beiträge. [Eine Anwendung bartlisieren](https://codeberg.org/bartlapp/bartl-app/src/branch/main/docs/how-to-bartlize.de.md) erklärt die Umsetzung. Die Website rendert dieses Dokument; die Anwendungspakete führen ihre unterstützte Konfiguration, Verfahren und Nachweise. Maßgeblich ist die [englische Fassung](https://codeberg.org/bartlapp/bartl-app/src/branch/main/docs/application-contract.md).
+Die [Betriebsphilosophie](https://github.com/bartlapp/bartl-app/blob/main/docs/philosophy.de.md) erklärt, warum Bartl Anwendung, Infrastruktur und Betriebsverantwortung verbindet. Dieser Vertrag bestimmt ihre erforderlichen Beiträge. [Eine Anwendung bartlisieren](https://github.com/bartlapp/bartl-app/blob/main/docs/how-to-bartlize.de.md) erklärt die Umsetzung. Die Website rendert dieses Dokument; die Anwendungspakete führen ihre unterstützte Konfiguration, Verfahren und Nachweise. Maßgeblich ist die [englische Fassung](https://github.com/bartlapp/bartl-app/blob/main/docs/application-contract.md).
 
 Menschen genehmigen Ergebnis und akzeptierte Risiken. Die Anwendung führt ihre internen Verfahren ohne manuelle technische Eingriffe aus. Ein Installation Administrator darf die gesamte Kundeninstallation durch dokumentierte Befehle mit ihrer versionierten Konfiguration betreiben und die Ergebnisse prüfen. Er darf dabei keine fehlende Anwendungsmechanik erfinden müssen. Installationsweite Automation ist ein gesondertes langfristiges Ziel.
 

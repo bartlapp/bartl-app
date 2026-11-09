@@ -14,7 +14,7 @@ const t = useTranslations(lang);
 const year = new Date().getFullYear();
 const commitRef = __COMMIT_REF__;
 const commitShort = __COMMIT_SHORT__;
-const commitUrl = `https://codeberg.org/bartlapp/bartl-app/commit/${commitRef}`;
+const commitUrl = `https://github.com/bartlapp/bartl-app/commit/${commitRef}`;
 ---
 
 <footer class="border-base-300 mt-auto border-t">
@@ -35,12 +35,12 @@ const commitUrl = `https://codeberg.org/bartlapp/bartl-app/commit/${commitRef}`;
     <div class="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
       <nav aria-label={t("nav.secondary")} class="flex flex-wrap items-center gap-x-5 gap-y-2">
         <a
-          href={SITE.codeberg}
+          href={SITE.github}
           target="_blank"
           rel="noopener noreferrer"
           class="hover:text-base-content focus-visible:outline-primary rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4"
         >
-          Codeberg
+          GitHub
         </a>
         <a
           href={`/${lang}/impressum/`}

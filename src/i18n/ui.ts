@@ -8,7 +8,7 @@ export type Lang = keyof typeof languages;
 
 export const ui = {
   en: {
-    "nav.codeberg": "Source code on Codeberg",
+    "nav.github": "Source code on GitHub",
     "nav.spec": "Contract",
     "nav.derivation": "Approach",
     "nav.implement": "Implement",
@@ -28,7 +28,7 @@ export const ui = {
     "404.back": "Back to home",
   },
   de: {
-    "nav.codeberg": "Quellcode auf Codeberg",
+    "nav.github": "Quellcode auf GitHub",
     "nav.spec": "Vertrag",
     "nav.derivation": "Ansatz",
     "nav.implement": "Umsetzung",

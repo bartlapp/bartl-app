@@ -2,7 +2,7 @@
 
 # Application contract
 
-The [philosophy](https://codeberg.org/bartlapp/bartl-app/src/branch/main/docs/philosophy.md) explains why Bartl connects applications, infrastructure and operating responsibility. This contract defines their required contributions. [How to bartlize](https://codeberg.org/bartlapp/bartl-app/src/branch/main/docs/how-to-bartlize.md) explains the implementation method. The website renders this document; application packages own their supported configuration, procedures and evidence.
+The [philosophy](https://github.com/bartlapp/bartl-app/blob/main/docs/philosophy.md) explains why Bartl connects applications, infrastructure and operating responsibility. This contract defines their required contributions. [How to bartlize](https://github.com/bartlapp/bartl-app/blob/main/docs/how-to-bartlize.md) explains the implementation method. The website renders this document; application packages own their supported configuration, procedures and evidence.
 
 People authorize the outcome and accepted risks. The application executes its internal procedures without manual technical intervention. An installation administrator may operate the complete customer installation by executing documented commands with its versioned configuration and checking the results. They must not have to invent missing application machinery. Installation-wide automation is a separate, longer-term goal.
 

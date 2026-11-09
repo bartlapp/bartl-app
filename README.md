@@ -2,7 +2,7 @@
 
 # bartl-app
 
-Source of [bartl.app](https://bartl.app), the bilingual website for Bartl. Development, issues and pull requests belong on [Codeberg](https://codeberg.org/bartlapp/bartl-app); GitHub is the read-only deployment mirror.
+Source of [bartl.app](https://bartl.app), the bilingual website for Bartl. Development, issues and pull requests belong on [GitHub](https://github.com/bartlapp/bartl-app).
 
 - [Operating philosophy](docs/philosophy.md): why resilience and sovereignty change how we build and operate services.
 - [Application contract](docs/application-contract.md): required application behavior, complete-service recovery and the additional automation goal.
@@ -42,7 +42,7 @@ npm run build    # static build into dist/
 npm run preview  # serve the build locally
 ```
 
-After authorized integration on Codeberg, its push mirror updates GitHub. `.github/workflows/deploy.yml` builds and publishes to GitHub Pages at `bartl.app`. Verify the deployment for the exact revision and the live bilingual result; local rendering alone is not publication.
+After authorized integration on GitHub, `.github/workflows/deploy.yml` builds and publishes to GitHub Pages at `bartl.app`. Verify the deployment for the exact revision and the live bilingual result; local rendering alone is not publication.
 
 ## License
 

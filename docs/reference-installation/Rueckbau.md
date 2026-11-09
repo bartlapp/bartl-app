@@ -116,7 +116,7 @@ for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
 done
 ```
 
-Dann für jeden der drei K3s-Checkouts die [vorhandene Rückbauanleitung](https://codeberg.org/bartlapp/base-k3s/src/branch/main/README.md#delete-the-entire-lab) vollständig ausführen. Sie bindet die Löschung an den jeweiligen Erzeugungsbeleg und prüft Server, Primary IPs und Firewall einzeln. Reihenfolge B, C, A; A zuletzt löschen, nachdem die notwendigen Belege behalten sind.
+Dann für jeden der drei K3s-Checkouts die [vorhandene Rückbauanleitung](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) vollständig ausführen. Sie bindet die Löschung an den jeweiligen Erzeugungsbeleg und prüft Server, Primary IPs und Firewall einzeln. Reihenfolge B, C, A; A zuletzt löschen, nachdem die notwendigen Belege behalten sind.
 
 ```bash
 cd "$INSTALL_REPO/.lab/b"
