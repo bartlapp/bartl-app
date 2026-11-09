@@ -18,9 +18,9 @@ Complete this page, then:
 2. [Integrate Forgejo](forgejo.md).
 3. [Create and verify service data](verification.md).
 4. [Exercise lifecycle and recovery](recovery.md).
-5. [Verify reinstall and backup retrieval, then remove the lab](teardown.md).
+5. [Clean up](#cleanup).
 
-Use one workstation Bash session and run the blocks once, in order. On failure or interruption, [tear down the lab](teardown.md#delete-all-resources-created-for-this-exercise). Correct the cause, then start again from this page.
+Use one workstation Bash session and run the blocks once, in order.
 
 ## Prerequisites and cost
 
@@ -66,7 +66,7 @@ Check the cost of three servers and three IPv4 addresses, including taxes and tr
 
 ## Create a working directory
 
-Use an absolute path outside your source repositories. If a previous lab exists there, [delete its cloud resources and local directory](teardown.md#delete-all-resources-created-for-this-exercise) before running setup. Everything created here is temporary.
+Use an absolute path outside your source repositories. If a previous lab exists there, [clean up](#cleanup) before running setup. Everything created here is temporary.
 
 Set `SSH_KEY_NAME` to a name from `hcloud ssh-key list`. If your loaded public key is not registered yet, register it using the [K3s guide](https://github.com/bartlapp/base-k3s/blob/main/README.md) first.
 
@@ -94,7 +94,7 @@ test ! -e "$WORK_DIR" &&
 ) && cd "$WORK_DIR"
 ```
 
-If setup fails, [clean up](teardown.md#delete-all-resources-created-for-this-exercise) before trying again. `values/` holds configuration, `evidence/` holds results used by later checks, and `.lab/` holds cluster access and resource records. All three are deleted at the end.
+If setup fails, [clean up](#cleanup) before trying again.
 
 ### Use the pinned packages
 
@@ -216,3 +216,55 @@ If your public IPv4 address changes, run "Update administrator access" in each b
 Secrets are generated on A and remain there until teardown. Do not copy them into configuration or evidence files.
 
 Continue with [Install the applications](applications.md).
+
+## Cleanup
+
+Remove only resources created by this run. Keep `$WORK_DIR` until cloud cleanup is complete; it contains the access files and resource identities needed for deletion. If nothing was provisioned, go straight to [local deletion](#delete-the-local-directory).
+
+For an earlier attempt, use its `installation.env` and `.lab/` records to identify its resources, not a newly generated installation name.
+
+On the workstation, delete the lab's DNS A records. For a partial run, edit this list to include only names created, or use `DNS_HOSTS=()` if none. Before each deletion, confirm that the displayed record belongs to this installation. Do not delete the zone or other records.
+
+```bash
+DNS_HOSTS=("$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST")
+```
+
+```bash
+for host in "${DNS_HOSTS[@]}"; do
+  subname=${host%.$DNS_ZONE}
+  desec "$DNS_API/rrsets/$subname/A/" | jq .
+  desec --request DELETE "$DNS_API/rrsets/$subname/A/"
+  sleep 2
+done
+```
+
+Follow the [K3s teardown procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) for each cluster created, in order: B, C, A. Skip clusters never provisioned. Match each server, Primary IP and firewall to its creation record. Deleting A also discards the synthetic data, backups and credentials.
+
+```bash
+cd "$WORK_DIR/.lab/b"
+# K3s: Delete the entire lab, including identity checks and confirmation.
+cd "$WORK_DIR/.lab/c"
+# Follow the same documented teardown procedure for C.
+cd "$WORK_DIR/.lab/a"
+# Follow the same documented teardown procedure for A.
+```
+
+Perform the linked teardown in each directory; the block above is not a deletion routine. Then confirm that this installation's resources are absent. Other project resources may remain.
+
+```bash
+hcloud server list
+hcloud primary-ip list
+hcloud firewall list
+hcloud volume list
+hcloud load-balancer list
+unset KUBECONFIG
+```
+
+### Delete the local directory
+
+After confirming that the lab's DNS records and cloud resources are gone, delete the entire working directory, including configuration, evidence and cluster access files:
+
+```bash
+cd "${WORK_DIR:?}" && cd .. && rm -rf -- "$WORK_DIR" &&
+  unset WORK_DIR KA KB KC HCLOUD_TOKEN DESEC_TOKEN
+```
