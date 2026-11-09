@@ -338,4 +338,4 @@ curl --fail --silent --show-error \
   "https://$KC_HOST/realms/master/.well-known/openid-configuration" | jq .issuer
 ```
 
-Stop here unless `status.observedGeneration` and the Ready condition both refer to the current generation. Sign in to `https://$KC_HOST/admin/` with the protected administrator credentials and verify that administration works. Only then continue with [Forgejo](Forgejo.md).
+Stop here unless `status.observedGeneration` and the Ready condition both refer to the current generation. Sign in to `https://$KC_HOST/admin/` with the protected administrator credentials and verify that administration works. Only then continue with [Forgejo](forgejo.md).

@@ -2,7 +2,7 @@
 
 Recovery is complete when people can use the replacement and their new work reaches a backup. This chapter first exercises the applications on B, then closes writes, captures their final state and powers B off. Only then do we reconstruct on C, check the service and open access.
 
-Start with the installed applications and [verified test data](Pruefung.md). A continues to provide backup storage; B is the source and C the independent replacement. Run commands on the workstation in `$INSTALL_REPO` unless a block explicitly opens an SSH session.
+Start with the installed applications and [verified test data](verification.md). A continues to provide backup storage; B is the source and C the independent replacement. Run commands on the workstation in `$INSTALL_REPO` unless a block explicitly opens an SSH session.
 
 Load the [workstation session](README.md#resume-a-workstation-session):
 
@@ -409,7 +409,7 @@ kubectl -n forgejo exec "$POD" -- cat /data/data/ssh/forgejo.ed25519.pub \
 cmp evidence/forgejo-host-key.pub evidence/forgejo-recovered-host-key.pub
 ```
 
-Matching keys produce no `cmp` output and exit with code 0. If they differ, stop and resolve the cause with the responsible operator; do not replace the original key. Then run all [post-recovery service checks](Pruefung.md#verify-the-same-data-after-recovery), including a fresh browser login.
+Matching keys produce no `cmp` output and exit with code 0. If they differ, stop and resolve the cause with the responsible operator; do not replace the original key. Then run all [post-recovery service checks](verification.md#verify-the-same-data-after-recovery), including a fresh browser login.
 
 Keep public access closed until native login through the recovered installation works, identities and permissions are unchanged, data is retained and new writes succeed. An HTTP `500` when starting OIDC requires Forgejo logs; in particular, check that no additional Keycloak maintenance rule blocks discovery. A middleware's existence does not establish that it is active. Check its reference on the Ingress.
 
@@ -504,4 +504,4 @@ kubectl -n forgejo get cronjob forgejo-backup
 
 Both backup schedules must be active. This sequence invokes their backup interfaces manually and checks the resulting records. An enabled schedule does not establish that an overnight run has already succeeded.
 
-Continue with [Reinstall Forgejo and remove the lab](Rueckbau.md).
+Continue with [Reinstall Forgejo and remove the lab](teardown.md).

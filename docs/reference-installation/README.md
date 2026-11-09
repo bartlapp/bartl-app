@@ -14,17 +14,15 @@ As Installation Administrator, you perform each step that crosses service bounda
 
 Use synthetic application data only. Application data, images, backups, databases and build artifacts stay off the workstation. It holds Git sources, installation values, protected cluster access files and small operational records. This exercise uses published artifacts and requires no builds.
 
-The governing guidance covers [Kubernetes operating packages](https://github.com/bartlapp/bartl-app/blob/main/docs/how-to-bartlize.md#kubernetes-operating-packages), the [customer installation repository](https://github.com/bartlapp/bartl-app/blob/main/docs/how-to-bartlize.md#customer-installation-repository) and [operation and handover](https://github.com/bartlapp/bartl-app/blob/main/docs/how-to-bartlize.md#operate-and-hand-over-an-installation). The [Restic](https://github.com/bartlapp/bartl-restic/blob/main/README.md), [Keycloak](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md) and [Forgejo](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md) package READMEs own their native operating procedures. The pinned public OCI artifacts below require no access to private sources.
-
 ## Follow the sequence
 
 Start here with the budget, private installation repository and three K3s bases. Then continue through the linked chapters:
 
-1. [Install the applications](Anwendungen.md): configure DNS, Restic on A and Keycloak on B.
-2. [Integrate Forgejo](Forgejo.md): configure its native settings, storage, SSH and Keycloak integration.
-3. [Exercise the service](Pruefung.md): create synthetic data and check Git, LFS, pull requests, issues, attachments, releases and packages.
-4. [Exercise lifecycle and recovery](Recovery.md): create backups, upgrade packages, restart and stop/start the applications. Take the final capture, fence B, reconstruct and upgrade on C, reinstall Restic with its PVC retained, open access deliberately and create new backups.
-5. [Remove the installation](Rueckbau.md): reinstall Forgejo with its PVCs retained, retrieve new work from the subsequent backup, retain the evidence and delete the resources.
+1. [Install the applications](applications.md): configure DNS, Restic on A and Keycloak on B.
+2. [Integrate Forgejo](forgejo.md): configure its native settings, storage, SSH and Keycloak integration.
+3. [Exercise the service](verification.md): create synthetic data and check Git, LFS, pull requests, issues, attachments, releases and packages.
+4. [Exercise lifecycle and recovery](recovery.md): create backups, upgrade packages, restart and stop/start the applications. Take the final capture, fence B, reconstruct and upgrade on C, reinstall Restic with its PVC retained, open access deliberately and create new backups.
+5. [Remove the installation](teardown.md): reinstall Forgejo with its PVCs retained, retrieve new work from the subsequent backup, retain the evidence and delete the resources.
 
 These blocks form a one-time sequence, not an idempotent installation script. After a stop, establish the actual state before continuing; do not rerun whole chapters. Each chapter distinguishes workstation commands from SSH sessions. Reload its variables when changing terminals.
 
@@ -255,4 +253,4 @@ The later steps generate secrets on A. Record their names, purposes, owners and 
 
 Before handing over a lasting installation, also place the repository keys, reader/writer/admin credentials, native configuration and identity secrets, Keycloak recovery access and administrative infrastructure access in the named customer-controlled storage independent of A. Check that they can be read without the services they are meant to recover. Agree retention, acceptable data loss, recovery time and responsibility for deletion before lasting operation. The lab teardown discards only the synthetic data created here.
 
-Continue with [Install the applications](Anwendungen.md).
+Continue with [Install the applications](applications.md).

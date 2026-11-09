@@ -8,7 +8,7 @@ Before the first workstation command, load the [workstation session](README.md#r
 source "${INSTALL_REPO:?}/.lab/workstation.env"
 ```
 
-Keep every Git working copy, attachment and package in this chapter on A under `/root/bartl-reference/forgejo`. Do not download test data to the workstation. Before creating the data, complete the [browser acceptance checks](Forgejo.md#verify-browser-access): the native login must have created the Forgejo user `reference-user`.
+Keep every Git working copy, attachment and package in this chapter on A under `/root/bartl-reference/forgejo`. Do not download test data to the workstation. Before creating the data, complete the [browser acceptance checks](forgejo.md#verify-browser-access): the native login must have created the Forgejo user `reference-user`.
 
 ## Prepare the remote test client
 
@@ -111,7 +111,7 @@ test "$code" = 403
 
 Stop if any write fails. Inspect the HTTP status and actual state, then resolve the cause with the responsible operator before proceeding. A successful Git push does not establish that every downstream native repository function is already available.
 
-Leave the SSH session with `exit`, then continue with [Lifecycle and recovery](Recovery.md). Return to the remaining checks only at the recovery checkpoint identified there.
+Leave the SSH session with `exit`, then continue with [Lifecycle and recovery](recovery.md). Return to the remaining checks only at the recovery checkpoint identified there.
 
 ## Verify the same data after recovery
 

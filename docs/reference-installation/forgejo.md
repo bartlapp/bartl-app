@@ -1,6 +1,6 @@
 # Integrate Forgejo with Keycloak
 
-Keycloak must be usable before Forgejo can delegate sign-in to it. Continue from [Install the applications](Anwendungen.md), starting on the workstation with the [session environment](README.md#resume-a-workstation-session):
+Keycloak must be usable before Forgejo can delegate sign-in to it. Continue from [Install the applications](applications.md), starting on the workstation with the [session environment](README.md#resume-a-workstation-session):
 
 ```bash
 source "${INSTALL_REPO:?}/.lab/workstation.env"
@@ -272,4 +272,4 @@ REMOTE
 
 Open `https://$FORGEJO_HOST/user/login` in a fresh browser context and choose "Sign in with keycloak". Sign in to Keycloak as `reference-user`, using the `user-password` retained on A. The callback must take you to that user's Forgejo dashboard. Do not copy the password into the installation repository.
 
-This check requires a complete new sign-in through the stable issuer and callback. An existing Forgejo session cookie does not demonstrate that the integration works. Keep the local Forgejo administrator account as an independent recovery access path. Then continue with [service data and access checks](Pruefung.md).
+This check requires a complete new sign-in through the stable issuer and callback. An existing Forgejo session cookie does not demonstrate that the integration works. Keep the local Forgejo administrator account as an independent recovery access path. Then continue with [service data and access checks](verification.md).
