@@ -1,14 +1,12 @@
 # Exercise the service before and after recovery
 
-Recovery must preserve what people can do with the service, not just start its processes. Create a known set of synthetic data before recovery, then read it from fresh clients afterwards. Check permissions and new writes as well.
-
-Before the first workstation command, load the [workstation session](README.md#resume-a-workstation-session):
+On the workstation, load the [session](README.md#resume-a-workstation-session):
 
 ```bash
 source "${INSTALL_REPO:?}/.lab/workstation.env"
 ```
 
-Keep every Git working copy, attachment and package in this chapter on A under `/root/bartl-reference/forgejo`. Do not download test data to the workstation. Before creating the data, complete the [browser acceptance checks](forgejo.md#verify-browser-access): the native login must have created the Forgejo user `reference-user`.
+Keep all working copies, attachments and packages on A under `/root/bartl-reference/forgejo`, not on the workstation. Complete the [browser acceptance checks](forgejo.md#verify-browser-access) first: native login must have created `reference-user`.
 
 ## Prepare the remote test client
 
@@ -42,8 +40,6 @@ ENV
 source client.env
 ```
 
-`client.env` configures the test client and provides an authenticated curl helper. It does not install, back up, migrate or switch a service. Run the following blocks manually, in order.
-
 ## Create data before recovery
 
 ```bash
@@ -75,7 +71,7 @@ git push origin review
 cd ..
 ```
 
-Before the next write, read the repository's native state. Its owner must have admin access. The repository must be nonempty, must not be a mirror, and must have pull requests enabled and both branches present. If a request is rejected, do not mask the cause with a fixed delay or automatic write retries.
+The checks below must confirm a nonempty, non-mirror repository with admin access, pull requests enabled and both branches present. Stop on failure; do not mask a rejected request with delays or automatic write retries.
 
 ```bash
 forgejo_api "$FORGEJO_URL/api/v1/repos/reference-admin/reference" |
@@ -109,13 +105,13 @@ code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
 test "$code" = 403
 ```
 
-Stop if any write fails. Inspect the HTTP status and actual state, then resolve the cause with the responsible operator before proceeding. A successful Git push does not establish that every downstream native repository function is already available.
+If any write fails, inspect its HTTP status and actual state, then resolve the cause with the responsible operator before proceeding. A successful Git push does not prove downstream repository functions are available.
 
-Leave the SSH session with `exit`, then continue with [Lifecycle and recovery](recovery.md). Return to the remaining checks only at the recovery checkpoint identified there.
+Exit the SSH session and continue with [Lifecycle and recovery](recovery.md). Return here at its verification checkpoint.
 
 ## Verify the same data after recovery
 
-After the controlled hostname takeover, open a new session from the workstation with `(cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)` and load `client.env` on A. Use a fresh working copy: data left in the old client cannot prove that recovery succeeded.
+After the controlled hostname takeover, open a new session from the workstation with `(cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)`. The checks use fresh working copies: old client data cannot prove recovery.
 
 ```bash
 cd /root/bartl-reference/forgejo
@@ -145,7 +141,7 @@ forgejo_api "$FORGEJO_URL/api/v1/repos/reference-admin/reference/releases/tags/v
   jq -e '.name=="Reference release"'
 ```
 
-Use SSH with the host key verified before recovery. Do not make a new trust decision. Also use `kubectl exec` from the workstation to read the public host key on C and compare it with `evidence/forgejo-host-key.pub`, as before recovery.
+Use the previously verified SSH host key; do not accept a new one. From the workstation, also read C's public host key with `kubectl exec` and compare it with `evidence/forgejo-host-key.pub`, as before recovery.
 
 ```bash
 GIT_LFS_SKIP_SMUDGE=1 git clone \
@@ -161,6 +157,6 @@ code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
 test "$code" = 403
 ```
 
-Clear the old Forgejo and Keycloak cookies in the browser, then sign in again through "Sign in with keycloak". The user must still be able to read the same private repository. Recovery must not turn read permission into administration. Compare the Keycloak user ID and client ID with the IDs retained on A. Open access to the restricted candidate only after these checks pass. Once you have written new data on C, switching back to B is no longer a lossless rollback.
+Clear the old Forgejo and Keycloak browser cookies and sign in through "Sign in with keycloak". Confirm that `reference-user` can still read the private repository without gaining administration rights. Compare the Keycloak user and client IDs with those retained on A. Open access to the restricted candidate only after all checks pass. After the new write on C, switching back to B is no longer a lossless rollback.
 
-When the client checks are complete, leave the SSH session with `exit` and resume the recovery chapter on the workstation.
+Exit the SSH session and resume [Lifecycle and recovery](recovery.md) on the workstation.

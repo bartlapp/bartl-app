@@ -1,12 +1,12 @@
 # Install the applications
 
-The three K3s bases are ready. Install the backup service on A and Keycloak on B; leave C without applications until recovery. Start on the workstation by loading the [session environment](README.md#resume-a-workstation-session):
+Install Restic on A and Keycloak on B; leave C empty for recovery. On the workstation:
 
 ```bash
 source "${INSTALL_REPO:?}/.lab/workstation.env"
 ```
 
-Run workstation commands from `$INSTALL_REPO`. The instructions explicitly identify each SSH session on A and when to return. `KA`, `KB` and `KC` are the absolute kubeconfig paths established in the [base setup](README.md); use the specified path for every cluster operation.
+Run workstation commands from `$INSTALL_REPO`. `KA`, `KB` and `KC` are the absolute kubeconfig paths from the [base setup](README.md).
 
 ## Prepare the endpoints
 
@@ -19,7 +19,7 @@ C_IP=$(cat ".lab/c/.lab/$INSTALLATION-c/host")
 ADMIN_IP=$(curl --ipv4 --fail --silent --show-error https://api.ipify.org)
 ```
 
-Read your deSEC zone and its existing records before creating anything. The helper passes the token through stdin so that it does not appear in process arguments:
+Check the deSEC zone and existing records. The helper keeps the token out of process arguments:
 
 ```bash
 desec() {
@@ -31,7 +31,7 @@ desec "$DNS_API/"
 desec "$DNS_API/rrsets/" | jq .
 ```
 
-Use names that are not already in use. Create the three records in sequence without overwriting existing records. If deSEC returns HTTP 429, wait for the interval it specifies. If a request's outcome is unclear, read the record before trying again.
+Use unused names; do not overwrite records. On HTTP 429, wait for deSEC's specified interval. If a request's outcome is unclear, read the record before retrying.
 
 ```bash
 for pair in "$BACKUP_HOST $A_IP" "$KC_HOST $B_IP" "$FORGEJO_HOST $B_IP"; do
@@ -43,7 +43,7 @@ for pair in "$BACKUP_HOST $A_IP" "$KC_HOST $B_IP" "$FORGEJO_HOST $B_IP"; do
 done
 ```
 
-The 900-second TTL prepares for the later handover. Before requesting certificates, check that both authoritative nameservers and the public resolvers return the intended IPv4 address. Do not add AAAA records.
+Keep the 900-second TTL for handover. Before requesting certificates, check authoritative and public DNS. Do not add AAAA records.
 
 ```bash
 for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
@@ -53,7 +53,7 @@ for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
 done
 ```
 
-Do not continue until the authoritative answers carry the `aa` flag and every answer points to the intended VM. If local resolution of a nameserver's name fails, obtain its address through DNS and query that same authoritative server directly. Do not change the workstation's DNS configuration or weaken TLS verification.
+Stop unless authoritative answers carry `aa` and every answer points to the intended VM. If a nameserver's name does not resolve locally, obtain its address through DNS and query it directly. Do not change workstation DNS or weaken TLS verification.
 
 ## A: keep the backup repositories separate
 
@@ -62,7 +62,7 @@ kubectl --kubeconfig "$KA" create namespace backup
 (cd .lab/a; ssh -F .lab/ssh.config k3s)
 ```
 
-The next block runs in the SSH session on A. It creates the protected inputs there, not on the workstation. Each application gets separate reader, writer and administrator passwords. Within one repository, reader and writer use the same repository encryption key.
+On A, create separate reader, writer and administrator credentials for each application. Reader and writer share their repository's encryption key:
 
 ```bash
 set -euo pipefail
@@ -89,7 +89,7 @@ done
 exit
 ```
 
-You are back on the workstation. Create the Restic PVC and a publicly trusted TLS certificate. Traefik passes TLS through to Restic without terminating it. Route to Service port 443, not Pod port 8443.
+Back on the workstation. Traefik passes TLS through to Restic; route to Service port 443, not Pod port 8443.
 
 ```bash
 cat > values/restic-a.yaml <<'YAML'
@@ -174,7 +174,7 @@ curl --silent --show-error --output /dev/null --write-out '%{http_code}\n' \
   "https://$BACKUP_HOST/keycloak/config"
 ```
 
-The final request must return `401` with valid TLS verification. A TLS failure does not demonstrate access control. Next, check authenticated reader access from A without printing the encrypted repository configuration:
+Require `401` with valid TLS; a TLS failure does not prove access control. Check authenticated reader access without printing the repository configuration:
 
 ```bash
 (cd .lab/a;
@@ -182,7 +182,7 @@ The final request must return `401` with valid TLS verification. A TLS failure d
  ssh -F .lab/ssh.config k3s)
 ```
 
-In the SSH session now open on A:
+On A:
 
 ```bash
 cd /root/bartl-reference/repositories/keycloak/reader
@@ -195,17 +195,15 @@ exit
 
 ## B: Keycloak
 
-The [Keycloak installation guide](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#install-keycloak) owns the complete TLS, Secret and installation procedure. Use the inputs below for this exercise:
+Follow the [Keycloak installation guide](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#install-keycloak) for TLS, Secrets and installation, with these inputs:
 
-- Install on B, with both namespace and release named `keycloak`.
-- Start with chart `$KEYCLOAK_SOURCE`; the later upgrade uses `$KEYCLOAK_CHART`.
-- Use installation `$INSTALLATION`, instance `keycloak` and hostname `https://$KC_HOST`.
-- Allocate 5 GiB for the database on `local-path`.
-- Generate credentials on A under `/root/bartl-reference/keycloak/` and retain them there. Do not run the guide's example block that deletes bootstrap credentials after creating the Secret: recovery needs those credentials.
-- Use the same protected native administrator for recovery. Do not generate a replacement user.
-- Configure backup against the empty repository on A from the outset. Do not create a second or temporary backup endpoint on B.
+- B, namespace and release `keycloak`; initially `$KEYCLOAK_SOURCE`, later upgrade to `$KEYCLOAK_CHART`.
+- Installation `$INSTALLATION`, instance `keycloak`, hostname `https://$KC_HOST`.
+- Database: 5 GiB on `local-path`.
+- Retain credentials on A under `/root/bartl-reference/keycloak/`. Skip the guide's bootstrap-credential deletion: recovery needs the same protected native administrator, not a replacement user.
+- Back up to the empty repository on A from the outset, not a temporary endpoint on B.
 
-Write the complete intended values on the workstation:
+On the workstation:
 
 ```bash
 cat > values/keycloak-b.yaml <<EOF
@@ -240,13 +238,13 @@ EOF
 kubectl --kubeconfig "$KB" create namespace keycloak
 ```
 
-Prepare the three credential directories on A. Open an SSH session from the workstation:
+Open A from the workstation:
 
 ```bash
 (cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)
 ```
 
-In that SSH session:
+On A:
 
 ```bash
 umask 077
@@ -262,7 +260,7 @@ openssl rand -hex 32 | tr -d '\n' > bootstrap/password
 exit
 ```
 
-Back on the workstation, stream the Secrets directly from A into B through stdin. This avoids creating local files containing secret contents:
+Back on the workstation, stream Secrets from A to B without local secret files:
 
 ```bash
 (cd .lab/a; ssh -F .lab/ssh.config k3s 'bash -se' <<'REMOTE'
@@ -284,7 +282,7 @@ REMOTE
 ) | kubectl --kubeconfig "$KB" create -f -
 ```
 
-Generate the TLS manifests for both applications on the workstation, using the shared installation inputs:
+Generate TLS manifests for both applications:
 
 ```bash
 for app in keycloak forgejo; do
@@ -324,8 +322,6 @@ EOF
 done
 ```
 
-Apply Keycloak's TLS manifest, wait for the certificate, then install the package:
-
 ```bash
 export KUBECONFIG="$KB"
 kubectl apply -f values/keycloak-tls.yaml
@@ -338,4 +334,4 @@ curl --fail --silent --show-error \
   "https://$KC_HOST/realms/master/.well-known/openid-configuration" | jq .issuer
 ```
 
-Stop here unless `status.observedGeneration` and the Ready condition both refer to the current generation. Sign in to `https://$KC_HOST/admin/` with the protected administrator credentials and verify that administration works. Only then continue with [Forgejo](forgejo.md).
+Stop unless `status.observedGeneration` and the Ready condition refer to the current generation. Sign in to `https://$KC_HOST/admin/` with the protected administrator credentials and verify administration before continuing with [Forgejo](forgejo.md).

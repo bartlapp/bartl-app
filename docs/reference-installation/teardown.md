@@ -1,16 +1,16 @@
 # Reinstall, verify the backup and remove the installation
 
-Before the first workstation command, load the [workstation session](README.md#resume-a-workstation-session):
+On the workstation, load the [session](README.md#resume-a-workstation-session):
 
 ```bash
 source "${INSTALL_REPO:?}/.lab/workstation.env"
 ```
 
-Removing a package and destroying its data are different operations. First reinstall Forgejo with its state retained and read the new work from its subsequent backup. Then retain the operational evidence and remove the lab. These exercises use backups whose publication and verification are already complete. Never delete a namespace before finalization has finished.
+Use only fully published and verified backups. Never delete a namespace before finalization finishes.
 
 ## Reinstall Forgejo on C with its state retained
 
-Proceed only after the new backup following takeover has finished publishing. Keep the state and capture PVCs, configuration Secrets and backup Secrets. Delete the Application CR while its controller is still running, then uninstall the Helm release:
+Wait for the post-takeover backup to finish publishing. Retain state and capture PVCs, configuration Secrets and backup Secrets. Delete the Application CR while its controller is running, then uninstall the Helm release:
 
 ```bash
 export KUBECONFIG="$KC"
@@ -28,7 +28,7 @@ kubectl -n forgejo get pvc -o json | jq -e --slurpfile before evidence/forgejo-b
   '([.items[].metadata.uid]|sort)==([$before[0].items[].metadata.uid]|sort)'
 ```
 
-The new Application CR has a new owner UID. Regenerate the installation-managed SSH Service from the current package Service selector and apply it; the old selector no longer identifies the application. Then recheck HTTPS access, Git over SSH, the new file `recovered.txt`, `reference-user`'s read permission and the native Keycloak login.
+The new Application CR has a new owner UID, so the old SSH Service selector no longer matches. Regenerate it below, then recheck HTTPS, Git over SSH, `recovered.txt`, `reference-user`'s read permission and native Keycloak login.
 
 ```bash
 kubectl -n forgejo get service forgejo -o json | jq '{apiVersion:"v1",kind:"Service",
@@ -46,7 +46,7 @@ kubectl -n forgejo get forgejoapplication/forgejo -o json |
 
 ## Read new work from the subsequent backup
 
-Transfer the sanitized snapshot record from the workstation to A and open an SSH session there. Keep application data off the workstation.
+From the workstation, transfer the sanitized snapshot record to A and connect there. Keep application data off the workstation.
 
 ```bash
 jq -e '.success==true and (.snapshot|test("^[a-f0-9]{64}$"))' evidence/forgejo-reinstalled-backup.json
@@ -55,7 +55,7 @@ jq -e '.success==true and (.snapshot|test("^[a-f0-9]{64}$"))' evidence/forgejo-r
  ssh -F .lab/ssh.config k3s)
 ```
 
-On A, download and verify the qualified native Restic client, then restore the selected snapshot into a new directory:
+On A, restore the selected snapshot with the checksum-verified Restic client:
 
 ```bash
 cd /root/bartl-reference
@@ -79,11 +79,11 @@ test "$actual" = 'New write on recovered C'
 exit
 ```
 
-This checks more than the existence of another snapshot: the file written only after takeover on C is natively readable from its subsequent backup. Do not use a live mount of the Forgejo PVC for this check.
+The check must read `recovered.txt`, written after takeover on C, from the restored backup, not a live Forgejo PVC mount.
 
 ## Retain evidence and discard test data
 
-Keep only explicit installation values, pinned package references, secret custody references and sanitized evidence in the installation repository. Never commit `kubectl get secrets -o yaml` output, credentials, database dumps or complete restores. Retain small records showing:
+Retain explicit installation values, pinned package references, secret custody references and sanitized evidence. Never commit Secret contents, credentials, database dumps or complete restores. Keep small records of:
 
 - current Application generations, versions and operation results;
 - full snapshot IDs for the final captures and backups created after recovery;
@@ -93,7 +93,7 @@ Keep only explicit installation values, pinned package references, secret custod
 - actual resource removal and the cost upper bound;
 - the operator, pricing date, budget, deletion deadline and actual secret custody references.
 
-From the workstation, export the complete effective Helm values of the remaining releases. The stopped B values were already retained before shutdown. These packages accept only Secret references through Helm values, but inspect every export for secret contents before committing it.
+On the workstation, export effective Helm values; B's stopped values are already retained. The packages use Secret references, but inspect every export for secret contents before committing.
 
 ```bash
 helm get values backup --kubeconfig "$KA" -n backup --all > values/restic-a-effective.yaml
@@ -101,11 +101,11 @@ helm get values keycloak --kubeconfig "$KC" -n keycloak --all > values/keycloak-
 helm get values forgejo --kubeconfig "$KC" -n forgejo --all > values/forgejo-c-effective.yaml
 ```
 
-Lab removal discards the synthetic data, credentials and restores held on A. For a lasting customer handover, first place these recovery inputs in protected custody controlled by the customer. A completed lab run does not need them after teardown.
+Removing A discards its synthetic data, credentials and restores. For a lasting customer handover, first put recovery inputs in customer-controlled protected custody.
 
 ## Delete all resources created for this exercise
 
-Back on the workstation, remove your three DNS A records first. Before each deletion, read the record and confirm that it belongs to this installation. Do not delete the zone or anyone else's records.
+On the workstation, delete the three DNS A records. Before each deletion, confirm that the displayed record belongs to this installation. Do not delete the zone or other records.
 
 ```bash
 for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
@@ -116,7 +116,7 @@ for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
 done
 ```
 
-Then follow the existing [K3s teardown procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) in full for each of the three checkouts. It binds deletion to the corresponding creation record and checks each server, Primary IP and firewall separately. Remove B, then C, then A. Delete A only after retaining the required evidence.
+Follow the [K3s teardown procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) in each checkout below, in order: B, C, A. Match each server, Primary IP and firewall to its creation record. Retain the required evidence before deleting A.
 
 ```bash
 cd "$INSTALL_REPO/.lab/b"
@@ -127,7 +127,7 @@ cd "$INSTALL_REPO/.lab/a"
 # Follow the same documented teardown procedure for A.
 ```
 
-These directory changes lead to the existing procedure; they are not a complete executable deletion routine. Each deletion requires a deliberate operator action. Afterwards, inspect the project inventory. Success means that this installation's resources are absent, not that the whole project is empty.
+Perform the linked teardown in each directory; the block above is not a deletion routine. Then confirm that this installation's resources are absent. Other project resources may remain.
 
 ```bash
 hcloud server list
@@ -138,11 +138,11 @@ hcloud load-balancer list
 unset KUBECONFIG
 ```
 
-Use each server's creation and deletion times to calculate billable hours, rounding each started hour up and including IPv4. Record the pricing date and reserve, then compare the result with your approved budget in `evidence/operator-inputs.txt`. Distinguish this upper bound from the provider's final invoice.
+Calculate the cost upper bound from each server's creation and deletion times, rounding each started hour up and including IPv4. Record the pricing date and reserve, and compare it with the approved budget in `evidence/operator-inputs.txt`. This is not the provider's final invoice.
 
 ## Close the private installation record
 
-Review the files before staging the explicit paths below. The repository has no remote and remains private. Do not add `.lab/` files or test data.
+Review the files, then stage only the paths below. Keep the repository private and without a remote. Exclude `.lab/` and test data.
 
 ```bash
 cd "$INSTALL_REPO"
@@ -152,7 +152,7 @@ git diff --cached --stat
 git diff --cached --check
 ```
 
-Inspect the staged contents for secrets, then commit the verified operating state locally. Configure a remote only after separately deciding its destination and private visibility.
+Inspect staged contents for secrets before committing. Adding a remote requires a separate decision on destination and private visibility.
 
 ```bash
 git commit -m 'Record verified reference installation'

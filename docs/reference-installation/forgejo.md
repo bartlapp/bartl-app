@@ -1,6 +1,6 @@
 # Integrate Forgejo with Keycloak
 
-Keycloak must be usable before Forgejo can delegate sign-in to it. Continue from [Install the applications](applications.md), starting on the workstation with the [session environment](README.md#resume-a-workstation-session):
+Complete [Keycloak installation](applications.md) first. On the workstation:
 
 ```bash
 source "${INSTALL_REPO:?}/.lab/workstation.env"
@@ -10,7 +10,7 @@ Use Forgejo's native OAuth2/OpenID Connect authentication source. Do not insert 
 
 ## Prepare the protected configuration on A
 
-Copy the shared nonsecret installation inputs to A, then open an SSH session there:
+Copy the nonsecret inputs to A and open SSH:
 
 ```bash
 (cd "$INSTALL_REPO/.lab/a";
@@ -18,7 +18,7 @@ Copy the shared nonsecret installation inputs to A, then open an SSH session the
  ssh -F .lab/ssh.config k3s)
 ```
 
-In that SSH session:
+On A:
 
 ```bash
 source /root/bartl-reference/installation.env
@@ -97,11 +97,11 @@ EOF
 exit
 ```
 
-Treat `app-b.ini` as a secret. Retain the three identity secrets for recovery rather than generating new ones. The SSH host-key filename does not determine its algorithm; later, save the public key that Forgejo actually generates and compare it after recovery.
+Treat `app-b.ini` as a secret and retain all three identity secrets for recovery. The SSH host-key filename does not determine its algorithm; retain Forgejo's actual public key for comparison after recovery.
 
 ## Install storage, Secrets and the package on B
 
-Back on the workstation, create the state and capture PVCs, stream the Secrets from A into B, and write the installation values:
+Back on the workstation:
 
 ```bash
 cd "$INSTALL_REPO"
@@ -153,7 +153,7 @@ ssh:
 EOF
 ```
 
-Apply `values/forgejo-tls.yaml`, generated in the previous chapter. Wait for the certificate to become Ready before installing Forgejo:
+Use the TLS manifest from the previous chapter; require a Ready certificate before installation:
 
 ```bash
 kubectl apply -f values/forgejo-tls.yaml
@@ -167,13 +167,13 @@ kubectl -n forgejo get forgejoapplication/forgejo -o json | jq -e '
   any(.status.conditions[]; .type=="Ready" and .status=="True" and .observedGeneration==$g)'
 ```
 
-With `REQUIRE_SIGNIN_VIEW=true`, Forgejo may reject anonymous API requests. Check the native version as the local administrator rather than relaxing sign-in requirements. Open an SSH session on A from the workstation:
+`REQUIRE_SIGNIN_VIEW=true` may reject anonymous API requests. Check the version as the local administrator; do not relax sign-in requirements. Open A from the workstation:
 
 ```bash
 (cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)
 ```
 
-In that SSH session:
+On A; require version `16.0.7`:
 
 ```bash
 source /root/bartl-reference/installation.env
@@ -185,7 +185,7 @@ exit
 
 ## Provide a separate Git SSH endpoint
 
-HTTP ingress does not provide SSH access. Back on the workstation, create an installation-managed Service using the package Service's actual selector. Do not copy an owner UID from an earlier installation.
+Back on the workstation. HTTP ingress does not carry SSH. Use the package Service's actual selector, not an owner UID from a previous installation:
 
 ```bash
 export KUBECONFIG="$KB"
@@ -203,17 +203,17 @@ cat evidence/forgejo-host-key.pub |
   (cd .lab/a; ssh -F .lab/ssh.config k3s 'cat > /root/bartl-reference/forgejo/host-key.pub')
 ```
 
-This public host key comes through the administratively authenticated cluster connection. Do not use an unverified `ssh-keyscan` result as the trust anchor.
+Trust this key from the authenticated cluster connection, not an unverified `ssh-keyscan`.
 
 ## Create the realm, user and OIDC client
 
-Create the synthetic identities through Keycloak's native Admin API on A. The commands below install `jq`, Git and Git LFS there, where the test data belongs. First open the SSH session from the workstation:
+Open A from the workstation:
 
 ```bash
 (cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)
 ```
 
-In that SSH session:
+On A, create the synthetic identities through Keycloak's Admin API:
 
 ```bash
 apt-get install -y jq git git-lfs
@@ -252,9 +252,9 @@ kc "https://$KC_HOST/admin/realms/reference/clients?clientId=forgejo" |
 exit
 ```
 
-During recovery, C takes over the existing hostnames only after B is powered off, with HTTPS access initially restricted. The stable callback configured above is sufficient for that sequence; no additional candidate callback is needed.
+Recovery reuses these hostnames only after B is off, initially with restricted HTTPS access. Keep the stable callback; no candidate callback is needed.
 
-Back on the workstation, add the native authentication source to Forgejo. Stream the client secret through stdin so that it does not enter local files or shell history:
+Back on the workstation, stream the client secret into Forgejo without local files or shell-history exposure:
 
 ```bash
 export KUBECONFIG="$KB"
@@ -270,6 +270,6 @@ REMOTE
 
 ## Verify browser access
 
-Open `https://$FORGEJO_HOST/user/login` in a fresh browser context and choose "Sign in with keycloak". Sign in to Keycloak as `reference-user`, using the `user-password` retained on A. The callback must take you to that user's Forgejo dashboard. Do not copy the password into the installation repository.
+In a fresh browser context, open `https://$FORGEJO_HOST/user/login` and choose "Sign in with keycloak". Use `reference-user` and the `user-password` retained on A; keep the password out of the installation repository. Require a new Keycloak sign-in and callback to that user's Forgejo dashboard, not access through an existing Forgejo cookie.
 
-This check requires a complete new sign-in through the stable issuer and callback. An existing Forgejo session cookie does not demonstrate that the integration works. Keep the local Forgejo administrator account as an independent recovery access path. Then continue with [service data and access checks](verification.md).
+Keep the local Forgejo administrator for independent recovery access. Continue with [service data and access checks](verification.md).
