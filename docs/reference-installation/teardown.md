@@ -81,27 +81,6 @@ exit
 
 The check must read `recovered.txt`, written after takeover on C, from the restored backup, not a live Forgejo PVC mount.
 
-## Retain evidence and discard test data
-
-Retain installation values, pinned package references and sanitized evidence in `$WORK_DIR`. Keep credentials, database dumps and complete restores off the workstation. Keep small records of:
-
-- current Application generations, versions and operation results;
-- full snapshot IDs for the final captures and backups created after recovery;
-- distinct source and target PVC UIDs;
-- preserved application content, native identities and permissions;
-- confirmed source shutdown, routing and active backup schedules;
-- actual resource removal.
-
-On the workstation, export effective Helm values; B's stopped values are already retained. The packages use Secret references, but inspect every export for secret contents before retaining it.
-
-```bash
-helm get values backup --kubeconfig "$KA" -n backup --all > values/restic-a-effective.yaml
-helm get values keycloak --kubeconfig "$KC" -n keycloak --all > values/keycloak-c-effective.yaml
-helm get values forgejo --kubeconfig "$KC" -n forgejo --all > values/forgejo-c-effective.yaml
-```
-
-Removing A discards its synthetic data, credentials and restores. Retain recovery inputs independently of A first if the installation will continue beyond the lab.
-
 ## Delete all resources created for this exercise
 
 On the workstation, delete the three DNS A records. Before each deletion, confirm that the displayed record belongs to this installation. Do not delete the zone or other records.
@@ -115,7 +94,7 @@ for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
 done
 ```
 
-Follow the [K3s teardown procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) in each checkout below, in order: B, C, A. Match each server, Primary IP and firewall to its creation record. Retain the required evidence before deleting A.
+Follow the [K3s teardown procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) in each checkout below, in order: B, C, A. Match each server, Primary IP and firewall to its creation record. Deleting A also discards the synthetic data, backups and credentials.
 
 ```bash
 cd "$WORK_DIR/.lab/b"
@@ -135,4 +114,13 @@ hcloud firewall list
 hcloud volume list
 hcloud load-balancer list
 unset KUBECONFIG
+```
+
+## Delete the local directory
+
+After confirming that the lab's DNS records and cloud resources are gone, delete the entire working directory, including configuration, evidence and cluster access files:
+
+```bash
+cd "${WORK_DIR:?}" && cd .. && rm -rf -- "$WORK_DIR" &&
+  unset WORK_DIR KA KB KC HCLOUD_TOKEN DESEC_TOKEN
 ```

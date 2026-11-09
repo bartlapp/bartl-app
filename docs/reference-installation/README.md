@@ -66,7 +66,7 @@ Check the cost of three servers and three IPv4 addresses, including taxes and tr
 
 ## Create a working directory
 
-Use a new absolute path outside your source repositories. Configuration, access files and results must remain available without the Forgejo being recovered.
+Use a new absolute path outside your source repositories. Everything created here is temporary: finish by deleting the cloud lab and this entire directory.
 
 Set `SSH_KEY_NAME` to a name from `hcloud ssh-key list`. If your loaded public key is not registered yet, register it using the [K3s guide](https://github.com/bartlapp/base-k3s/blob/main/README.md) first.
 
@@ -77,30 +77,24 @@ DNS_ZONE=''             # Your delegated deSEC zone
 SSH_KEY_NAME=''         # Registered Hetzner key name
 ```
 
-Create the directory:
+Create and enter the directory:
 
 ```bash
 export INSTALLATION="bartl-$(date -u +%Y%m%d%H%M%S)-$(openssl rand -hex 3)"
 export DNS_SUFFIX="$INSTALLATION.$DNS_ZONE"
 (
-set -euo pipefail
+set -u
 : "${WORK_DIR:?}" "${DNS_ZONE:?}" "${SSH_KEY_NAME:?}"
 case "$WORK_DIR" in /*) ;; *) printf 'Absolute path required\n' >&2; exit 1;; esac
 umask 077
-test ! -e "$WORK_DIR"
-mkdir -m 700 "$WORK_DIR"
-cd "$WORK_DIR"
-mkdir values evidence .lab
-)
+test ! -e "$WORK_DIR" &&
+  mkdir -m 700 "$WORK_DIR" &&
+  cd "$WORK_DIR" &&
+  mkdir values evidence .lab
+) && cd "$WORK_DIR"
 ```
 
-If setup fails, stop and resolve the input or directory state. Do not overwrite an existing directory. Otherwise:
-
-```bash
-cd "$WORK_DIR"
-```
-
-Keep Helm values and manifests in `values/`, sanitized results in `evidence/`, and protected kubeconfigs, SSH host keys and resource-creation records in `.lab/`. None of these directories requires Git.
+If setup fails, stop; do not reuse an existing directory. `values/` holds configuration, `evidence/` holds results used by later checks, and `.lab/` holds cluster access and resource records. All three are deleted at the end.
 
 ### Use the pinned packages
 
@@ -226,6 +220,6 @@ If your public IPv4 address changes, run "Update administrator access" in each b
 
 ## Keep recovery inputs accessible
 
-Secrets are generated on A. Keep them there for the exercise; do not copy them into configuration or evidence files. For continued operation beyond the lab, retain the required keys, credentials and recovery access independently of A before deleting it.
+Secrets are generated on A and remain there until teardown. Do not copy them into configuration or evidence files.
 
 Continue with [Install the applications](applications.md).
