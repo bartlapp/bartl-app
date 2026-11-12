@@ -23,6 +23,8 @@ Ruby and MessagePack are not required. Installing these tools does not install c
 
 ## Install and configure
 
+Agree new or replacement workstation dependencies with the affected operators before introducing them. Update this tool list, setup instructions and checks together; a new runtime is an operator prerequisite, not an invisible implementation detail.
+
 Use the platform package manager or the tools' official distributions. On macOS with Homebrew, install missing tools rather than upgrading an existing qualified toolchain blindly:
 
 ```bash
