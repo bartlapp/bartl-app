@@ -1,22 +1,22 @@
-# Fachliche Prüfung vor und nach Recovery
+# Exercise the service before and after recovery
 
-Vor dem ersten Block auf der Workstation den [Sitzungseinstieg](README.md#workstation-sitzungen-wieder-aufnehmen) laden:
-
-```bash
-source "${INSTALL_REPO:?}/.lab/workstation.env"
-```
-
-Alle Git-Arbeitskopien, Anhänge und Packages dieses Kapitels entstehen auf A unter `/root/bartl-reference/forgejo`. Keine Testdaten auf die Workstation laden. Vor Recovery muß der [native Login](Forgejo.md#browser-abnahme) den Forgejo-Benutzer `reference-user` angelegt haben.
-
-## Remote-Testclient
-
-Auf der Workstation die Sitzung öffnen:
+On the workstation, load the [variables and helpers](README.md#prepare-workstation-commands):
 
 ```bash
-(cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)
+source "${WORK_DIR:?}/.lab/workstation.env"
 ```
 
-In der SSH-Sitzung auf A:
+Keep all working copies, attachments and packages on A under `/root/bartl-reference/forgejo`, not on the workstation. Complete the [browser acceptance checks](forgejo.md#verify-browser-access) first: native login must have created `reference-user`.
+
+## Prepare the remote test client
+
+Open an SSH session from the workstation:
+
+```bash
+(cd "$WORK_DIR/.lab/a"; ssh -F .lab/ssh.config k3s)
+```
+
+Run the following on A:
 
 ```bash
 source /root/bartl-reference/installation.env
@@ -40,9 +40,7 @@ ENV
 source client.env
 ```
 
-`client.env` enthält nur die sichtbare Einrichtung des Testclients und eine authentifizierte curl-Abkürzung. Es installiert, sichert, migriert oder schaltet keinen Dienst um. Die folgenden Stationen bleiben einzelne manuell ausgeführte Befehlsblöcke.
-
-## Daten vor Recovery erzeugen
+## Create data before recovery
 
 ```bash
 forgejo_api --json '{"name":"reference","private":true,"auto_init":false,"default_branch":"main"}' \
@@ -73,7 +71,7 @@ git push origin review
 cd ..
 ```
 
-Vor dem nächsten Schreibaufruf den nativen Repository-Stand lesen. Der Repository-Owner muß Admin-Zugriff haben; das Repo darf weder leer noch Mirror sein, Pull Requests müssen aktiviert und beide Branches vorhanden sein. Nicht mit einer festen Schlafdauer oder automatischen Schreib-Retries über eine Ablehnung hinweggehen.
+The checks below must confirm a nonempty, non-mirror repository with admin access, pull requests enabled and both branches present. Stop on failure; do not mask a rejected request with delays or automatic write retries.
 
 ```bash
 forgejo_api "$FORGEJO_URL/api/v1/repos/reference-admin/reference" |
@@ -107,13 +105,13 @@ code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
 test "$code" = 403
 ```
 
-Stop-Punkt: Jeder Schreibaufruf muß erfolgreich sein. Bei einer Ablehnung den HTTP-Status und den tatsächlichen Zustand prüfen und die Ursache mit dem zuständigen Betreiber klären, statt eine Operation blind zu wiederholen. Ein erfolgreicher Git-Push belegt nicht automatisch, daß jede nachgelagerte native Repository-Funktion bereits verfügbar ist.
+If any write fails, inspect its HTTP status and actual state, then resolve the cause with the responsible operator before proceeding. A successful Git push does not prove downstream repository functions are available.
 
-Vor dem Wechsel zu [Lifecycle und Recovery](Recovery.md) die SSH-Sitzung mit `exit` verlassen. Die folgenden Abschnitte erst am dort bezeichneten Recovery-Stop-Punkt ausführen.
+Exit the SSH session and continue with [Lifecycle and recovery](recovery.md). Return here at its verification checkpoint.
 
-## Dieselben Daten nach Recovery prüfen
+## Verify the same data after recovery
 
-Nach der kontrollierten Hostnamenübernahme auf der Workstation erneut `(cd "$INSTALL_REPO/.lab/a"; ssh -F .lab/ssh.config k3s)` ausführen und auf A `client.env` laden. Eine neue Arbeitskopie verwenden, damit nicht versehentlich der alte Clientbestand als Restore-Nachweis dient.
+After the controlled hostname takeover, open a new session from the workstation with `(cd "$WORK_DIR/.lab/a"; ssh -F .lab/ssh.config k3s)`. The checks use fresh working copies: old client data cannot prove recovery.
 
 ```bash
 cd /root/bartl-reference/forgejo
@@ -143,7 +141,7 @@ forgejo_api "$FORGEJO_URL/api/v1/repos/reference-admin/reference/releases/tags/v
   jq -e '.name=="Reference release"'
 ```
 
-SSH mit dem schon vor Recovery verifizierten Hostschlüssel benutzen. Keine neue Vertrauensentscheidung treffen. Auf der Workstation zusätzlich den öffentlichen Hostschlüssel aus C mittels `kubectl exec` lesen und mit `evidence/forgejo-host-key.pub` vergleichen, wie vor der Recovery.
+Use the previously verified SSH host key; do not accept a new one. From the workstation, also read C's public host key with `kubectl exec` and compare it with `evidence/forgejo-host-key.pub`, as before recovery.
 
 ```bash
 GIT_LFS_SKIP_SMUDGE=1 git clone \
@@ -159,6 +157,6 @@ code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
 test "$code" = 403
 ```
 
-Im Browser alte Forgejo- und Keycloak-Cookies verwerfen und neu über "Sign in with keycloak" anmelden. Der Benutzer muß dasselbe private Repository lesen können. Seine Leseberechtigung darf durch Recovery nicht zu Administration werden. Keycloak-User-ID und Client-ID mit den auf A behaltenen IDs vergleichen. Erst nach diesen Kontrollen den eingeschränkten Kandidaten öffnen. Nach dem neuen Write ist ein Rückwechsel auf B keine verlustfreie Rücknahme mehr.
+Clear the old Forgejo and Keycloak browser cookies and sign in through "Sign in with keycloak". Confirm that `reference-user` can still read the private repository without gaining administration rights. Compare the Keycloak user and client IDs with those retained on A. Open access to the restricted candidate only after all checks pass. After the new write on C, switching back to B is no longer a lossless rollback.
 
-Nach Abschluß der Client-Prüfung die SSH-Sitzung mit `exit` verlassen und auf der Workstation im Recovery-Kapitel fortfahren.
+Exit the SSH session and resume [Lifecycle and recovery](recovery.md) on the workstation.

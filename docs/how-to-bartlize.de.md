@@ -6,7 +6,7 @@ Die unterstützten Verfahren, die ein sachkundiger Administrator ausführen wür
 
 Der [Anwendungsvertrag](https://github.com/bartlapp/bartl-app/blob/main/docs/application-contract.md) definiert das Verhalten. Dieser Leitfaden erklärt die Umsetzung, ohne Kubernetes oder eine gemeinsame Runtime vorzuschreiben.
 
-Entwickler beginnen mit dem folgenden Verfahren. Administratoren beginnen beim [Kundeninstallationsrepo](#kundeninstallationsrepo) und bei [Betrieb und Übergabe](#eine-installation-betreiben-und-übergeben). Das erforderliche Projektwissen liegt in den `bartlapp`-Repos und ihrer referenzierten Upstream-Dokumentation. Tatsächliche Installationswerte und geschützte Eingaben gehören zum Kunden, nicht in diesen Leitfaden oder ein privates Entwicklungsrepo.
+Entwickler beginnen mit dem folgenden Verfahren. Administratoren beginnen bei den [Installationseingaben](#installationseingaben) und bei [Betrieb und Übergabe](#eine-installation-betreiben-und-übergeben). Gemeinsame Verfahren liegen in den `bartlapp`-Repos und ihrer referenzierten Upstream-Dokumentation. Tatsächliche Installationswerte und geschützte Eingaben bleiben vom gemeinsamen Source getrennt.
 
 ## Mit einer unterstützten Konfiguration beginnen
 
@@ -62,23 +62,21 @@ Das [Restic-Paket](https://github.com/bartlapp/bartl-restic) verantwortet Backup
 
 Der Installation Administrator koordiniert Anwendungen, Infrastruktur, Endpunkte und Quellstillsetzung über die dokumentierten Schnittstellen. Ein Company- oder Installation Controller ist nicht erforderlich. Ein zukünftiger Controller darf diese Sequenz automatisieren; gewöhnlicher Anwendungsbetrieb und Betreiberübergabe dürfen nicht von ihm abhängen. Erforderliche Application Controller, native Verfahren, Backup-Schnittstellen und Scheduling verbleiben bei der Installation.
 
-## Kundeninstallationsrepo
+## Installationseingaben
 
-Vor der Provisionierung ein kundenseitig kontrolliertes Repo für die Installation anlegen. Sein README ist der Einstieg für den Administrator und die vorgesehene Eingabegrenze zukünftiger Installationsautomation. Heute benennt es wirksame Dateien und dokumentierte Befehle; ein zusätzliches Controller-Schema oder ein privater Compiler ist nicht erforderlich.
+Betrieb und Recovery benötigen die wirksame Konfiguration, gewählte Releases und geschützte Eingaben. Ihre Ablage ist eine betriebliche Entscheidung, keine Pflicht, ein weiteres Repo anzulegen.
 
-Gemeinsame Verfahren bleiben in `bartlapp`. Das Kundenrepo hält ihre konkrete Anwendung fest:
+Diese installationsspezifischen Eingaben und Ergebnisse müssen verfügbar bleiben:
 
 | Eintrag | Erforderlicher Installationsinhalt |
 | --- | --- |
 | Zusammensetzung und Identität | Stabile Installations-/Anwendungsidentitäten, gewählte Dienste und Abhängigkeiten, Zuordnung zu Cluster, Kontext, Namespace und Helm-Release, Endpunkte und verantwortliche Betreiber. Platzierung und Paketversion sind keine Anwendungsidentität. |
 | Releases und Konfiguration | Exakte Chart-/Image-Referenzen, unterstützte Übergänge, vollständige wirksame Helm-Werte und Ressourcen-/Storage-Anforderungen. Artefakte unabhängig beziehbar erhalten; Source-Commit oder bewegliches Tag genügen nicht. |
-| Geschützte Eingaben | Referenzen auf kundenseitig kontrollierte Credentials, Identitäts-Secrets, Schlüssel, Zertifikate und Recovery-Zugänge samt dokumentiertem Abruf. Recovery darf weder verlorenen Cluster noch dessen Keycloak oder den Autor benötigen. Keine Klartext-Secrets oder aktiven kubeconfigs committen. |
+| Geschützte Eingaben | Kundenseitig kontrollierte Credentials, Identitäts-Secrets, Schlüssel, Zertifikate und Recovery-Zugänge samt dokumentiertem Abruf. Recovery darf weder verlorenen Cluster noch dessen Keycloak oder den Autor benötigen. Klartext-Secrets und aktive kubeconfigs gehören weder in gemeinsamen Source noch in Nachweise. |
 | Betriebsentscheidungen | Zulässige Unterbrechung und Datenverlust, Quellstillsetzung, Backup-/Replikationspläne, Retention-Politik, Kapazitäts- und Alarmierungsverantwortung, fachliche Abnahme sowie erforderlicher Umgang mit wiederhergestellten Identitäten oder Records. |
 | Verfahren und Ergebnisse | Abhängigkeitsreihenfolge, Links auf Paketbefehle, installationsspezifische Abweichungen, aktive Ziel-/Ressourcenidentitäten, gewählte Recovery-Punkte, Abnahmeergebnisse und ungeklärte Fehler. Sollwerte und beobachtete Ergebnisse bleiben getrennt. |
 
-Beispielsweise führt `README.md` den Einstieg, `installation.env` nicht geheime Release-/Endpoint-Werte, `values/` vollständige Helm-Werte je Dienst und `evidence/` ausgewählte Installationsergebnisse. `.lab/` für vorübergehende geschützte Zugangsdateien ignorieren. Diese Namen veranschaulichen den [Referenzdurchlauf](https://github.com/bartlapp/bartl-app/blob/main/docs/reference-installation/README.md), kein neues maschinenlesbares Schema. Ein ignoriertes Verzeichnis ist weder unabhängige Secret-Verwahrung noch Backup.
-
-Das Repo muß während des abgedeckten Ausfalls erreichbar und an einen Nachfolger übergebbar bleiben. Es beschreibt die Verwahrung von Software, Backup-Historie und geschützten Eingaben; Git ersetzt keinen dieser Bestände. Kundenentscheidungen werden hier einmal festgehalten, nicht in gemeinsame Paketdokumentation kopiert. Ein neuer Kunde trifft eigene Entscheidungen, statt die Risikoannahme des Beispiels zu übernehmen.
+Der [Referenzdurchlauf](https://github.com/bartlapp/bartl-app/blob/main/docs/reference-installation/README.md) verwendet ein Arbeitsverzeichnis für Konfiguration, geschützte Zugangsdateien und kleine Betriebsnachweise. Die erforderlichen Eingaben müssen während des abgedeckten Ausfalls erreichbar und an einen Nachfolger übergebbar bleiben. Gemeinsame Paketdokumentation beschreibt wiederverwendbare Verfahren, nicht die Werte oder Risikoentscheidungen einer einzelnen Installation.
 
 ## Eine Installation betreiben und übergeben
 
@@ -90,7 +88,7 @@ Für Upgrades und Recovery gewähltes Release und wirksame Werte erhalten, den u
 
 Für Stop, Deinstallation und unterstützte Neuinstallation mit erhaltenem Zustand das Paketverfahren befolgen und dessen aktuelle Operation bis zum Abschluß oder sichtbaren Fehler beobachten. Die Finalisierung bleibt verfügbar, bis eigene Arbeit beendet ist. Daten nur nach ausdrücklicher Kundenentscheidung erhalten oder vernichten; anschließend ausschließlich identifizierte Infrastruktur- und DNS-Ressourcen entfernen. Anwendungsentfernung und Infrastrukturrückbau sind getrennte Vorgänge.
 
-Ein Nachfolger erhält administrative Kontrolle, Installationsrepo, nutzbare Release-Artefakte und Lizenzen, Backup-Historie, geschützte Eingaben sowie Betriebs- und Abnahmeverfahren. Fortgesetzte Backups und erforderliches Scheduling ohne unsere Dienste prüfen; Nachfolgeüberwachung vereinbaren, alte Automation stoppen und bisherige Zugänge widerrufen. Der Nachfolger darf eigene Werkzeuge verwenden, muß aber keine fehlenden Anwendungsprozeduren erfinden.
+Ein Nachfolger erhält administrative Kontrolle, wirksame Installationskonfiguration, nutzbare Release-Artefakte und Lizenzen, Backup-Historie, geschützte Eingaben sowie Betriebs- und Abnahmeverfahren. Fortgesetzte Backups und erforderliches Scheduling ohne unsere Dienste prüfen; Nachfolgeüberwachung vereinbaren, alte Automation stoppen und bisherige Zugänge widerrufen. Der Nachfolger darf eigene Werkzeuge verwenden, muß aber keine fehlenden Anwendungsprozeduren erfinden.
 
 ## Beispiel: Keycloak
 

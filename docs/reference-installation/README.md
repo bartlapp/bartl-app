@@ -1,39 +1,51 @@
-# Bartl-Referenzaufbau auf drei K3s-Clustern
+# Recovering a Bartl installation on a separate cluster
 
-Diese manuelle Übung baut drei getrennte K3s-Cluster im eigenen Hetzner-Projekt auf, prüft den Betrieb und die unabhängige Recovery zweier Anwendungen und baut die Übungsressourcen wieder zurück. Einstieg und gemeinsame Eingaben stehen hier; die folgenden Kapitel führen durch die einzelnen Stationen.
+Recover Keycloak and Forgejo on a separate K3s cluster with their source powered off. Check login, data, permissions, new writes and their backups, then remove the lab.
 
-## Ziel und Zuständigkeit
+## What we are testing
 
-Drei eigenständige Single-Node-Cluster trennen Backup, laufende Anwendungen und Ersatz. A betreibt bartl-restic. B betreibt bartl-keycloak und bartl-forgejo mit Forgejos nativer OpenID-Connect-Anbindung an Keycloak. C enthält zunächst nur die K3s-Basis. Auf C werden beide Anwendungen aus ihren Backups rekonstruiert, geprüft und kontrolliert übernommen. A bleibt dabei verfügbar. Anschließend müssen beide Anwendungen auf C neue Backups erzeugen.
+Use three independent single-node clusters in your Hetzner Cloud project. A runs Restic and holds recovery inputs and the test client. B runs Keycloak and Forgejo with native OpenID Connect integration. C starts empty and becomes the replacement. A remains available; this exercise does not cover its loss.
 
-Der Installation Administrator führt jeden dienstübergreifenden Schritt selbst aus. Helm deklariert die Absicht; die vorhandenen Application Controller erledigen die internen Verfahren. Es gibt weder Company Controller noch ein Gesamt-Orchestrierungsskript. Bei einem Defekt oder einer ungeklärten Voraussetzung anhalten und die Ursache mit dem zuständigen Betreiber klären. Keine stillen Reparaturen, Versionswechsel oder Ausweichverfahren.
+You perform cross-service steps; the Application Controllers handle their internal procedures. Stop on failures or unclear prerequisites and resolve the cause with the responsible operator. Do not substitute versions or improvise repairs.
 
-Die Übung verwendet ausschließlich synthetische Anwendungsdaten. Testdaten, Images, Backups, Datenbanken und Build-Artefakte gehören nicht auf die Workstation. Auf ihr liegen nur Git-Quellen, Installationswerte, geschützte Clusterzugänge und kleine Betriebsnachweise. Für diese Übung entstehen keine Builds. Der Backup-Host A hält später auch die geschützten Recovery-Eingaben und den Testclient; der Ausfall von A gehört nicht zu diesem Durchlauf.
+Use synthetic data and published packages; no builds are needed. Keep application data, images, backups and databases off the workstation. It holds only sources, installation values, protected access files and small operational records.
 
-Maßgeblich sind die [Kubernetes-Betriebspakete](https://github.com/bartlapp/bartl-app/blob/main/docs/how-to-bartlize.md#kubernetes-operating-packages), das [Kundeninstallationsrepo](https://github.com/bartlapp/bartl-app/blob/main/docs/how-to-bartlize.md#customer-installation-repository) und die [Betriebs- und Übergabeanforderungen](https://github.com/bartlapp/bartl-app/blob/main/docs/how-to-bartlize.md#operate-and-hand-over-an-installation). Die Paket-READMEs für [Restic](https://github.com/bartlapp/bartl-restic/blob/main/README.md), [Keycloak](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md) und [Forgejo](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md) besitzen die jeweiligen nativen Betriebsverfahren. Die festen öffentlichen OCI-Artefakte unten erfordern keinen Zugriff auf private Sources.
+## Follow the sequence
 
-## Reihenfolge
+Complete this page, then:
 
-1. Hier Budget prüfen, privates Installationsrepo initialisieren und drei K3s-Basen aufbauen.
-2. [Anwendungen installieren](Anwendungen.md): DNS, Restic auf A und Keycloak auf B.
-3. [Forgejo integrieren](Forgejo.md): native Konfiguration, Storage, SSH und Keycloak-Anbindung.
-4. [Fachliche Prüfung](Pruefung.md): synthetische Daten, Git, LFS, PR, Issue, Anhang, Release und Package.
-5. [Lifecycle und Recovery](Recovery.md): Backups, Paket-Upgrades, Restart, Stop/Start, finaler Capture, Fencing von B, Rekonstruktion und Upgrade auf C, Restic-Reinstall mit behaltenem PVC, kontrollierte Öffnung und neue Backups.
-6. [Removal und Rückbau](Rueckbau.md): Forgejo-Reinstall mit behaltenen PVCs, Abruf neuer Arbeit aus dem anschließenden Backup, Belege und Ressourcenlöschung.
+1. [Install Restic and Keycloak](applications.md).
+2. [Integrate Forgejo](forgejo.md).
+3. [Create and verify service data](verification.md).
+4. [Exercise lifecycle and recovery](recovery.md).
+5. [Clean up](#cleanup).
 
-Die Blöcke sind eine einmalige Sequenz, kein idempotentes Installationsskript. Nach einem Stop-Punkt den tatsächlichen Zustand feststellen; nicht ganze Kapitel erneut ausführen. Die Kapitel unterscheiden Workstation und SSH-Sitzung ausdrücklich. Nach einem Terminalwechsel die in diesem Kapitel gesetzten Variablen wieder laden.
+Use one workstation Bash session and run the blocks once, in order.
 
-## Kosten vor dem ersten Server prüfen
+## Prerequisites and cost
 
-Ein eigenes Hetzner-Cloud-Projekt mit aktivierter Abrechnung, einem eigenen Read/Write-API-Token und Kapazität für drei Debian-13-amd64-VMs vom Typ CPX32 in nbg1 bereitstellen. Projektname und Budgetfreigabe im Installationsrepo festhalten. Ausschließlich dieses freigegebene Projekt verwenden. Auf der Workstation werden Bash, Git, hcloud, jq, curl, OpenSSH mit geladenem Schlüssel, dig, OpenSSL 3, Helm 4.3.0 und ein zu Kubernetes 1.36 kompatibles kubectl benötigt. Die Workstation benötigt öffentliche IPv4-Konnektivität zu SSH und Kubernetes-API. Für die DNS-Befehle dieser Übung ist eine eigene, bereits delegierte deSEC-Zone mit eigenem Token zum Lesen, Anlegen, Ändern und Löschen ihrer Records erforderlich. Niemals fremde Tokens oder Zonen verwenden. Andere DNS-Provider erfordern ein entsprechend dokumentiertes Verfahren und sind nicht die hier gezeigte Variante. Niemals Shell-Tracing einschalten.
+You need:
 
-Tokens geschützt laden oder in der Bash ohne Shell-History-Eintrag eingeben:
+- A dedicated Hetzner project with billing enabled, a read/write token and capacity for three Debian 13 amd64 CPX32 VMs in `nbg1`.
+- Your own delegated deSEC zone and a token with record read/write/delete access.
+- The tools and shell setup from [Operator workstation](../operator-workstation.md), with kubectl compatible with Kubernetes 1.36 for this profile.
+- Public IPv4 access from the workstation to SSH and the Kubernetes API.
+
+In Bash, disable tracing and history before entering tokens. Keep secret values out of Git.
 
 ```bash
-read -r -s -p 'Hetzner project token: ' HCLOUD_TOKEN; printf '\n'
-read -r -s -p 'deSEC token for your own zone: ' DESEC_TOKEN; printf '\n'
-export HCLOUD_TOKEN DESEC_TOKEN
+set +x
+set +o history
 ```
+
+Fill in this variable block, then run it:
+
+```bash
+export HCLOUD_TOKEN=''  # Token for your Hetzner project
+export DESEC_TOKEN=''   # Token for your deSEC zone
+```
+
+Inspect existing resources and current prices:
 
 ```bash
 hcloud server list
@@ -50,80 +62,43 @@ hcloud api /pricing | jq '.pricing | {
 }'
 ```
 
-Die aktuellen Stundenpreise für drei Server und drei IPv4-Adressen, Steuern, Inklusivtraffic und mögliche Zusatzkosten gegen das eigene freigegebene Gesamtbudget rechnen. Währung, Preisstand, Rechnung und Reserve im Installationsrepo behalten. Diese Anleitung enthält weder eine Budgetfreigabe noch einen festen Providerpreis.
+Check the cost of three servers and three IPv4 addresses, including taxes and traffic, against your approved budget. Use only your dedicated project; add no volumes, load balancers, snapshots or paid backups. Plan when to delete the lab. Teardown is manual, and powered-off servers still cost money.
 
-Stop-Punkt vor Provisionierung: Preise, Projekt, verfügbare Kapazität, Inklusivtraffic und Löschtermin prüfen. Keine zusätzlichen Volumes, Load Balancer, Snapshots oder kostenpflichtigen Backups bestellen. Einen konkreten UTC-Löschtermin vor dem ersten Server festlegen und die eigens erzeugten Ressourcen spätestens dann löschen; bei einer Unterbrechung ihre laufenden Kosten ausdrücklich berücksichtigen. Ein ausgeschalteter Server beendet die Berechnung nicht. Es ist kein automatischer Rückbau eingerichtet.
+## Create a working directory
 
-## Privates Installationsrepo initialisieren
+Use an absolute path outside your source repositories. If a previous lab exists there, [clean up](#cleanup) before running setup. Everything created here is temporary.
 
-Die wiederverwendbare Anleitung bleibt in bartl-app. Die tatsächlichen Werte, Secret-Verwahrungsreferenzen und Nachweise gehören in ein eigenes Repo je Kundeninstallation. Das folgende Repo bleibt lokal und privat, ohne Remote. Eine spätere Veröffentlichung oder ein Remote-Push gehört nicht zu diesen Befehlen. Recovery darf nicht vom Forgejo abhängen, das gerade wiederhergestellt werden soll.
-
-In einer Bash auf der Workstation die eigenen Eingaben erfassen. Der absolute Zielordner muß neu sein. Den SSH-Key zuvor im eigenen Projekt registrieren, wie in der K3s-Anleitung beschrieben, und hier dessen Namen eingeben. Die eigenständig zugängliche geschützte Verwahrung muß unabhängig von B und vom wiederherzustellenden Forgejo sein; für dauerhaften Betrieb auch unabhängig von A.
+Set `SSH_KEY_NAME` to a name from `hcloud ssh-key list`. If your loaded public key is not registered yet, register it using the [K3s guide](https://github.com/bartlapp/base-k3s/blob/main/README.md) first.
 
 ```bash
-read -r -p 'New absolute installation repository path: ' INSTALL_REPO
-read -r -p 'Hetzner project name: ' HCLOUD_PROJECT
-read -r -p 'Your delegated deSEC zone: ' DNS_ZONE
-read -r -p 'Existing project SSH key name: ' SSH_KEY_NAME
-read -r -p 'Approved total cost limit (including reserve): ' MAX_COST
-read -r -p 'Budget currency: ' BUDGET_CURRENCY
-read -r -p 'Deletion deadline (UTC, ISO 8601): ' DELETE_BY_UTC
-read -r -p 'Independent protected custody reference (no secret): ' SECRET_CUSTODY_REF
-export INSTALL_REPO
+export WORK_DIR="$HOME/bartl-lab"
 export K3S_SOURCE="$HOME/repos/bartlapp/base-k3s"
+DNS_ZONE=''             # Your delegated deSEC zone
+SSH_KEY_NAME=''         # Registered Hetzner key name
+```
+
+Create and enter the directory:
+
+```bash
 export INSTALLATION="bartl-$(date -u +%Y%m%d%H%M%S)-$(openssl rand -hex 3)"
 export DNS_SUFFIX="$INSTALLATION.$DNS_ZONE"
 (
-set -euo pipefail
-: "${INSTALL_REPO:?}" "${HCLOUD_PROJECT:?}" "${DNS_ZONE:?}" "${SSH_KEY_NAME:?}"
-: "${MAX_COST:?}" "${BUDGET_CURRENCY:?}" "${DELETE_BY_UTC:?}" "${SECRET_CUSTODY_REF:?}"
-case "$INSTALL_REPO" in /*) ;; *) printf 'Absolute path required\n' >&2; exit 1;; esac
+set -u
+: "${WORK_DIR:?}" "${DNS_ZONE:?}" "${SSH_KEY_NAME:?}"
+case "$WORK_DIR" in /*) ;; *) printf 'Absolute path required\n' >&2; exit 1;; esac
 umask 077
-test ! -e "$INSTALL_REPO"
-mkdir -m 700 "$INSTALL_REPO"
-git init --initial-branch=work-reference-installation "$INSTALL_REPO"
-cd "$INSTALL_REPO"
-mkdir values evidence .lab
-printf '%s\n' "Project: $HCLOUD_PROJECT" "Approved limit: $MAX_COST $BUDGET_CURRENCY" \
-  "Delete by UTC: $DELETE_BY_UTC" "Protected custody reference: $SECRET_CUSTODY_REF" > evidence/operator-inputs.txt
-printf '.lab/\n' > .gitignore
-cat > README.md <<EOF
-# Installation $INSTALLATION
-
-Diese lokale private Installationsakte beginnt mit der Vorbereitung einer synthetischen Übung. Sie behauptet noch kein erfolgreiches Installations-, Recovery- oder Rückbauergebnis.
-
-## Auftrag und Grenzen
-
-- Eigenes Hetzner-Projekt: $HCLOUD_PROJECT
-- Eigene DNS-Zone bei deSEC: $DNS_ZONE
-- Freigegebenes Gesamtbudget einschließlich Reserve: $MAX_COST $BUDGET_CURRENCY
-- Verbindlicher Löschtermin in UTC: $DELETE_BY_UTC
-- Geschützte Verwahrung, nur Referenz ohne Secret-Inhalt: $SECRET_CUSTODY_REF
-
-A hält Backup-Dienst, Recovery-Eingaben und Testclient. B betreibt Keycloak und Forgejo. C dient als unabhängiger Ersatz. Geprüft werden soll die Recovery bei ausgeschaltetem B, einschließlich nativer Anmeldung, erhaltener Daten und Rechte, neuer Writes und deren Backup. Ein gleichzeitiger Verlust von A und B gehört nicht zum Umfang. Für dauerhaften Betrieb müssen die Eingaben zusätzlich unabhängig von A verwahrt werden.
-
-## Betrieb und Nachweise
-
-Die [manuelle Ablaufanleitung](https://github.com/bartlapp/bartl-app/blob/main/docs/reference-installation/README.md) besitzt die vollständigen Aufbau-, Prüf-, Recovery- und Rückbauschritte. Dienstübergreifende Schritte bleiben menschliche Aufgaben.
-
-[installation.env](installation.env) hält die ausgewählten unveränderlichen Pakete und nicht geheimen Eingaben. [values/](values/) hält die deklarierte Absicht, eigene Infrastrukturmanifeste und vor dem Abschalten exportierte wirksame Helm-Werte. [evidence/](evidence/) hält die eigenen Eingaben und die im Ablauf erzeugten bereinigten Resultate. Secret-Namen, Zweck, Eigentümer und tatsächliche Verwahrungsreferenzen werden dort ohne Secret-Inhalte festgehalten.
-
-Den aktuellen Betriebspunkt, Abweichungen und tatsächliche Ergebnisse beim Erreichen jeder Schreibgrenze hier nachtragen. Erfolg nur mit den zugehörigen erhaltenen Nachweisen festhalten. Vor dem Löschen von A entscheiden, ob die synthetischen Recovery-Eingaben verworfen werden dürfen oder für eine fortbestehende Installation unabhängig geschützt erhalten bleiben müssen.
-EOF
-)
+test ! -e "$WORK_DIR" &&
+  mkdir -m 700 "$WORK_DIR" &&
+  cd "$WORK_DIR" &&
+  mkdir values evidence .lab
+) && cd "$WORK_DIR"
 ```
 
-Bei einem Fehler im begrenzten Initialisierungsblock hier anhalten und die Eingabe oder den tatsächlichen Verzeichniszustand klären. Die interaktive Shell bleibt offen; nicht mit den Folgeblöcken fortfahren und kein vorhandenes Repository überschreiben.
+If setup fails, [clean up](#cleanup) before trying again.
 
-Nur nach erfolgreichem Initialisierungsblock ins neue Repo wechseln:
+### Use the pinned packages
 
-```bash
-cd "$INSTALL_REPO"
-```
-
-`values/` enthält die vollständigen wirksamen Helm-Werte ohne Secret-Inhalte. `evidence/` enthält kleine, bereinigte Betriebsnachweise. `.lab/` bleibt außerhalb von Git; dort liegen insbesondere kubeconfigs, SSH-Hostschlüssel und Erzeugungsbelege. Paßwörter und sonstige Secret-Inhalte werden nicht in Git aufgenommen.
-
-Die Paketwahl ist Bestandteil der Anleitung, keine weitere freie Eingabe:
+Keep these pins unchanged:
 
 ```bash
 cat > installation.env <<EOF
@@ -150,26 +125,26 @@ helm show chart "$KEYCLOAK_CHART"
 helm show chart "$FORGEJO_CHART"
 ```
 
-Erwartet werden Restic 0.2.0 und 0.2.1, Keycloak 0.5.0 und 0.5.1 sowie Forgejo-Paket 0.1.0. Keycloak verwendet in beiden Paketen nativ 26.6.2. Der native Versionsübergang dieser Übung ist Forgejo 16.0.7 auf 17.0.1. Keine Image-Overrides und keine beweglichen Chart-Tags verwenden.
+Expect Restic 0.2.0 and 0.2.1, Keycloak packages 0.5.0 and 0.5.1, and Forgejo package 0.1.0. Native Keycloak stays at 26.6.2; Forgejo upgrades from 16.0.7 to 17.0.1. Use no image overrides or mutable chart tags.
 
-## Drei unabhängige K3s-Basen aufbauen
+## Build three independent K3s bases
 
-Die [bestehende K3s-Anleitung](https://github.com/bartlapp/base-k3s/blob/main/README.md) besitzt die Provisionierungs-, SSH-, Installations- und Rückbaubefehle. Nicht drei Nodes zu einem gemeinsamen Cluster verbinden. Jeder Durchlauf installiert einen eigenen K3s-Server ohne Join-Token eines anderen Clusters.
+Follow the [K3s guide](https://github.com/bartlapp/base-k3s/blob/main/README.md) three times, creating independent servers without joining nodes.
 
-Das Repository `base-k3s` unter dem oben gesetzten Pfad als Geschwisterrepo der Bartl-Repositories aus `https://github.com/bartlapp/base-k3s.git` klonen, falls es noch nicht vorhanden ist. Drei getrennte Arbeitskopien verhindern, daß die `.lab/kubeconfig` oder `.lab/ssh.config` der K3s-Anleitung den vorherigen Cluster überschreibt:
+Clone `https://github.com/bartlapp/base-k3s.git` to `$K3S_SOURCE` if absent. Separate working copies prevent one cluster's kubeconfig and SSH configuration from overwriting another's:
 
 ```bash
-git clone --no-hardlinks "$K3S_SOURCE" "$INSTALL_REPO/.lab/a"
-git clone --no-hardlinks "$K3S_SOURCE" "$INSTALL_REPO/.lab/b"
-git clone --no-hardlinks "$K3S_SOURCE" "$INSTALL_REPO/.lab/c"
+git clone --no-hardlinks "$K3S_SOURCE" "$WORK_DIR/.lab/a"
+git clone --no-hardlinks "$K3S_SOURCE" "$WORK_DIR/.lab/b"
+git clone --no-hardlinks "$K3S_SOURCE" "$WORK_DIR/.lab/c"
 ```
 
-Den folgenden Einstieg nacheinander mit `SLOT=a`, `SLOT=b` und `SLOT=c` verwenden:
+Repeat for `SLOT=a`, `SLOT=b` and `SLOT=c`:
 
 ```bash
 SLOT=a
-cd "$INSTALL_REPO/.lab/$SLOT"
-source "$INSTALL_REPO/installation.env"
+cd "$WORK_DIR/.lab/$SLOT"
+source "$WORK_DIR/installation.env"
 export NAME="$INSTALLATION-$SLOT"
 export LOCATION SERVER_TYPE SSH_KEY_NAME
 SSH_PUBLIC_KEY=$(ssh-add -L)
@@ -177,17 +152,17 @@ export SSH_PUBLIC_KEY="${SSH_PUBLIC_KEY%%$'\n'*}"
 export STATE="$PWD/.lab/$NAME"
 ```
 
-Jetzt in dieser Arbeitskopie die K3s-Anleitung ab "Create the VM with Hetzner" ausführen. Die gerade gesetzten Werte nicht durch die dortigen Beispielwerte ersetzen. Den vorhandenen Projekt-SSH-Key wiederverwenden. Danach "Connect and follow logs", "Install K3s", "Enable workstation access", "Install certificate management" und "Verify and hand over the base" vollständig ausführen. Den optionalen Hello-World-Durchlauf auslassen.
+In each copy, follow the K3s guide from "Create the VM with Hetzner" through "Verify and hand over the base", including SSH, workstation access and certificate management. Keep the values above and reuse the registered SSH key. Skip Hello World.
 
-Erfolgskontrolle je Cluster: ein Ready-Node, verfügbare CoreDNS-, local-path-, Traefik- und cert-manager-Deployments, default StorageClass `local-path`, Traefik-IngressClass, vorhandene KUBE-ROUTER-FORWARD-Regeln und korrekt zugeordnete Hetzner-Firewall. SSH und Kubernetes-API dürfen nur von der Administrator-IPv4 erreichbar sein; HTTP und HTTPS werden für die späteren Endpunkte benötigt.
+Each cluster must have one Ready node; available CoreDNS, local-path, Traefik and cert-manager deployments; default StorageClass `local-path`; the Traefik IngressClass; KUBE-ROUTER-FORWARD rules; and the correct Hetzner firewall. Restrict SSH and the Kubernetes API to the administrator's IPv4 address; allow HTTP and HTTPS.
 
-Nach allen drei Durchläufen auf der Workstation zurück ins Installationsrepo wechseln:
+After all three passes, on the workstation:
 
 ```bash
-cd "$INSTALL_REPO"
-export KA="$INSTALL_REPO/.lab/a/.lab/kubeconfig"
-export KB="$INSTALL_REPO/.lab/b/.lab/kubeconfig"
-export KC="$INSTALL_REPO/.lab/c/.lab/kubeconfig"
+cd "$WORK_DIR"
+export KA="$WORK_DIR/.lab/a/.lab/kubeconfig"
+export KB="$WORK_DIR/.lab/b/.lab/kubeconfig"
+export KC="$WORK_DIR/.lab/c/.lab/kubeconfig"
 for config in "$KA" "$KB" "$KC"; do
   kubectl --kubeconfig "$config" config current-context
   kubectl --kubeconfig "$config" get namespace kube-system \
@@ -196,23 +171,23 @@ done
 kubectl --kubeconfig "$KC" get namespaces,pvc --all-namespaces
 ```
 
-Die drei `kube-system`-UIDs müssen verschieden sein. C darf noch keine Anwendungsnamespaces oder PVCs enthalten. Ab hier immer den angegebenen kubeconfig verwenden; niemals aus dem zuletzt verwendeten Terminal auf den Zielcluster schließen.
+The three `kube-system` UIDs must differ. C must have no application namespaces or PVCs. Always select the target cluster explicitly by kubeconfig.
 
-## Workstation-Sitzungen wieder aufnehmen
+## Prepare workstation commands
 
-Nach dem Basisaufbau folgenden geschützten lokalen Sitzungseinstieg erzeugen. Er enthält keine Tokens. Die kleinen Dateien unter `.lab/` bleiben geschützt und außerhalb von Git.
+After the base setup, create the shared variables and helpers used by the following chapters:
 
 ```bash
 cat > .lab/workstation.env <<'ENV'
-: "${INSTALL_REPO:?Absolute path of your installation repository required}"
+: "${WORK_DIR:?Absolute path of your working directory required}"
 : "${HCLOUD_TOKEN:?Load your own project token from protected custody}"
 : "${DESEC_TOKEN:?Load your own deSEC zone token from protected custody}"
 export HCLOUD_TOKEN DESEC_TOKEN
-cd "$INSTALL_REPO"
+cd "$WORK_DIR"
 source installation.env
-export KA="$INSTALL_REPO/.lab/a/.lab/kubeconfig"
-export KB="$INSTALL_REPO/.lab/b/.lab/kubeconfig"
-export KC="$INSTALL_REPO/.lab/c/.lab/kubeconfig"
+export KA="$WORK_DIR/.lab/a/.lab/kubeconfig"
+export KB="$WORK_DIR/.lab/b/.lab/kubeconfig"
+export KC="$WORK_DIR/.lab/c/.lab/kubeconfig"
 A_IP=$(cat ".lab/a/.lab/$INSTALLATION-a/host")
 B_IP=$(cat ".lab/b/.lab/$INSTALLATION-b/host")
 C_IP=$(cat ".lab/c/.lab/$INSTALLATION-c/host")
@@ -234,8 +209,62 @@ source .lab/workstation.env
 git -C "$K3S_SOURCE" rev-parse HEAD > evidence/base-k3s-revision.txt
 ```
 
-In jedem neuen Workstation-Terminal `INSTALL_REPO` wieder auf den eigenen absoluten Pfad setzen, die zwei eigenen API-Tokens geschützt laden und `source "$INSTALL_REPO/.lab/workstation.env"` ausführen. Hat sich die Administrator-IPv4 geändert, zuerst in jedem Basis-Checkout das dokumentierte Verfahren "Update administrator access" ausführen und die späteren anwendungsspezifischen Allowlisten ebenfalls kontrolliert anpassen. SSH-Befehle der Folgekapitel öffnen jeweils eine eigene A-Sitzung; nach `exit` geht es auf der Workstation weiter.
+If your public IPv4 address changes, run "Update administrator access" in each base checkout and update application allowlists. After an SSH `exit`, continue on the workstation.
 
-Die Secret-Inhalte werden auf A erzeugt, nicht ins Installationsrepo kopiert. Dort ihre Namen, Zweck, Eigentümer und die tatsächlichen geschützten Verwahrungsreferenzen festhalten. A ist in dieser Übung ein unabhängiger Recovery-Eingabeträger gegenüber B; der gemeinsame Verlust von A und B wird nicht geprüft. Vor dauerhafter Übergabe müssen Repository-Schlüssel, Reader-/Writer-/Admin-Credentials, native Konfiguration und Identity-Secrets, Keycloak-Recovery-Zugang und administrative Infrastrukturzugänge zusätzlich in der benannten kundenseitig kontrollierten Verwahrung liegen. Ihre Lesbarkeit ohne die zu rettenden Dienste prüfen. Aufbewahrungsdauer, zulässigen Datenverlust, Recovery-Zeit und Löschverantwortung vor einem dauerhaften Betrieb festlegen; der Lab-Rückbau verwirft ausschließlich die hier erzeugten synthetischen Daten.
+## Keep recovery inputs accessible
 
-Weiter mit [Anwendungen installieren](Anwendungen.md).
+Secrets are generated on A and remain there until teardown. Do not copy them into configuration or evidence files.
+
+Continue with [Install the applications](applications.md).
+
+## Cleanup
+
+Remove only resources created by this run. Keep `$WORK_DIR` until cloud cleanup is complete; it contains the access files and resource identities needed for deletion. If nothing was provisioned, go straight to [local deletion](#delete-the-local-directory).
+
+For an earlier attempt, use its `installation.env` and `.lab/` records to identify its resources, not a newly generated installation name.
+
+On the workstation, delete the lab's DNS A records. For a partial run, edit this list to include only names created, or use `DNS_HOSTS=()` if none. Before each deletion, confirm that the displayed record belongs to this installation. Do not delete the zone or other records.
+
+```bash
+DNS_HOSTS=("$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST")
+```
+
+```bash
+for host in "${DNS_HOSTS[@]}"; do
+  subname=${host%.$DNS_ZONE}
+  desec "$DNS_API/rrsets/$subname/A/" | jq .
+  desec --request DELETE "$DNS_API/rrsets/$subname/A/"
+  sleep 2
+done
+```
+
+Follow the [K3s teardown procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) for each cluster created, in order: B, C, A. Skip clusters never provisioned. Match each server, Primary IP and firewall to its creation record. Deleting A also discards the synthetic data, backups and credentials.
+
+```bash
+cd "$WORK_DIR/.lab/b"
+# K3s: Delete the entire lab, including identity checks and confirmation.
+cd "$WORK_DIR/.lab/c"
+# Follow the same documented teardown procedure for C.
+cd "$WORK_DIR/.lab/a"
+# Follow the same documented teardown procedure for A.
+```
+
+Perform the linked teardown in each directory; the block above is not a deletion routine. Then confirm that this installation's resources are absent. Other project resources may remain.
+
+```bash
+hcloud server list
+hcloud primary-ip list
+hcloud firewall list
+hcloud volume list
+hcloud load-balancer list
+unset KUBECONFIG
+```
+
+### Delete the local directory
+
+After confirming that the lab's DNS records and cloud resources are gone, delete the entire working directory, including configuration, evidence and cluster access files:
+
+```bash
+cd "${WORK_DIR:?}" && cd .. && rm -rf -- "$WORK_DIR" &&
+  unset WORK_DIR KA KB KC HCLOUD_TOKEN DESEC_TOKEN
+```
