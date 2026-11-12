@@ -7,6 +7,7 @@ Source of [bartl.app](https://bartl.app), the bilingual website for Bartl. Devel
 - [Operating philosophy](docs/philosophy.md): why resilience and sovereignty change how we build and operate services.
 - [Application contract](docs/application-contract.md): required application behavior, complete-service recovery and the additional automation goal.
 - [How to bartlize and operate](docs/how-to-bartlize.md): native procedures, the selected Kubernetes package architecture, installation inputs, qualification and handover.
+- [Operator workstation setup](docs/operator-workstation.md): combined tools, shell integration and access prerequisites for installation operators.
 - [Reference installation walkthrough](docs/reference-installation/README.md): build three independent bases, install Restic, Keycloak and Forgejo, exercise replacement/recovery and remove the lab using your own inputs.
 
 Application repositories own their supported configurations, operator instructions, design and release evidence. Historical experiments do not govern current implementation.

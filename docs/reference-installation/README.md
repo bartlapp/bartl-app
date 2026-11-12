@@ -28,7 +28,7 @@ You need:
 
 - A dedicated Hetzner project with billing enabled, a read/write token and capacity for three Debian 13 amd64 CPX32 VMs in `nbg1`.
 - Your own delegated deSEC zone and a token with record read/write/delete access.
-- Bash, Git, hcloud, jq, curl, OpenSSH with a loaded key, dig, OpenSSL 3, Helm 4.3.0 and kubectl compatible with Kubernetes 1.36.
+- The tools and shell setup from [Operator workstation](../operator-workstation.md), with kubectl compatible with Kubernetes 1.36 for this profile.
 - Public IPv4 access from the workstation to SSH and the Kubernetes API.
 
 In Bash, disable tracing and history before entering tokens. Keep secret values out of Git.
