@@ -78,6 +78,45 @@ Diese installationsspezifischen Eingaben und Ergebnisse müssen verfügbar bleib
 
 Der [Referenzdurchlauf](https://github.com/bartlapp/bartl-app/blob/main/docs/reference-installation/README.md) verwendet ein Arbeitsverzeichnis für Konfiguration, geschützte Zugangsdateien und kleine Betriebsnachweise. Die erforderlichen Eingaben müssen während des abgedeckten Ausfalls erreichbar und an einen Nachfolger übergebbar bleiben. Gemeinsame Paketdokumentation beschreibt wiederverwendbare Verfahren, nicht die Werte oder Risikoentscheidungen einer einzelnen Installation.
 
+### Helm-Konfiguration und Verbindungen
+
+Die Kubernetes-Pakete verwenden Helm als Schnittstelle für die Servicekonfiguration. Jeder Chart akzeptiert den gemeinsamen Installationskontext, seinen Eintrag unter `services.<instance>` und seine dokumentierten Verbindungseingaben unter `resolved`. Unabhängige Releases können dieselbe Values-Datei verwenden; weder ein Umbrella-Chart noch erzeugte Values-Dateien je Dienst sind erforderlich. Dateiname, Ablageort und Vorbereitungswerkzeuge bleiben eine Entscheidung des Betreibers.
+
+Das Paket unterscheidet erforderliche Betreibereingaben, optionale Overrides und Advanced Settings, die gewöhnlich bei ihren unterstützten Defaults bleiben. Ein von der Anwendung benötigter Wert ist nicht zwangsläufig eine erforderliche Betreibereingabe. Er wird abgeleitet, wenn das Paket genügend Informationen hat. Gemeinsamer Kontext wird einmal angegeben; bedingte Eingaben werden nur für die gewählte Konfiguration verlangt. Unterstützte Advanced Settings bleiben über dieselbe Helm-Schnittstelle zugänglich, nicht über eine zweite Konfigurationssprache für Onboarding.
+
+Diese Auswahl verbindet beispielsweise Paperless mit Keycloak und überschreibt Keycloaks konventionellen Hostnamen:
+
+```yaml
+installation: acme
+dns:
+  root: acme.example
+services:
+  keycloak:
+    hostname: login2.acme.example
+  paperless:
+    identityProvider: keycloak
+```
+
+Der Ausschnitt zeigt die Serviceauswahl. Paketauswahl, Zielzugang und Verbindungseingaben vervollständigen die Installationskonfiguration. Die Auswahl eines Consumers wählt dessen Provider nicht implizit mit aus.
+
+#### Defaults und Validierung
+
+Defaults bleiben im Chart, kontextabhängige Ableitungen in seinen Helm-Helpers. Explizite Werte haben Vorrang; Weglassen stellt Vererbung, Ableitung oder Defaults wieder her. Explizites `false` bleibt erhalten. Einzelne Map-Einträge überschreiben, ohne ihre Geschwister zu ersetzen; Listen werden vollständig ersetzt. Explizite Werte gegen die unterstützte Konfiguration prüfen. JSON Schema beschreibt Typen, Einschränkungen und bedingte Anforderungen; es führt keine Ableitung aus.
+
+Jedes Paket validiert den von ihm verwendeten gemeinsamen Kontext sowie seine eigenen Service- und Verbindungsfelder. Es läßt fremde Service- und Infrastrukturabschnitte in derselben Datei zu, ohne sie zu interpretieren. Unbekannte Felder innerhalb der Paketschnittstelle zurückweisen und fehlende erforderliche Eingaben mit Zuständigkeit und Grund melden. Die Installationsvorbereitung prüft dienstübergreifende Referenzen, inkompatible Verbindungen, Mehrdeutigkeiten und Abhängigkeitszyklen.
+
+Expandierte Defaults nicht in Betreiberentscheidungen kopieren. Das Entfernen eines Hostnamen-Overrides muß die Namensregel des Pakets wiederherstellen, auch nach einer Änderung der Basisdomain. Die stabile Anwendungsidentität bleibt von Chart-Version, Helm-Release-Name und Platzierung getrennt.
+
+#### Informationen zwischen Diensten
+
+Neben dem gewöhnlichen Deployment-Rendering ein offline ausführbares Helm-Verfahren für nicht geheime Verbindungsdeklarationen bereitstellen. Beide verwenden dieselben paketeigenen Helpers. Die Deklarationen benennen angebotene oder benötigte Schnittstelle, wirksame Endpunkte, Consumer-Einstellungen, Credential-Anforderungen und Laufzeit-Secret-Bindungen. Ihr Rendering kontaktiert keine Infrastruktur und erzeugt keine Credentials; es muß vor dem Start der verbundenen Dienste funktionieren.
+
+Für Identity deklariert der Provider seinen Issuer und der Consumer seine Client- und Callback-Anforderungen. Der Consumer bildet die URL-Regeln des Providers nicht nach. Für Backup deklariert der Endpoint seine Repository-Schnittstelle und jeder Consumer seinen Bedarf. Die Vorbereitung verbindet die ausgewählten Parteien und liefert beiden Seiten passende Repository- und Credential-Referenzen. Jede Anwendung behält ihr eigenes Repository, ihren Verschlüsselungsschlüssel und begrenzte Reader-/Writer-Zugänge; Endpoint-Administration wird nicht an Consumer weitergegeben.
+
+Der Chart dokumentiert die von ihm gelesenen Verbindungsfelder unter `resolved`, damit ein Betreiber sie manuell oder mit anderen Werkzeugen bereitstellen kann. Abgeleitete Verbindungswerte müssen bei Änderungen ihrer Quellen erneuert werden, statt als Overrides zu gelten. Tatsächliche Betriebsergebnisse bleiben von diesen Berechnungen unterscheidbar. Credential-Anforderungen unterscheiden erzeugtes, extern ausgestelltes und wiederhergestelltes Material; Konfigurations-Rendering darf weder aufbewahrte Credentials neu erzeugen noch behaupten, daß ein Identity-Client oder Backup-Repository bereits existiert.
+
+Die Paketdokumentation enthält den Deklarationsbefehl, Feldbedeutungen, erforderliche native Einrichtung und den gewöhnlichen Helm-Aufruf. Verbindungsdeklarationen gehören zum ausgewählten Chart-Release, nicht in einen separaten Onboarding-Profil-Checkout. Bartl verantwortet diese Paketschnittstelle; ein Betreiber darf seinen eigenen Vorbereitungsablauf pflegen. Gewöhnlicher Betrieb und Konfigurationsänderungen dürfen weder von privatem Orchestrierungscode noch von undokumentiertem Wissen abhängen.
+
 ## Eine Installation betreiben und übergeben
 
 Zuerst Paketreleases wählen und vollständige Installationswerte anlegen. Basis, unabhängig nutzbare Zugänge und Backup-Dienst herstellen, dann Identität und abhängige Anwendungen in dokumentierter Reihenfolge. Je Paket Installation und generationsgebundene Statusprüfung ausführen, anschließend die vereinbarte Fachleistung über den tatsächlichen Zugangsweg prüfen. Der [manuelle Restic-/Keycloak-/Forgejo-Durchlauf](https://github.com/bartlapp/bartl-app/blob/main/docs/reference-installation/README.md) liefert eine vollständige Beispielsequenz mit eigener Infrastruktur, DNS und Credentials des Betreibers.

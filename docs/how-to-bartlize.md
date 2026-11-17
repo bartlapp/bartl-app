@@ -78,6 +78,45 @@ Keep these installation-specific inputs and results available:
 
 The [reference walkthrough](https://github.com/bartlapp/bartl-app/blob/main/docs/reference-installation/README.md) uses a working directory for configuration, protected access files and small operational records. The required inputs must remain accessible during the covered failure and transferable to a successor. Shared package documentation describes reusable procedures, not a particular installation's values or risk decisions.
 
+### Helm configuration and connections
+
+The Kubernetes packages use Helm as their service-configuration interface. Each chart accepts shared installation context, its own entry under `services.<instance>` and its documented connection inputs under `resolved`. Independent releases can consume the same values file; they do not require an umbrella chart or generated per-service values files. The filename, storage location and preparation tooling are the operator's choice.
+
+The package distinguishes required operator inputs, optional overrides and advanced settings normally left at their supported defaults. A value required by the application is not necessarily a required operator input. Derive it when the package has enough information. Shared context is supplied once; conditional inputs are required only for the selected configuration. Supported advanced settings remain accessible through the same Helm interface, not a second onboarding configuration language.
+
+For example, these choices connect Paperless to Keycloak and override Keycloak's conventional hostname:
+
+```yaml
+installation: acme
+dns:
+  root: acme.example
+services:
+  keycloak:
+    hostname: login2.acme.example
+  paperless:
+    identityProvider: keycloak
+```
+
+This excerpt shows service choices; package selection, target access and connection inputs complete the installation configuration. Selecting a consumer does not implicitly select its provider.
+
+#### Defaults and validation
+
+Keep defaults in the chart and context-dependent derivation in its Helm helpers. Explicit values take precedence; omission restores inheritance, derivation or defaults. Preserve explicit `false`. Override individual map entries without replacing their siblings; replace lists as a whole. Validate explicit values against the supported configuration. JSON Schema describes types, constraints and conditional requirements; it does not execute derivation.
+
+Each package validates the shared inputs it consumes and its own service and connection fields. It permits unrelated service and infrastructure sections in the same file without interpreting them. Reject unknown fields within the package-owned interface and report unresolved required inputs with their owner and reason. Installation preparation validates cross-service references, incompatible connections, ambiguity and dependency cycles.
+
+Do not copy expanded defaults into operator choices. Removing a hostname override must restore the package's naming rule, including after the root domain changes. Stable application identity remains distinct from chart version, Helm release name and placement.
+
+#### Information exchanged between services
+
+Expose an offline Helm rendering procedure for nonsecret connection declarations alongside ordinary deployment rendering. Both use the same package-owned helpers. Declarations identify the provided or required interface, effective endpoints, consumer settings, credential requirements and runtime Secret bindings. Rendering declarations neither contacts infrastructure nor creates credentials; it must work before the connected services are running.
+
+For identity, the provider declares its issuer and the consumer its client and callback requirements. The consumer does not reproduce the provider's URL rules. For backup, the endpoint declares its repository interface and each consumer its requirements. Preparation connects the selected parties and supplies matching repository and credential references to both sides. Each application retains its own repository, encryption key and scoped reader/writer access; endpoint administration authority is not passed to consumers.
+
+The chart documents the connection fields it consumes under `resolved` so an operator can supply them manually or through other tooling. Derived connection values must be refreshed when their source choices change, not treated as overrides. Actual operational results remain distinct from these calculations. Credential requirements distinguish generated, externally issued and recovered material; configuration rendering must not regenerate retained credentials or claim that an identity client or backup repository already exists.
+
+Package documentation includes the declaration command, field meanings, required native setup and the ordinary Helm command. Connection declarations travel with the selected chart release, not a separate onboarding-profile checkout. Bartl owns this package interface; an operator may maintain their own preparation workflow. Ordinary operation and configuration changes must not depend on private orchestration code or undocumented knowledge.
+
 ## Operate and hand over an installation
 
 Select the package releases and create complete installation values first. Establish the base, independently usable access and backup service, then identity and dependent applications in their documented order. Follow each package's installation and current-generation status checks, then verify the agreed useful behavior through the real access path. The [manual Restic/Keycloak/Forgejo walkthrough](https://github.com/bartlapp/bartl-app/blob/main/docs/reference-installation/README.md) provides a complete worked sequence using operator-supplied infrastructure, DNS and credentials.
