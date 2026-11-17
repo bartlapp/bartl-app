@@ -10,6 +10,10 @@ Menschen genehmigen Ergebnis und akzeptierte Risiken. Die Anwendung führt ihre 
 
 Der Vertrag gilt für eine logische Anwendungsinstanz, nicht unabhängig für jeden Prozeß oder jede Replika. Er schreibt weder Kubernetes noch gemeinsame Runtime, Controller oder Sidecar vor. Native Skalierungs-, Restart- und Update-Fähigkeiten bleiben erhalten. Produktgrenzen und begründete Paketeinschränkungen werden im unterstützten Profil benannt.
 
+### Eigenständiger Betrieb
+
+Jedes Paket muß über sein README und ausdrücklich verlinkte öffentliche Anleitungen ein vollständiges Verfahren für eigenständigen Betrieb bereitstellen. Mit den dokumentierten Zielvoraussetzungen und den vom Betreiber gelieferten Eingaben muß dieses Verfahren Installation, Betrieb, Backup, Rekonstruktion und unterstützte Upgrades ermöglichen, ohne firmenspezifische Onboarding- oder Orchestrierungswerkzeuge, ohne Installationsrepo und ohne andere Bartl-Pakete, soweit kompatible externe Dienste die erklärten Abhängigkeiten erfüllen. Anwendungsinterne Initialisierung, Restore und Migration bleiben automatisch.
+
 ### Wie die Anwendung startet
 
 Du installierst oder startest die Anwendung. Sie stellt selbst fest, was zu tun ist:
@@ -84,6 +88,7 @@ Mit einer begründeten Konfiguration beginnen. Unterstützte Releases und Überg
 
 | Fall | Erforderlicher Nachweis |
 | --- | --- |
+| Eigenständiges Betriebsverfahren | Die Qualifikation muß das README-Verfahren für Installation, Betrieb, Backup, Rekonstruktion und unterstützte Upgrades mit den exakten veröffentlichten Artefakten erproben, während firmenspezifische Repos und Werkzeuge nicht verfügbar sind. Unterstützt ein Paket externes Backup, muß die Prüfung ein vom Betreiber bereitgestelltes kompatibles Repository und unabhängig aufbewahrte Credentials und Schlüssel verwenden. |
 | Erstinitialisierung | Nutzbare Vanilla-Installation auf leerem eigenen Zustand, sowohl ohne konfigurierten Speicher als auch mit einem Speicher ohne Backup. |
 | Normaler Neustart | Zustand und Identität bleiben ohne Backup-Zugriff, erneute Initialisierung oder unnötigen Restore erhalten. |
 | Restore ohne Quelle | Mit dem Paket einen Punkt erzeugen, auf leerem Ziel ohne Quelle oder zweiten technischen Freigabebefehl wiederherstellen, Daten, Identität und Nutzbarkeit prüfen, neue Arbeit ausführen und einen weiteren nutzbaren Recovery-Punkt erzeugen. |

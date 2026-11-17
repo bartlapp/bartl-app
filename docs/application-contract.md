@@ -10,6 +10,10 @@ People authorize the outcome and accepted risks. The application executes its in
 
 The contract applies to a logical application instance, not independently to each process or replica. It prescribes no Kubernetes dependency, shared runtime, controller or sidecar. Preserve native scaling, restart and update capabilities; declare product limitations and justify package restrictions within the supported profile.
 
+### Standalone operation
+
+Each package MUST provide a complete standalone operating procedure through its README and explicitly linked public instructions. Given the documented target prerequisites and operator-supplied inputs, that procedure MUST support installation, operation, backup, reconstruction and supported upgrades without company-specific onboarding or orchestration tooling, an installation repository, or other Bartl packages where compatible external services satisfy the declared dependencies. Application-internal initialization, restore and migration remain automatic.
+
 ### How the application starts
 
 You install or start the application. It works out what needs doing:
@@ -84,6 +88,7 @@ Start with one justified configuration. Record supported releases and transition
 
 | Case | Required evidence |
 | --- | --- |
+| Standalone procedure | Qualification MUST exercise the README procedure for installation, operation, backup, reconstruction and supported upgrades using the exact released artifacts, with company-specific repositories and tooling unavailable. For a package supporting external backup, the exercise MUST use an operator-supplied compatible repository and independently retained credentials and keys. |
 | First initialization | Usable vanilla installation on empty owned state, both without a configured store and with a store containing no backup. |
 | Normal restart | Existing state and identity survive without backup access, reinitialization or unnecessary restore. |
 | Source-independent restore | Create a point through the package, restore it on an empty target without the source or a second technical release command, verify data, identity and useful behavior, perform new work, then produce another usable recovery point. |

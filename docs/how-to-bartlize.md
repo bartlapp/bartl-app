@@ -115,6 +115,8 @@ For identity, the provider declares its issuer and the consumer its client and c
 
 The chart documents the connection fields it consumes under `resolved` so an operator can supply them manually or through other tooling. Derived connection values must be refreshed when their source choices change, not treated as overrides. Actual operational results remain distinct from these calculations. Credential requirements distinguish generated, externally issued and recovered material; configuration rendering must not regenerate retained credentials or claim that an identity client or backup repository already exists.
 
+For [standalone operation](https://github.com/bartlapp/bartl-app/blob/main/docs/application-contract.md#standalone-operation), the user supplies the documented service inputs, including any compatible external backup endpoint and protected access. The chart and its package procedure MUST perform the package-owned mapping and derivation. The user MUST NOT have to invent intermediate connection data, reproduce package calculations or assemble cross-service `resolved` data merely to operate one package. Installation-wide preparation is a convenience for composing services, not a prerequisite for this path.
+
 Package documentation includes the declaration command, field meanings, required native setup and the ordinary Helm command. Connection declarations travel with the selected chart release, not a separate onboarding-profile checkout. Bartl owns this package interface; an operator may maintain their own preparation workflow. Ordinary operation and configuration changes must not depend on private orchestration code or undocumented knowledge.
 
 ## Operate and hand over an installation
