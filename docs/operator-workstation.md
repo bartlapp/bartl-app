@@ -7,12 +7,11 @@ Prepare this workstation before using an installation checkout or the [reference
 | Tool | Purpose | Requirement |
 | --- | --- | --- |
 | Git and OpenSSH | Clone and synchronize configuration and encrypted stores; access hosts | Authorized SSH identity |
-| Bash and standard Unix utilities | Run activation and commissioning commands | Bash, including when the interactive shell is Zsh |
-| direnv | Activate customer access and restore the prior environment on exit | Install its hook in the interactive shell |
+| Bash and standard Unix utilities | Run explicit access preparation and commissioning commands | Bash, including when the interactive shell is Zsh |
 | pass | Read, generate and update encrypted credentials | GnuPG-backed password store |
 | GnuPG, gpg-agent and pinentry | Encrypt/decrypt entries and unlock the operator key | Working local passphrase prompt |
 | [Mike Farah yq](https://github.com/mikefarah/yq#install) | Read YAML inventory as JSON | Go-based yq v4, not the Python tool of the same name |
-| jq | Query JSON, transform kubeconfigs and check operation results | jq 1.6 or later |
+| jq | Query JSON and check operation results | jq 1.6 or later |
 | kubectl | Prepare access files and operate Kubernetes | Within one minor version of the target API server |
 | Helm | Install and operate application packages | 4.3.0 for the current journey and reference installation |
 | OpenSSL | Prepare backup endpoint password hashes | OpenSSL 3 with `passwd -apr1` support |
@@ -28,21 +27,21 @@ Agree new or replacement workstation dependencies with the affected operators be
 Use the platform package manager or the tools' official distributions. On macOS with Homebrew, install missing tools rather than upgrading an existing qualified toolchain blindly:
 
 ```bash
-brew install git bash direnv pass gnupg pinentry-mac yq jq kubernetes-cli hcloud openssl@3
+brew install git bash pass gnupg pinentry-mac yq jq kubernetes-cli hcloud openssl@3
 ```
 
 This command does not pin versions. Select [Helm 4.3.0](https://github.com/helm/helm/releases/tag/v4.3.0) and a [kubectl version compatible with the target cluster](https://kubernetes.io/docs/tasks/tools/) explicitly. macOS supplies SSH, curl and dig. Put the installed OpenSSL 3 binary on `PATH`; Homebrew's `openssl@3` is keg-only. On Linux, use distribution packages where their versions meet the requirements, otherwise use official release binaries. `pass`'s package supplies its platform dependencies.
 
-Install the [direnv shell hook](https://direnv.net/docs/hook.html) once. For Zsh, add `eval "$(direnv hook zsh)"` to `~/.zshrc`; for Bash, add `eval "$(direnv hook bash)"` to `~/.bashrc`. Start a new interactive shell afterward. Review each checkout's `.envrc` before `direnv allow`.
+No directory hook or shell-management wrapper is required. Use a dedicated shell without inherited provider tokens, Helm target overrides or personal Kubernetes configuration. Explicitly select the customer's password store, provider credentials and kubeconfig/context before operating. Until selection succeeds, disable implicit access (for example `PASSWORD_STORE_DIR=/dev/null`, `HCLOUD_CONFIG=/dev/null` and `KUBECONFIG=/dev/null` in a clean environment). A missing store or failed decryption must stop the operation, not select a personal default. When retiring old direnv activation, leave that session first: unloading it may restore personal credentials.
 
-Use your own GPG identity. Each authorized operator needs the recipient public keys and their own usable private key; never share private keys. On macOS, a terminal-independent prompt can be selected with `pinentry-program /usr/local/bin/pinentry-mac` in the relevant keyring's `gpg-agent.conf` (use the actual installed path, commonly `/opt/homebrew/bin/pinentry-mac` on Apple Silicon). Reload that dedicated agent after configuration changes. An execution environment with a sandbox also needs access to its own keyring, agent sockets and direnv approval directory; it does not need another operator's personal keyring.
+Use your own GPG identity and explicitly select its keyring. Each authorized operator needs the recipient public keys and their own usable private key; never share private keys. On macOS, a terminal-independent prompt can be selected with `pinentry-program /usr/local/bin/pinentry-mac` in the relevant keyring's `gpg-agent.conf` (use the actual installed path, commonly `/opt/homebrew/bin/pinentry-mac` on Apple Silicon). Reload that dedicated agent after configuration changes. An execution environment with a sandbox needs access to its own keyring and agent sockets, not another operator's personal keyring.
 
 ## Check the workstation
 
 Run before commissioning; do not print credential values:
 
 ```bash
-for tool in git ssh bash direnv pass gpg gpg-agent jq yq kubectl helm openssl hcloud curl dig; do
+for tool in git ssh bash pass gpg gpg-agent jq yq kubectl helm openssl hcloud curl dig; do
   command -v "$tool" || exit 1
 done
 yq --version
@@ -56,6 +55,6 @@ printf 'synthetic-check\n' | openssl passwd -apr1 -stdin >/dev/null
 
 Verify the displayed yq implementation and major version, Helm version and kubectl compatibility against the table. These checks establish executable availability and parser/hash behavior, not provider authentication. A global Ruby installation or its gems have no role in the checks.
 
-Clone the installation and its encrypted store, activate the checkout, then use its documented read-only provider and cluster checks. Access requires repository permissions, an authorized GPG key, existing provider tokens and reachable endpoints. Cluster access cannot exist before the cluster credentials have been issued. With multiple clusters, select the target explicitly.
+Clone the installation and its encrypted store, follow its explicit access-selection procedure, then use its documented read-only provider and cluster checks. Access requires repository permissions, an authorized GPG key with verified decryption, existing provider tokens and reachable endpoints. Cluster access cannot exist before the cluster credentials have been issued. With multiple clusters, select the target explicitly; never merge with personal kubeconfigs.
 
-Application tokens and kubeconfigs must never enter Git in plaintext. Local activation may materialize restricted-permission credentials in ignored runtime storage; leaving the directory restores environment variables but does not erase those files. Credential creation, infrastructure provisioning and rotation are explicit journey steps, never side effects of activation.
+Application tokens and kubeconfigs must never enter Git in plaintext. Access preparation may materialize restricted-permission credentials in ignored runtime storage. Ending the session does not erase these files; retain independently needed inputs before any authorized disposal. Credential creation, infrastructure provisioning and rotation are explicit operating steps, never side effects of directory entry.
