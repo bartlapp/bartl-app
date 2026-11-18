@@ -152,7 +152,7 @@ export SSH_PUBLIC_KEY="${SSH_PUBLIC_KEY%%$'\n'*}"
 export STATE="$PWD/.lab/$NAME"
 ```
 
-In each copy, follow the K3s guide from "Create the VM with Hetzner" through "Verify and hand over the base", including SSH, workstation access and certificate management. Keep the values above and reuse the registered SSH key. Skip Hello World.
+In each copy, follow the K3s guide from "Create the VM with Hetzner" through "Verify and hand over the base", including SSH, workstation access and certificate management. Keep the values above and reuse the registered SSH key.
 
 Each cluster must have one Ready node; available CoreDNS, local-path, Traefik and cert-manager deployments; default StorageClass `local-path`; the Traefik IngressClass; KUBE-ROUTER-FORWARD rules; and the correct Hetzner firewall. Restrict SSH and the Kubernetes API to the administrator's IPv4 address; allow HTTP and HTTPS.
 
