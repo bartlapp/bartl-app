@@ -50,6 +50,8 @@ Qualify the same immutable artifacts operators obtain. Source-tested code does n
 
 Test the claimed failure boundary: another namespace does not establish survival of host or provider loss. Renew affected evidence when the package changes.
 
+ACME is the repeatable reference litmus test. Execute the documented defaults without editing variables, using the supplied infrastructure and DNS credentials, verify useful behavior through the real service address, then remove the run's disposable resources. Ask the operator only for missing credentials; supplying access is a prerequisite, not a credential-procurement exercise repeated on every run. Keep reusable operator identities and bootstrap credentials intact. The authorized spending limit and lifetime still apply. A base-plus-Keycloak run establishes that path only, not backup, recovery or qualification of other packages.
+
 ## Kubernetes operating packages
 
 The current Keycloak, Paperless, Forgejo and Restic packages use Kubernetes and Helm. This is their selected implementation, not a requirement for every Bartl application. Start from a package's supported profile and native procedures, not by copying its controller wholesale. [Keycloak's design](https://github.com/bartlapp/bartl-keycloak/blob/main/DESIGN.md) explains one implementation; the other packages document their different state and capture boundaries.
