@@ -131,28 +131,28 @@ Expect Restic 0.2.0 and 0.2.1, Keycloak packages 0.5.0 and 0.5.1, and Forgejo pa
 
 Follow the [K3s guide](https://github.com/bartlapp/base-k3s/blob/main/README.md) three times, creating independent servers without joining nodes.
 
-Clone `https://github.com/bartlapp/base-k3s.git` to `$K3S_SOURCE` if absent. Separate working copies prevent one cluster's kubeconfig and SSH configuration from overwriting another's:
+Use one source checkout for all three bases. Each cluster keeps its access files under `$WORK_DIR/lab/base-<slot>/`:
 
 ```bash
-git clone --no-hardlinks "$K3S_SOURCE" "$WORK_DIR/.lab/a"
-git clone --no-hardlinks "$K3S_SOURCE" "$WORK_DIR/.lab/b"
-git clone --no-hardlinks "$K3S_SOURCE" "$WORK_DIR/.lab/c"
+test -d "$K3S_SOURCE/.git" || git clone https://github.com/bartlapp/base-k3s.git "$K3S_SOURCE"
+export BASE_REPO="$K3S_SOURCE"
 ```
 
 Repeat for `SLOT=a`, `SLOT=b` and `SLOT=c`:
 
 ```bash
 SLOT=a
-cd "$WORK_DIR/.lab/$SLOT"
 source "$WORK_DIR/installation.env"
+export WORK_DIR
+export CLUSTER="$SLOT"
+export INSTALLATION_ID="$INSTALLATION"
+export DNS_ROOT="$INSTALLATION.$DNS_ZONE"
+export VALUES="$WORK_DIR/installation.yaml"
 export NAME="$INSTALLATION-$SLOT"
-export LOCATION SERVER_TYPE SSH_KEY_NAME
-SSH_PUBLIC_KEY=$(ssh-add -L)
-export SSH_PUBLIC_KEY="${SSH_PUBLIC_KEY%%$'\n'*}"
-export STATE="$PWD/.lab/$NAME"
+export LOCATION SERVER_TYPE
 ```
 
-In each copy, follow the K3s guide from "Create the VM with Hetzner" through "Verify and hand over the base", including SSH, workstation access and certificate management. Keep the values above and reuse the registered SSH key.
+For each slot, follow the K3s guide from "Select or resume the installation" through "Verify and hand over the base", including SSH, workstation access and certificate management. Keep the supplied values; the base selects the configured SSH identity and finds its provider registration.
 
 Each cluster must have one Ready node; available CoreDNS, local-path, Traefik and cert-manager deployments; default StorageClass `local-path`; the Traefik IngressClass; KUBE-ROUTER-FORWARD rules; and the correct Hetzner firewall. Restrict SSH and the Kubernetes API to the administrator's IPv4 address; allow HTTP and HTTPS.
 
@@ -160,9 +160,9 @@ After all three passes, on the workstation:
 
 ```bash
 cd "$WORK_DIR"
-export KA="$WORK_DIR/.lab/a/.lab/kubeconfig"
-export KB="$WORK_DIR/.lab/b/.lab/kubeconfig"
-export KC="$WORK_DIR/.lab/c/.lab/kubeconfig"
+export KA="$WORK_DIR/lab/base-a/kubeconfig"
+export KB="$WORK_DIR/lab/base-b/kubeconfig"
+export KC="$WORK_DIR/lab/base-c/kubeconfig"
 for config in "$KA" "$KB" "$KC"; do
   kubectl --kubeconfig "$config" config current-context
   kubectl --kubeconfig "$config" get namespace kube-system \
@@ -185,12 +185,12 @@ cat > .lab/workstation.env <<'ENV'
 export HCLOUD_TOKEN DESEC_TOKEN
 cd "$WORK_DIR"
 source installation.env
-export KA="$WORK_DIR/.lab/a/.lab/kubeconfig"
-export KB="$WORK_DIR/.lab/b/.lab/kubeconfig"
-export KC="$WORK_DIR/.lab/c/.lab/kubeconfig"
-A_IP=$(cat ".lab/a/.lab/$INSTALLATION-a/host")
-B_IP=$(cat ".lab/b/.lab/$INSTALLATION-b/host")
-C_IP=$(cat ".lab/c/.lab/$INSTALLATION-c/host")
+export KA="$WORK_DIR/lab/base-a/kubeconfig"
+export KB="$WORK_DIR/lab/base-b/kubeconfig"
+export KC="$WORK_DIR/lab/base-c/kubeconfig"
+A_IP=$(cat "$WORK_DIR/lab/base-a/host")
+B_IP=$(cat "$WORK_DIR/lab/base-b/host")
+C_IP=$(cat "$WORK_DIR/lab/base-c/host")
 ADMIN_IP=$(curl --ipv4 --fail --silent --show-error https://api.ipify.org)
 DNS_API="https://desec.io/api/v1/domains/$DNS_ZONE"
 desec() {
@@ -221,7 +221,7 @@ Continue with [Install the applications](applications.md).
 
 Remove only resources created by this run. Keep `$WORK_DIR` until cloud cleanup is complete; it contains the access files and resource identities needed for deletion. If nothing was provisioned, go straight to [local deletion](#delete-the-local-directory).
 
-For an earlier attempt, use its `installation.env` and `.lab/` records to identify its resources, not a newly generated installation name.
+For an earlier attempt, use its `installation.env` and `lab/` records to identify its resources, not a newly generated installation name.
 
 On the workstation, delete the lab's DNS A records. For a partial run, edit this list to include only names created, or use `DNS_HOSTS=()` if none. Before each deletion, confirm that the displayed record belongs to this installation. Do not delete the zone or other records.
 
@@ -241,12 +241,12 @@ done
 Follow the [K3s teardown procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) for each cluster created, in order: B, C, A. Skip clusters never provisioned. Match each server, Primary IP and firewall to its creation record. Deleting A also discards the synthetic data, backups and credentials.
 
 ```bash
-cd "$WORK_DIR/.lab/b"
-# K3s: Delete the entire lab, including identity checks and confirmation.
-cd "$WORK_DIR/.lab/c"
-# Follow the same documented teardown procedure for C.
-cd "$WORK_DIR/.lab/a"
-# Follow the same documented teardown procedure for A.
+export CLUSTER=b
+# K3s: Select or resume the installation, then Delete the entire lab.
+export CLUSTER=c
+# Follow the same two sections for C.
+export CLUSTER=a
+# Follow the same two sections for A.
 ```
 
 Perform the linked teardown in each directory; the block above is not a deletion routine. Then confirm that this installation's resources are absent. Other project resources may remain.

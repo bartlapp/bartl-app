@@ -13,9 +13,9 @@ Run workstation commands from `$WORK_DIR`. `KA`, `KB` and `KC` are the absolute 
 ```bash
 cd "$WORK_DIR"
 source installation.env
-A_IP=$(cat ".lab/a/.lab/$INSTALLATION-a/host")
-B_IP=$(cat ".lab/b/.lab/$INSTALLATION-b/host")
-C_IP=$(cat ".lab/c/.lab/$INSTALLATION-c/host")
+A_IP=$(cat "$WORK_DIR/lab/base-a/host")
+B_IP=$(cat "$WORK_DIR/lab/base-b/host")
+C_IP=$(cat "$WORK_DIR/lab/base-c/host")
 ADMIN_IP=$(curl --ipv4 --fail --silent --show-error https://api.ipify.org)
 ```
 
