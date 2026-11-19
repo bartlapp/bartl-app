@@ -3,15 +3,13 @@
 import DocumentArticle from "@/components/DocumentArticle.astro";
 import { languages, type Lang } from "@/i18n/ui";
 import MainLayout from "@/layouts/MainLayout.astro";
-import * as guideEn from "../../../docs/how-to-bartlize.md";
-import * as guideDe from "../../../docs/how-to-bartlize.de.md";
+import * as document from "../../../docs/how-to-bartlize.md";
 
 export function getStaticPaths() {
   return Object.keys(languages).map((lang) => ({ params: { lang } }));
 }
 
 const lang = Astro.params.lang as Lang;
-const document = lang === "de" ? guideDe : guideEn;
 const { Content } = document;
 const headings = document.getHeadings();
 const title = lang === "de" ? "Umsetzung" : "Implement";
@@ -22,7 +20,7 @@ const description = lang === "de"
 
 <MainLayout title={title} lang={lang} description={description}>
   <DocumentArticle lang={lang} eyebrow={title} headings={headings}>
-    <Content />
+    <div lang="en"><Content /></div>
     <Fragment slot="after">
       <p>
         <a href={`/${lang}/derivation/`}>{lang === "de" ? "Betriebsphilosophie" : "Operating philosophy"}</a>

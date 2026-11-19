@@ -1,196 +1,115 @@
-# Recovering a Bartl installation on a separate cluster
+# Recover a Bartl installation on a separate cluster
 
-Recover Keycloak and Forgejo on a separate K3s cluster with their source powered off. Check login, data, permissions, new writes and their backups, then remove the lab.
+Run one customer installation across three independent single-node K3s clusters: A holds Restic and the synthetic test client; B runs Keycloak and Forgejo; C starts empty and replaces B. A remains available. This exercises planned source retirement and recovery, not loss of the backup provider or source-independent fencing.
 
-## What we are testing
-
-Use three independent single-node clusters in your Hetzner Cloud project. A runs Restic and holds recovery inputs and the test client. B runs Keycloak and Forgejo with native OpenID Connect integration. C starts empty and becomes the replacement. A remains available; this exercise does not cover its loss.
-
-You perform cross-service steps; the Application Controllers handle their internal procedures. Stop on failures or unclear prerequisites and resolve the cause with the responsible operator. Do not substitute versions or improvise repairs.
-
-Use synthetic data and published packages; no builds are needed. Keep application data, images, backups and databases off the workstation. It holds only sources, installation values, protected access files and small operational records.
-
-## Follow the sequence
-
-Complete this page, then:
-
-1. [Install Restic and Keycloak](applications.md).
-2. [Integrate Forgejo](forgejo.md).
-3. [Create and verify service data](verification.md).
-4. [Exercise lifecycle and recovery](recovery.md).
-5. [Clean up](#cleanup).
-
-Use one workstation Bash session and run the blocks once, in order.
+Follow [application installation](applications.md), [Forgejo integration](forgejo.md), [service acceptance](verification.md), [lifecycle and recovery](recovery.md), then [cleanup](#cleanup). Run workstation blocks in Bash with tracing off. Package READMEs own application preparation and lifecycle commands; this walkthrough supplies composition, retained targets and acceptance order. No company tooling or password store is required when the operator supplies protected credentials.
 
 ## Prerequisites and cost
 
-You need:
-
-- A dedicated Hetzner project with billing enabled, a read/write token and capacity for three Debian 13 amd64 CPX32 VMs in `nbg1`.
-- Your own delegated deSEC zone and a token with record read/write/delete access.
-- The tools and shell setup from [Operator workstation](../operator-workstation.md), with kubectl compatible with Kubernetes 1.36 for this profile.
-- Public IPv4 access from the workstation to SSH and the Kubernetes API.
-
-In Bash, disable tracing and history before entering tokens. Keep secret values out of Git.
+Use the [operator workstation](../operator-workstation.md), compatible kubectl, Helm 4, Mike Farah yq v4, jq, OpenSSL, curl and shasum. You need an authorized dedicated Hetzner project, a registered SSH identity, a delegated deSEC zone and usable credentials for both providers. Check capacity and approved spending/lifetime for three Debian 13 amd64 CPX32 servers in `hel1` (or the retained cluster locations), including IPv4 and traffic. Powered-off servers still cost money. No volumes, load balancers, snapshots or paid backups are required by this exercise.
 
 ```bash
+set -euo pipefail
 set +x
 set +o history
-```
-
-Fill in this variable block, then run it:
-
-```bash
-export HCLOUD_TOKEN=''  # Token for your Hetzner project
-export DESEC_TOKEN=''   # Token for your deSEC zone
-```
-
-Inspect existing resources and current prices:
-
-```bash
+umask 077
+: "${HCLOUD_TOKEN:?Supply the authorized project credential}"
+: "${DESEC_TOKEN:?Supply the authorized zone credential}"
+export HCLOUD_TOKEN DESEC_TOKEN
+export INSTALLATION_ID=${INSTALLATION_ID:-acme}
+export WORK_DIR=${WORK_DIR:-"$HOME/bartl/$INSTALLATION_ID"}
+case "$WORK_DIR" in /*) ;; *) printf 'Absolute WORK_DIR required\n' >&2; exit 1;; esac
+export VALUES=${VALUES:-"$WORK_DIR/installation.yaml"}
+case "$VALUES" in /*) ;; *) printf 'Absolute VALUES required\n' >&2; exit 1;; esac
+mkdir -p "$WORK_DIR/packages" "$WORK_DIR/operations" "$WORK_DIR/evidence"
+test -e "$VALUES" || printf 'installation: %s\ndns:\n  root: acme.fke.systems\n' "$INSTALLATION_ID" > "$VALUES"
+cd "$WORK_DIR"
 hcloud server list
 hcloud primary-ip list
-hcloud volume list
-hcloud load-balancer list
 hcloud server-type describe cpx32
-hcloud api /pricing | jq '.pricing | {
-  currency, vat_rate,
-  server: [.server_types[] | select(.name == "cpx32")
-    | .prices[] | select(.location == "nbg1")],
-  ipv4: [.primary_ips[] | select(.type == "ipv4")
-    | .prices[] | select(.location == "nbg1")]
-}'
+hcloud api /pricing | jq '.pricing | {currency,vat_rate,server_types,primary_ips}'
 ```
 
-Check the cost of three servers and three IPv4 addresses, including taxes and traffic, against your approved budget. Use only your dedicated project; add no volumes, load balancers, snapshots or paid backups. Plan when to delete the lab. Teardown is manual, and powered-off servers still cost money.
+For a real run, review the retained installation identity and DNS root before provisioning. Existing values are authoritative. Do not regenerate identity or start another installation file when resuming an interrupted run.
 
-## Create a working directory
+## Retain packages and deployment mappings
 
-Use an absolute path outside your source repositories. If a previous lab exists there, [clean up](#cleanup) before running setup. Everything created here is temporary.
-
-Set `SSH_KEY_NAME` to a name from `hcloud ssh-key list`. If your loaded public key is not registered yet, register it using the [K3s guide](https://github.com/bartlapp/base-k3s/blob/main/README.md) first.
+These current shared-interface packages replace the historical flat-interface versions. The change of operating interface is not a qualified upgrade path from the old walkthrough. Use empty application targets for this exercise; existing production installations need their package's supported migration procedure.
 
 ```bash
-export WORK_DIR="$HOME/bartl-lab"
-export K3S_SOURCE="$HOME/repos/bartlapp/base-k3s"
-DNS_ZONE=''             # Your delegated deSEC zone
-SSH_KEY_NAME=''         # Registered Hetzner key name
+yq -i '
+  .packages.restic = ({"version":"0.3.0","chart":"oci://ghcr.io/bartlapp/bartl-restic","chartSha256":"57feb5b39b325e3972fe9a9c870cd6c0c5fe54f2f91faba8b4b1652fb4918253"} * (.packages.restic // {})) |
+  .packages.keycloak = ({"version":"0.6.1","chart":"oci://ghcr.io/bartlapp/bartl-keycloak","chartSha256":"7abb55bcefbcde70dc8f29309d508d314a48783547067b529d48617d23c9225a"} * (.packages.keycloak // {})) |
+  .packages.forgejo = ({"version":"0.2.2","chart":"oci://ghcr.io/bartlapp/bartl-forgejo","chartSha256":"16405a6d485138d16ebe4afca0c7a3d9a68705194a39ed430311ea16d9bf0664"} * (.packages.forgejo // {})) |
+  .deployments.restic = ({"instance":"restic","cluster":"a","namespace":"backup","release":"backup","package":"restic"} * (.deployments.restic // {})) |
+  .deployments.keycloak = ({"instance":"keycloak","cluster":"b","namespace":"keycloak","release":"keycloak","package":"keycloak"} * (.deployments.keycloak // {})) |
+  .deployments.forgejo = ({"instance":"forgejo","cluster":"b","namespace":"forgejo","release":"forgejo","package":"forgejo"} * (.deployments.forgejo // {})) |
+  .deployments."keycloak-replacement" = ({"instance":"keycloak","cluster":"c","namespace":"keycloak","release":"keycloak","package":"keycloak"} * (.deployments."keycloak-replacement" // {})) |
+  .deployments."forgejo-replacement" = ({"instance":"forgejo","cluster":"c","namespace":"forgejo","release":"forgejo","package":"forgejo"} * (.deployments."forgejo-replacement" // {}))
+' "$VALUES"
 ```
 
-Create and enter the directory:
-
-```bash
-export INSTALLATION="bartl-$(date -u +%Y%m%d%H%M%S)-$(openssl rand -hex 3)"
-export DNS_SUFFIX="$INSTALLATION.$DNS_ZONE"
-(
-set -u
-: "${WORK_DIR:?}" "${DNS_ZONE:?}" "${SSH_KEY_NAME:?}"
-case "$WORK_DIR" in /*) ;; *) printf 'Absolute path required\n' >&2; exit 1;; esac
-umask 077
-test ! -e "$WORK_DIR" &&
-  mkdir -m 700 "$WORK_DIR" &&
-  cd "$WORK_DIR" &&
-  mkdir values evidence .lab
-) && cd "$WORK_DIR"
-```
-
-If setup fails, [clean up](#cleanup) before trying again.
-
-### Use the pinned packages
-
-Keep these pins unchanged:
-
-```bash
-cat > installation.env <<EOF
-INSTALLATION=$INSTALLATION
-DNS_ZONE=$DNS_ZONE
-BACKUP_HOST=backup.$DNS_SUFFIX
-KC_HOST=keycloak.$DNS_SUFFIX
-FORGEJO_HOST=forgejo.$DNS_SUFFIX
-LOCATION=nbg1
-SERVER_TYPE=cpx32
-SSH_KEY_NAME="$SSH_KEY_NAME"
-RESTIC_SOURCE=oci://ghcr.io/bartlapp/bartl-restic@sha256:aeaa22dd009fd505c86049de285c81e0a44ab68640f528dc297d6d67efd306de
-RESTIC_CHART=oci://ghcr.io/bartlapp/bartl-restic@sha256:78d118df791192bcc8dc08ce7ce13ded3ac01b51c33cd19090c30cb7c2d8f20a
-KEYCLOAK_SOURCE=oci://ghcr.io/bartlapp/bartl-keycloak@sha256:e5ec4b622b6b1aec736ae9aecec298c706d12aeed78215c154ddeacbb59257c4
-KEYCLOAK_CHART=oci://ghcr.io/bartlapp/bartl-keycloak@sha256:05e664e8c561685ba605a5a02ccc6649aafbb7c3bf3a0c808abc91cffae53aa0
-FORGEJO_CHART=oci://ghcr.io/bartlapp/bartl-forgejo@sha256:c9d6e7189d29b7b2923a61c5036e38197005912fdd68c6acec6a78654e297f3c
-EOF
-source installation.env
-
-helm show chart "$RESTIC_SOURCE"
-helm show chart "$RESTIC_CHART"
-helm show chart "$KEYCLOAK_SOURCE"
-helm show chart "$KEYCLOAK_CHART"
-helm show chart "$FORGEJO_CHART"
-```
-
-Expect Restic 0.2.0 and 0.2.1, Keycloak packages 0.5.0 and 0.5.1, and Forgejo package 0.1.0. Native Keycloak stays at 26.6.2; Forgejo upgrades from 16.0.7 to 17.0.1. Use no image overrides or mutable chart tags.
+Retain archives under `$WORK_DIR/packages`, acquire and checksum them through each package's README. Preserve any different retained package choice; do not silently substitute the defaults above. Several deployments refer to one stable instance, not separate customer configurations.
 
 ## Build three independent K3s bases
 
-Follow the [K3s guide](https://github.com/bartlapp/base-k3s/blob/main/README.md) three times, creating independent servers without joining nodes.
-
-Use one source checkout for all three bases. Each cluster keeps its access files under `$WORK_DIR/lab/base-<slot>/`:
+Retain unique base names and contexts before the three passes; existing selections take precedence:
 
 ```bash
-test -d "$K3S_SOURCE/.git" || git clone https://github.com/bartlapp/base-k3s.git "$K3S_SOURCE"
-export BASE_REPO="$K3S_SOURCE"
-```
-
-Repeat for `SLOT=a`, `SLOT=b` and `SLOT=c`:
-
-```bash
-SLOT=a
-source "$WORK_DIR/installation.env"
-export WORK_DIR
-export CLUSTER="$SLOT"
-export INSTALLATION_ID="$INSTALLATION"
-export DNS_ROOT="$INSTALLATION.$DNS_ZONE"
-export VALUES="$WORK_DIR/installation.yaml"
-export NAME="$INSTALLATION-$SLOT"
-export LOCATION SERVER_TYPE
-```
-
-For each slot, follow the K3s guide from "Select or resume the installation" through "Verify and hand over the base", including SSH, workstation access and certificate management. Keep the supplied values; the base selects the configured SSH identity and finds its provider registration.
-
-Each cluster must have one Ready node; available CoreDNS, local-path, Traefik and cert-manager deployments; default StorageClass `local-path`; the Traefik IngressClass; KUBE-ROUTER-FORWARD rules; and the correct Hetzner firewall. Restrict SSH and the Kubernetes API to the administrator's IPv4 address; allow HTTP and HTTPS.
-
-After all three passes, on the workstation:
-
-```bash
-cd "$WORK_DIR"
-export KA="$WORK_DIR/lab/base-a/kubeconfig"
-export KB="$WORK_DIR/lab/base-b/kubeconfig"
-export KC="$WORK_DIR/lab/base-c/kubeconfig"
-for config in "$KA" "$KB" "$KC"; do
-  kubectl --kubeconfig "$config" config current-context
-  kubectl --kubeconfig "$config" get namespace kube-system \
-    -o jsonpath='{.metadata.uid}{"\n"}'
+for CLUSTER in a b c; do
+  CLUSTER="$CLUSTER" yq -i '
+    .clusters[strenv(CLUSTER)].configuration = ({
+      "name":(.installation + "-" + strenv(CLUSTER)),
+      "serverType":"cpx32","location":"hel1"
+    } * (.clusters[strenv(CLUSTER)].configuration // {})) |
+    .clusters[strenv(CLUSTER)].kubeconfig.context =
+      (.clusters[strenv(CLUSTER)].kubeconfig.context // (.installation + "-" + strenv(CLUSTER)))
+  ' "$VALUES"
 done
-kubectl --kubeconfig "$KC" get namespaces,pvc --all-namespaces
 ```
 
-The three `kube-system` UIDs must differ. C must have no application namespaces or PVCs. Always select the target cluster explicitly by kubeconfig.
+Follow the [base-k3s recipe](https://github.com/bartlapp/base-k3s/blob/main/README.md), from selection/resume through handover, three times with `CLUSTER=a`, `b`, then `c`; use the same absolute `WORK_DIR` and `VALUES`. Record each cluster's provider, desired configuration, observed resource IDs and kubeconfig context in that file. Each server must be independent, not joined to another cluster. Configure unique names such as `acme-a`, `acme-b`, `acme-c` in `clusters.<id>.configuration.name` before creation. Do not repeat uncertain creation: reconcile the retained intent and live provider inventory first.
+
+Base access is under `$WORK_DIR/clusters/<id>/base/{kubeconfig,ssh.config,known_hosts}`. Derive addresses from the retained observations. After the three passes:
+
+```bash
+for CLUSTER in a b c; do
+  config="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+  kubectl --kubeconfig "$config" get nodes,storageclass
+  kubectl --kubeconfig "$config" get namespace kube-system -o jsonpath='{.metadata.uid}{"\n"}'
+done
+kubectl --kubeconfig "$WORK_DIR/clusters/c/base/kubeconfig" get namespaces,pvc --all-namespaces
+```
+
+Require three distinct `kube-system` UIDs, one Ready node per cluster, usable CoreDNS/local-path/Traefik/cert-manager, enforced NetworkPolicy and empty application state on C. Restrict SSH/API to the administrator; allow required HTTPS and Git SSH paths deliberately.
 
 ## Prepare workstation commands
 
-After the base setup, create the shared variables and helpers used by the following chapters:
+Retain the walkthrough's workstation helper under `operations/` alongside its operating records. On resume source it after selecting `WORK_DIR` and `VALUES`. Package setup blocks may define similarly named shell variables: reselect the target before every cross-cluster command. Endpoint exports become available after the next chapter renders the selected charts' connection declarations.
 
 ```bash
-cat > .lab/workstation.env <<'ENV'
-: "${WORK_DIR:?Absolute path of your working directory required}"
-: "${HCLOUD_TOKEN:?Load your own project token from protected custody}"
-: "${DESEC_TOKEN:?Load your own deSEC zone token from protected custody}"
-export HCLOUD_TOKEN DESEC_TOKEN
+cat > "$WORK_DIR/operations/workstation.env" <<'ENV'
+: "${WORK_DIR:?}" "${VALUES:?}"
 cd "$WORK_DIR"
-source installation.env
-export KA="$WORK_DIR/lab/base-a/kubeconfig"
-export KB="$WORK_DIR/lab/base-b/kubeconfig"
-export KC="$WORK_DIR/lab/base-c/kubeconfig"
-A_IP=$(cat "$WORK_DIR/lab/base-a/host")
-B_IP=$(cat "$WORK_DIR/lab/base-b/host")
-C_IP=$(cat "$WORK_DIR/lab/base-c/host")
+export KA="$WORK_DIR/clusters/a/base/kubeconfig"
+export KB="$WORK_DIR/clusters/b/base/kubeconfig"
+export KC="$WORK_DIR/clusters/c/base/kubeconfig"
+A_IP=$(yq -er '.clusters.a.observed.primaryIPv4.address' "$VALUES")
+B_IP=$(yq -er '.clusters.b.observed.primaryIPv4.address' "$VALUES")
+C_IP=$(yq -er '.clusters.c.observed.primaryIPv4.address' "$VALUES")
+DNS_ZONE=$(yq -er '.dns.zone // .dns.root' "$VALUES")
+for DEPLOYMENT in restic keycloak forgejo; do
+  INSTANCE=$(DEPLOYMENT="$DEPLOYMENT" yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+  CLUSTER=$(DEPLOYMENT="$DEPLOYMENT" yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  DIRECTORY="$WORK_DIR/clusters/$CLUSTER/applications/$INSTANCE"
+  if [ "$DEPLOYMENT" != "$INSTANCE" ]; then DIRECTORY="$DIRECTORY/deployments/$DEPLOYMENT"; fi
+  case "$INSTANCE" in keycloak) DECLARATION="$DIRECTORY/connections.yaml" ;;
+    *) DECLARATION="$DIRECTORY/$INSTANCE-connections.yaml" ;; esac
+  if [ -s "$DECLARATION" ]; then
+    HOST=$(INSTANCE="$INSTANCE" yq -er '.services[strenv(INSTANCE)].endpoints.https.hostname' "$DECLARATION")
+    case "$INSTANCE" in restic) BACKUP_HOST="$HOST" ;; keycloak) KC_HOST="$HOST" ;; forgejo) FORGEJO_HOST="$HOST" ;; esac
+  fi
+done
 ADMIN_IP=$(curl --ipv4 --fail --silent --show-error https://api.ipify.org)
 DNS_API="https://desec.io/api/v1/domains/$DNS_ZONE"
 desec() {
@@ -198,73 +117,32 @@ desec() {
     curl --config - --fail-with-body --silent --show-error "$@"
 }
 current_condition() {
-  local config="$1" namespace="$2" resource="$3" condition="$4"
-  kubectl --kubeconfig "$config" -n "$namespace" get "$resource" -o json |
-    jq -e --arg condition "$condition" '
-      .metadata.generation as $g | .status.observedGeneration==$g and
-      any(.status.conditions[]; .type==$condition and .status=="True" and .observedGeneration==$g)'
+  kubectl --kubeconfig "$1" -n "$2" get "$3" -o json |
+    jq -e --arg condition "$4" '.metadata.generation as $g |
+      .status.observedGeneration==$g and any(.status.conditions[];
+      .type==$condition and .status=="True" and .observedGeneration==$g)'
 }
 ENV
-source .lab/workstation.env
-git -C "$K3S_SOURCE" rev-parse HEAD > evidence/base-k3s-revision.txt
+source "$WORK_DIR/operations/workstation.env"
 ```
 
-If your public IPv4 address changes, run "Update administrator access" in each base checkout and update application allowlists. After an SSH `exit`, continue on the workstation.
-
-## Keep recovery inputs accessible
-
-Secrets are generated on A and remain there until teardown. Do not copy them into configuration or evidence files.
-
-Continue with [Install the applications](applications.md).
+Protected inputs remain independently usable outside B/C and their Keycloak. The test client and synthetic payloads may live on A under `/root/bartl-reference/forgejo`. Configuration is only `VALUES`; a derived remote `installation.env` may export endpoint variables for that client but must never be used as authoritative installation configuration.
 
 ## Cleanup
 
-Remove only resources created by this run. Keep `$WORK_DIR` until cloud cleanup is complete; it contains the access files and resource identities needed for deletion. If nothing was provisioned, go straight to [local deletion](#delete-the-local-directory).
-
-For an earlier attempt, use its `installation.env` and `lab/` records to identify its resources, not a newly generated installation name.
-
-On the workstation, delete the lab's DNS A records. For a partial run, edit this list to include only names created, or use `DNS_HOSTS=()` if none. Before each deletion, confirm that the displayed record belongs to this installation. Do not delete the zone or other records.
+Retain `VALUES` and access files until all cloud deletions finish. Remove only this run's retained DNS records after reading live identity/address and checking against `operations.dns`; never delete the zone or unrelated names. For each recorded A record:
 
 ```bash
-DNS_HOSTS=("$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST")
-```
-
-```bash
-for host in "${DNS_HOSTS[@]}"; do
+for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
   subname=${host%.$DNS_ZONE}
   desec "$DNS_API/rrsets/$subname/A/" | jq .
+  # Compare the result with operations.dns and the currently active cluster first.
   desec --request DELETE "$DNS_API/rrsets/$subname/A/"
-  sleep 2
 done
 ```
 
-Follow the [K3s teardown procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md#delete-the-entire-lab) for each cluster created, in order: B, C, A. Skip clusters never provisioned. Match each server, Primary IP and firewall to its creation record. Deleting A also discards the synthetic data, backups and credentials.
+Then select `CLUSTER=b`, `c`, `a` in order and execute the base recipe's teardown using the same `VALUES`. Skip unprovisioned clusters. Verify each live server, Primary IP, firewall and attachments against retained observations before deletion; names alone are insufficient. Deleting A destroys this exercise's synthetic backup history and credentials. Confirm the provider inventory contains no remaining resources from the run. Local deletion is a separate explicit retention decision, not an automatic command in this recipe.
 
-```bash
-export CLUSTER=b
-# K3s: Select or resume the installation, then Delete the entire lab.
-export CLUSTER=c
-# Follow the same two sections for C.
-export CLUSTER=a
-# Follow the same two sections for A.
-```
+## Historical version evidence
 
-Perform the linked teardown in each directory; the block above is not a deletion routine. Then confirm that this installation's resources are absent. Other project resources may remain.
-
-```bash
-hcloud server list
-hcloud primary-ip list
-hcloud firewall list
-hcloud volume list
-hcloud load-balancer list
-unset KUBECONFIG
-```
-
-### Delete the local directory
-
-After confirming that the lab's DNS records and cloud resources are gone, delete the entire working directory, including configuration, evidence and cluster access files:
-
-```bash
-cd "${WORK_DIR:?}" && cd .. && rm -rf -- "$WORK_DIR" &&
-  unset WORK_DIR KA KB KC HCLOUD_TOKEN DESEC_TOKEN
-```
+The preceding walkthrough used Restic 0.2.0 (`sha256:aeaa22dd009fd505c86049de285c81e0a44ab68640f528dc297d6d67efd306de`) then 0.2.1 (`sha256:78d118df791192bcc8dc08ce7ce13ded3ac01b51c33cd19090c30cb7c2d8f20a`), Keycloak 0.5.0 (`sha256:e5ec4b622b6b1aec736ae9aecec298c706d12aeed78215c154ddeacbb59257c4`) then 0.5.1 (`sha256:05e664e8c561685ba605a5a02ccc6649aafbb7c3bf3a0c808abc91cffae53aa0`), and Forgejo 0.1.0 (`sha256:c9d6e7189d29b7b2923a61c5036e38197005912fdd68c6acec6a78654e297f3c`). References were OCI charts under `ghcr.io/bartlapp/bartl-<package>`. Native Keycloak stayed at 26.6.2; Forgejo moved from 16.0.7 to 17.0.1. Historical package qualification remains attached to those artifacts; it does not qualify this shared-file composition. Retain the original Git revision with any historical execution record rather than interpreting these current commands as its transcript.

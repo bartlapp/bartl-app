@@ -3,7 +3,7 @@
 On the workstation, load the [variables and helpers](README.md#prepare-workstation-commands):
 
 ```bash
-source "${WORK_DIR:?}/.lab/workstation.env"
+source "${WORK_DIR:?}/operations/workstation.env"
 ```
 
 Keep all working copies, attachments and packages on A under `/root/bartl-reference/forgejo`, not on the workstation. Complete the [browser acceptance checks](forgejo.md#verify-browser-access) first: native login must have created `reference-user`.
@@ -13,7 +13,7 @@ Keep all working copies, attachments and packages on A under `/root/bartl-refere
 Open an SSH session from the workstation:
 
 ```bash
-(cd "$WORK_DIR/.lab/a"; ssh -F .lab/ssh.config k3s)
+ssh -F "$WORK_DIR/clusters/a/base/ssh.config" k3s
 ```
 
 Run the following on A:
@@ -111,7 +111,7 @@ Exit the SSH session and continue with [Lifecycle and recovery](recovery.md). Re
 
 ## Verify the same data after recovery
 
-After the controlled hostname takeover, open a new session from the workstation with `(cd "$WORK_DIR/.lab/a"; ssh -F .lab/ssh.config k3s)`. The checks use fresh working copies: old client data cannot prove recovery.
+After the controlled hostname takeover, open a new session with `ssh -F "$WORK_DIR/clusters/a/base/ssh.config" k3s`. The checks use fresh working copies: old client data cannot prove recovery.
 
 ```bash
 cd /root/bartl-reference/forgejo
@@ -157,6 +157,6 @@ code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
 test "$code" = 403
 ```
 
-Clear the old Forgejo and Keycloak browser cookies and sign in through "Sign in with keycloak". Confirm that `reference-user` can still read the private repository without gaining administration rights. Compare the Keycloak user and client IDs with those retained on A. Open access to the restricted candidate only after all checks pass. After the new write on C, switching back to B is no longer a lossless rollback.
+Clear old Forgejo and Keycloak browser cookies and sign in through “Sign in with keycloak”. Confirm that `reference-user` still reads the private repository without administration rights. Compare the realm/user/client IDs with the retained source record through native Keycloak administration. Open access beyond the restricted candidate only after all checks pass. After the new write on C, switching back to B is no longer a lossless rollback.
 
 Exit the SSH session and resume [Lifecycle and recovery](recovery.md) on the workstation.

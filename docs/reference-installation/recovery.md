@@ -1,342 +1,511 @@
 # Recover on C and return the service to use
 
-After [verifying the test data](verification.md), run this chapter on the workstation in `$WORK_DIR` unless an SSH session is specified. A remains available; B is the source and C the replacement.
-
-Load the [workstation variables and helpers](README.md#prepare-workstation-commands):
+Complete [source acceptance](verification.md). A remains available, B is the source and C the empty replacement. All retained intent stays in `VALUES`; source and candidate share stable service identity but have distinct deployment IDs. This is planned interruption, not provider-loss fencing.
 
 ```bash
-source "${WORK_DIR:?}/.lab/workstation.env"
+source "${WORK_DIR:?}/operations/workstation.env"
 ```
 
-## Check the generation, not just the condition
+## Select and apply retained targets
 
-`kubectl wait` can accept an old condition. After each change, verify that status and condition both match the current generation:
+Every block below derives its target and recorded intent directly from VALUES after package preparation. No additional installer or orchestration script is required.
+
+
+After each operation, require both `status.observedGeneration` and the requested condition's `observedGeneration` to match `metadata.generation` using `current_condition`. A wait alone can accept stale status. Stop on timeout/failure; timeout does not stop server-side work. Retain diagnostics, not failure-marker deletion or forced finalizer/lock removal.
+
+## Publish first backups and exercise operation
+
+Use the package-owned capture interfaces below. Labels retain separate source, final, recovered and reinstalled point identities; never overwrite a final-point record with another capture.
 
 ```bash
-current_condition() {
-  local config="$1" namespace="$2" resource="$3" condition="$4"
-  kubectl --kubeconfig "$config" -n "$namespace" get "$resource" -o json |
-    jq -e --arg condition "$condition" '
-      .metadata.generation as $g | .status.observedGeneration==$g and
-      any(.status.conditions[]; .type==$condition and .status=="True" and .observedGeneration==$g)'
-}
-```
-
-Stop on `False`, timeout or job failure; retain status and logs. A timeout does not stop the server-side job. Do not remove failure markers, finalizers or Restic locks to force progress.
-
-## Publish the first backups to A
-
-```bash
-export KUBECONFIG="$KB"
-JOB="keycloak-backup-$(date -u +%Y%m%d%H%M%S)"
-kubectl -n keycloak create job "$JOB" --from=cronjob/keycloak-backup
-kubectl -n keycloak wait job/"$JOB" --for=condition=complete --timeout=30m
-kubectl -n keycloak logs job/"$JOB" -c backup > evidence/keycloak-source-backup.json
-jq -e '.snapshotID|test("^[a-f0-9]{64}$")' evidence/keycloak-source-backup.json
-REQUEST="source-$(date -u +%Y%m%dT%H%M%SZ)"
-kubectl -n forgejo annotate forgejoapplication forgejo \
-  forgejo.bartl.sh/backup-request="$REQUEST" --overwrite
-kubectl -n forgejo wait forgejoapplication/forgejo \
-  --for=jsonpath='{.status.backup.request}'="$REQUEST" --timeout=20m
-kubectl -n forgejo wait forgejoapplication/forgejo \
-  --for=jsonpath='{.status.backup.success}'=true --timeout=20m
-kubectl -n forgejo get forgejoapplication/forgejo -o json |
-  jq '.status.backup' > evidence/forgejo-source-backup.json
-jq -e '.success==true and (.snapshot|test("^[a-f0-9]{64}$"))' evidence/forgejo-source-backup.json
-```
-
-Keycloak validates and reads back its dump; Forgejo captures with writers stopped, then resumes service and publishes. Require both backup records before upgrading.
-
-## Upgrade the packages
-
-Apply the new CRDs explicitly; Helm does not update existing definitions. Use declared values, not old defaults carried forward with `--reuse-values`.
-
-```bash
-mkdir .lab/restic-chart .lab/keycloak-chart
-helm pull "$RESTIC_CHART" --untar --untardir .lab/restic-chart
-kubectl --kubeconfig "$KA" apply -f .lab/restic-chart/bartl-restic/crds/
-helm upgrade backup "$RESTIC_CHART" --kubeconfig "$KA" -n backup \
-  --reset-values -f values/restic-a.yaml --wait=legacy --timeout=5m
-kubectl --kubeconfig "$KA" -n backup rollout status deployment/backup-restic-controller --timeout=3m
-kubectl --kubeconfig "$KA" -n backup wait resticapplication/backup-restic --for=condition=Ready --timeout=30m
-current_condition "$KA" backup resticapplication/backup-restic Ready
-helm pull "$KEYCLOAK_CHART" --untar --untardir .lab/keycloak-chart
-kubectl --kubeconfig "$KB" apply -f .lab/keycloak-chart/bartl-keycloak/crds/
-helm upgrade keycloak "$KEYCLOAK_CHART" --kubeconfig "$KB" -n keycloak \
-  --reset-values -f values/keycloak-b.yaml --wait=legacy --timeout=10m
-kubectl --kubeconfig "$KB" -n keycloak wait keycloakapplication/keycloak --for=condition=Ready --timeout=10m
-current_condition "$KB" keycloak keycloakapplication/keycloak Ready
-kubectl --kubeconfig "$KB" -n keycloak get keycloakapplication/keycloak \
-  -o jsonpath='{.status.packageRelease}{"\n"}'
-```
-
-Expect Restic 0.2.1 and Keycloak package 0.5.1, still running Keycloak 26.6.2. Forgejo upgrades during recovery on C.
-
-## Restart without access to backups
-
-Stop Restic through its application interface, then restart both serving deployments. They must restart from existing state without backup access.
-
-```bash
-helm upgrade backup "$RESTIC_CHART" --kubeconfig "$KA" -n backup \
-  -f values/restic-a.yaml --set application.replicas=0
-kubectl --kubeconfig "$KA" -n backup wait resticapplication/backup-restic --for=condition=Stopped --timeout=5m
-current_condition "$KA" backup resticapplication/backup-restic Stopped
-kubectl --kubeconfig "$KB" -n keycloak rollout restart deployment/keycloak
-kubectl --kubeconfig "$KB" -n keycloak rollout status deployment/keycloak --timeout=10m
-kubectl --kubeconfig "$KB" -n forgejo rollout restart deployment/forgejo
-kubectl --kubeconfig "$KB" -n forgejo rollout status deployment/forgejo --timeout=5m
-curl --fail --silent --show-error "https://$KC_HOST/realms/reference/.well-known/openid-configuration" |
-  jq -e --arg issuer "https://$KC_HOST/realms/reference" '.issuer==$issuer'
-helm upgrade backup "$RESTIC_CHART" --kubeconfig "$KA" -n backup -f values/restic-a.yaml
-kubectl --kubeconfig "$KA" -n backup wait resticapplication/backup-restic --for=condition=Ready --timeout=30m
-current_condition "$KA" backup resticapplication/backup-restic Ready
-```
-
-## Stop and start through the application interfaces
-
-Stop Forgejo before Keycloak; start in reverse order. The values files still declare running services. For a lasting stop, record the stopped state there too.
-
-```bash
-helm upgrade forgejo "$FORGEJO_CHART" --kubeconfig "$KB" -n forgejo \
-  -f values/forgejo-b.yaml --set replicas=0
-kubectl --kubeconfig "$KB" -n forgejo wait forgejoapplication/forgejo --for=condition=Stopped --timeout=10m
-current_condition "$KB" forgejo forgejoapplication/forgejo Stopped
-helm upgrade keycloak "$KEYCLOAK_CHART" --kubeconfig "$KB" -n keycloak \
-  -f values/keycloak-b.yaml --set application.replicas=0
-kubectl --kubeconfig "$KB" -n keycloak wait keycloakapplication/keycloak --for=condition=Stopped --timeout=10m
-current_condition "$KB" keycloak keycloakapplication/keycloak Stopped
-helm upgrade keycloak "$KEYCLOAK_CHART" --kubeconfig "$KB" -n keycloak -f values/keycloak-b.yaml
-kubectl --kubeconfig "$KB" -n keycloak wait keycloakapplication/keycloak --for=condition=Ready --timeout=10m
-current_condition "$KB" keycloak keycloakapplication/keycloak Ready
-helm upgrade forgejo "$FORGEJO_CHART" --kubeconfig "$KB" -n forgejo -f values/forgejo-b.yaml
-kubectl --kubeconfig "$KB" -n forgejo wait forgejoapplication/forgejo --for=condition=Ready --timeout=10m
-current_condition "$KB" forgejo forgejoapplication/forgejo Ready
-```
-
-## Close writes, capture the final state and power off B
-
-Allow no further user or configuration changes on B. Remove Forgejo's HTTP/SSH access, then stop Keycloak to close identity changes. Retain separate recovery points for each application; these are not an atomic stack snapshot.
-
-```bash
-export KUBECONFIG="$KB"
-helm upgrade forgejo "$FORGEJO_CHART" -n forgejo -f values/forgejo-b.yaml --set ingress.enabled=false
-kubectl -n forgejo delete service forgejo-ssh
-kubectl -n forgejo wait --for=delete ingress/forgejo --timeout=5m
-REQUEST="final-$(date -u +%Y%m%dT%H%M%SZ)"
-kubectl -n forgejo annotate forgejoapplication forgejo forgejo.bartl.sh/backup-request="$REQUEST" --overwrite
-kubectl -n forgejo wait forgejoapplication/forgejo --for=jsonpath='{.status.backup.request}'="$REQUEST" --timeout=20m
-kubectl -n forgejo wait forgejoapplication/forgejo --for=jsonpath='{.status.backup.success}'=true --timeout=20m
-kubectl -n forgejo get forgejoapplication/forgejo -o json | jq '.status.backup' > evidence/forgejo-final-backup.json
-helm upgrade forgejo "$FORGEJO_CHART" -n forgejo -f values/forgejo-b.yaml --set replicas=0,ingress.enabled=false
-kubectl -n forgejo wait forgejoapplication/forgejo --for=condition=Stopped --timeout=10m
-current_condition "$KB" forgejo forgejoapplication/forgejo Stopped
-helm upgrade keycloak "$KEYCLOAK_CHART" -n keycloak -f values/keycloak-b.yaml \
-  --set application.replicas=0,ingress.enabled=false,backup.suspend=true
-kubectl -n keycloak wait keycloakapplication/keycloak --for=condition=Stopped --timeout=10m
-current_condition "$KB" keycloak keycloakapplication/keycloak Stopped
-JOB="keycloak-final-$(date -u +%Y%m%d%H%M%S)"
-kubectl -n keycloak create job "$JOB" --from=cronjob/keycloak-backup
-kubectl -n keycloak wait job/"$JOB" --for=condition=complete --timeout=30m
-kubectl -n keycloak logs job/"$JOB" -c backup > evidence/keycloak-final-backup.json
-jq -e '.snapshotID|test("^[a-f0-9]{64}$")' evidence/keycloak-final-backup.json
-kubectl -n keycloak get pvc -o json > evidence/keycloak-source-pvc.json
-kubectl -n forgejo get pvc -o json > evidence/forgejo-source-pvc.json
-```
-
-Record B's stopped state so reapplying its values cannot reactivate it. Change only the fields shown; omit the diff markers from YAML.
-
-In `values/keycloak-b.yaml`:
-
-```diff
- application:
--  replicas: 1
-+  replicas: 0
- ingress:
--  enabled: true
-+  enabled: false
- backup:
-   suspend: true
-```
-
-In `values/forgejo-b.yaml`:
-
-```diff
--replicas: 1
-+replicas: 0
- ingress:
--  enabled: true
-+  enabled: false
-```
-
-Export effective values, stop Keycloak's controller and PostgreSQL, then power off B through the Hetzner API:
-
-```bash
-helm get values keycloak --kubeconfig "$KB" -n keycloak --all > values/keycloak-b-effective.yaml
-helm get values forgejo --kubeconfig "$KB" -n forgejo --all > values/forgejo-b-effective.yaml
-kubectl -n keycloak scale deployment/keycloak-controller --replicas=0
-kubectl -n keycloak wait --for=delete pod -l app.kubernetes.io/name=keycloak-controller --timeout=5m
-kubectl -n keycloak scale statefulset/keycloak-db --replicas=0
-kubectl -n keycloak wait --for=delete pod/keycloak-db-0 --timeout=5m
-hcloud server poweroff "$INSTALLATION-b"
-hcloud server describe "$INSTALLATION-b" --output json | jq -e '.status=="off"'
-```
-
-Require successful final backups and confirmed shutdown before activating C. DNS alone is not fencing. B stays off until teardown; do not use it as a rollback after C accepts new writes.
-
-## Isolate C and supply the recovery inputs
-
-Use new PVCs and PostgreSQL credentials, without mounting or copying from B. Preserve installation/instance identities, hostnames, Forgejo identity secrets, repository keys and the retained Keycloak recovery administrator.
-
-Restrict HTTPS to the workstation, A and C's public address; leave HTTP open for ACME. Do not add a Keycloak maintenance allowlist: it would block Forgejo's required communication.
-
-```bash
-hcloud firewall delete-rule "$INSTALLATION-c" --direction in --protocol tcp --port 443 --source-ips 0.0.0.0/0,::/0
-hcloud firewall add-rule "$INSTALLATION-c" --direction in --protocol tcp --port 443 \
-  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
-export KUBECONFIG="$KC"
-kubectl create namespace keycloak
-kubectl create namespace forgejo
-```
-
-From the workstation, open A:
-
-```bash
-(cd .lab/a; ssh -F .lab/ssh.config k3s)
-```
-
-On A, create new database credentials:
-
-```bash
-umask 077
-cd /root/bartl-reference/keycloak
-mkdir database-c database-admin-c
-printf keycloak > database-c/username
-printf keycloak > database-c/database
-openssl rand -hex 32 | tr -d '\n' > database-c/password
-printf postgres > database-admin-c/username
-openssl rand -hex 32 | tr -d '\n' > database-admin-c/password
-exit
-```
-
-Back on the workstation, stream the retained recovery inputs from A into C:
-
-```bash
-(cd .lab/a; ssh -F .lab/ssh.config k3s 'bash -se' <<'REMOTE'
-set -euo pipefail
-cd /root/bartl-reference/keycloak
-kubectl -n keycloak create secret generic keycloak-database --from-file=database-c/ --dry-run=client -o yaml
-printf '\n---\n'
-kubectl -n keycloak create secret generic keycloak-database-admin --from-file=database-admin-c/ --dry-run=client -o yaml
-printf '\n---\n'
-kubectl -n keycloak create secret generic keycloak-recovery --from-file=bootstrap/ --dry-run=client -o yaml
-for app in keycloak forgejo; do
-  for role in reader writer; do
-    printf '\n---\n'
-    kubectl -n "$app" create secret generic "$app-backup-$role" \
-      --from-file="/root/bartl-reference/repositories/$app/$role/" --dry-run=client -o yaml
+for DEPLOYMENT in keycloak forgejo; do
+  label=source
+  export DEPLOYMENT
+  INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+  RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+  PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+  export INSTANCE CLUSTER PACKAGE
+  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+  CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+  case "$INSTANCE" in
+    keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+    forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+    restic) mappings='replicas:replicas' ;;
+    *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+  esac
+  for mapping in $mappings; do
+    key=${mapping%%:*}; field=${mapping#*:}
+    if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+      value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+      case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+        *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+    fi
   done
+  request="$label-$(date -u +%Y%m%dT%H%M%SZ)"
+  result="$WORK_DIR/evidence/$INSTANCE-$label-backup.json"
+  case "$INSTANCE" in
+    keycloak)
+      kubectl --context "$CTX" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
+      kubectl --context "$CTX" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
+      kubectl --context "$CTX" -n "$NS" logs "job/$request" -c backup > "$result"
+      snapshot=$(jq -er '.snapshotID | select(test("^[a-f0-9]{64}$"))' "$result")
+      ;;
+    forgejo)
+      kubectl --context "$CTX" -n "$NS" annotate forgejoapplication forgejo \
+        forgejo.bartl.sh/backup-request="$request" --overwrite
+      kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+        --for=jsonpath='{.status.backup.request}'="$request" --timeout=20m
+      kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+        --for=jsonpath='{.status.backup.success}'=true --timeout=20m
+      kubectl --context "$CTX" -n "$NS" get forgejoapplication/forgejo -o json |
+        jq -e --arg request "$request" '.status.backup | select(.request==$request and .success==true)' > "$result"
+      snapshot=$(jq -er '.snapshot | select(test("^[a-f0-9]{64}$"))' "$result")
+      ;;
+    *) exit 1 ;;
+  esac
+  LABEL="$label" SNAPSHOT="$snapshot" yq -i '
+    .operations.recovery.points[strenv(LABEL)][strenv(INSTANCE)] = {
+      "deployment":strenv(DEPLOYMENT),"snapshot":strenv(SNAPSHOT)}
+  ' "$VALUES"
 done
-printf '\n---\n'
-kubectl -n forgejo create secret generic forgejo-configuration \
-  --from-file=app.ini=/root/bartl-reference/forgejo/app-b.ini --dry-run=client -o yaml
-REMOTE
-) | kubectl --kubeconfig "$KC" create -f -
-cat > values/keycloak-c.yaml <<EOF
-identity:
-  installation: "$INSTALLATION"
-  instance: keycloak
-configuration:
-  hostname: "https://$KC_HOST"
-application:
-  replicas: 1
-database:
-  secretName: keycloak-database
-  adminSecretName: keycloak-database-admin
-  size: 5Gi
-recoveryAdminSecret: keycloak-recovery
-ingress:
-  enabled: false
-  className: traefik
-  tlsSecretName: keycloak-tls
-  maintenance: false
-  administratorSourceRanges: ["$ADMIN_IP/32", "$A_IP/32"]
-  controllerNamespace: kube-system
-backup:
-  repository: "rest:https://$BACKUP_HOST/keycloak/"
-  readerSecret: keycloak-backup-reader
-  writerSecret: keycloak-backup-writer
-  schedule: "0 2 * * *"
-  timeZone: Europe/Berlin
-  suspend: true
-EOF
-cat > values/forgejo-c.yaml <<EOF
-identity:
-  installation: "$INSTALLATION"
-  instance: forgejo
-version: "17.0.1"
-replicas: 1
-claim: forgejo-state
-stagingClaim: forgejo-capture
-configurationSecret: forgejo-configuration
-backup:
-  repository: "rest:https://$BACKUP_HOST/forgejo/"
-  readerSecret: forgejo-backup-reader
-  writerSecret: forgejo-backup-writer
-  schedule: "0 2 * * *"
-  timeZone: Europe/Berlin
-ingress:
-  enabled: false
-  host: "$FORGEJO_HOST"
-  className: traefik
-  tlsSecret: forgejo-tls
-ssh:
-  port: 2222
-EOF
 ```
+
+For restart without backup access, record `.operations.deployments.restic.replicas=0`, apply `DEPLOYMENT=restic` and require current-generation Stopped. Restart the existing Keycloak and Forgejo serving Deployments on B through their documented native restart procedure. Require usable existing data and native login without backup access, then record Restic replicas 1, reapply and require Ready. Do not interpret this as recovery without independently retained inputs.
 
 ```bash
-export KUBECONFIG="$KC"
-helm install keycloak "$KEYCLOAK_CHART" -n keycloak -f values/keycloak-c.yaml --wait=legacy --timeout=30m
-kubectl -n keycloak wait keycloakapplication/keycloak --for=condition=Ready --timeout=20m
-current_condition "$KC" keycloak keycloakapplication/keycloak Ready
-kubectl -n keycloak get keycloakapplication/keycloak -o json > evidence/keycloak-recovery.json
-jq -e --slurpfile receipt evidence/keycloak-final-backup.json \
-  '.status.operation.snapshot.id==$receipt[0].snapshotID' evidence/keycloak-recovery.json
-for claim in forgejo-state forgejo-capture; do
-  jq -n --arg name "$claim" '{apiVersion:"v1",kind:"PersistentVolumeClaim",metadata:{name:$name,namespace:"forgejo"},
-    spec:{accessModes:["ReadWriteOnce"],storageClassName:"local-path",resources:{requests:{storage:"8Gi"}}}}' | kubectl create -f -
+yq -i '.operations.deployments.restic.replicas = 0' "$VALUES"
+DEPLOYMENT=restic
+export DEPLOYMENT
+INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+export INSTANCE CLUSTER PACKAGE
+CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+case "$INSTANCE" in
+  keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+  forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+  restic) mappings='replicas:replicas' ;;
+  *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+esac
+for mapping in $mappings; do
+  key=${mapping%%:*}; field=${mapping#*:}
+  if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+    value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+    case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+      *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+  fi
 done
-helm install forgejo "$FORGEJO_CHART" -n forgejo -f values/forgejo-c.yaml --wait=legacy --timeout=5m
-kubectl -n forgejo wait forgejoapplication/forgejo --for=condition=Ready --timeout=20m
-current_condition "$KC" forgejo forgejoapplication/forgejo Ready
-kubectl -n forgejo get forgejoapplication/forgejo -o json > evidence/forgejo-recovery.json
-kubectl -n forgejo logs -l forgejo.bartl.sh/role=prepare --all-containers=true --tail=-1 > evidence/forgejo-recovery-native.log
+helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+  -f "$VALUES" "${TARGET_ARGS[@]}"
+GEN=$(kubectl --kubeconfig "$KA" -n backup get resticapplication/backup-restic -o jsonpath='{.metadata.generation}')
+kubectl --kubeconfig "$KA" -n backup wait resticapplication/backup-restic --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
+kubectl --kubeconfig "$KA" -n backup wait resticapplication/backup-restic --for=condition=Stopped --timeout=20m
+current_condition "$KA" backup resticapplication/backup-restic Stopped
+for instance in keycloak forgejo; do
+  kubectl --kubeconfig "$KB" -n "$instance" rollout restart "deployment/$instance"
+  kubectl --kubeconfig "$KB" -n "$instance" rollout status "deployment/$instance" --timeout=10m
+done
+yq -i '.operations.deployments.restic.replicas = 1' "$VALUES"
+DEPLOYMENT=restic
+export DEPLOYMENT
+INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+export INSTANCE CLUSTER PACKAGE
+CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+case "$INSTANCE" in
+  keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+  forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+  restic) mappings='replicas:replicas' ;;
+  *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+esac
+for mapping in $mappings; do
+  key=${mapping%%:*}; field=${mapping#*:}
+  if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+    value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+    case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+      *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+  fi
+done
+helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+  -f "$VALUES" "${TARGET_ARGS[@]}"
+GEN=$(kubectl --kubeconfig "$KA" -n backup get resticapplication/backup-restic -o jsonpath='{.metadata.generation}')
+kubectl --kubeconfig "$KA" -n backup wait resticapplication/backup-restic --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
+kubectl --kubeconfig "$KA" -n backup wait resticapplication/backup-restic --for=condition=Ready --timeout=20m
+current_condition "$KA" backup resticapplication/backup-restic Ready
 ```
 
-The last JSON receipt in Forgejo's prepare log must name the snapshot in `evidence/forgejo-final-backup.json`, the same logical identity and version 17.0.1. Reconstruction and migration are automatic.
+Exercise stop/start through the package interfaces, not direct workload scaling. Record source Forgejo replicas 0, apply and require Stopped; do the same for Keycloak. Then record replicas 1 and apply Keycloak before Forgejo; require current-generation Ready and normal useful access. Every change above is retained in `operations.deployments`, not an unrecorded `--set`.
 
 ```bash
-for app in keycloak forgejo; do
-  kubectl -n "$app" get pvc -o json > "evidence/$app-target-pvc.json"
-  jq -e --slurpfile source "evidence/$app-source-pvc.json" \
-    'all(.items[]; . as $target | all($source[0].items[];
-      .metadata.uid!=$target.metadata.uid and .spec.volumeName!=$target.spec.volumeName))' \
-    "evidence/$app-target-pvc.json"
+for DEPLOYMENT in forgejo keycloak; do
+  DEPLOYMENT="$DEPLOYMENT" yq -i '.operations.deployments[strenv(DEPLOYMENT)].replicas = 0' "$VALUES"
+  export DEPLOYMENT
+  INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+  RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+  PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+  export INSTANCE CLUSTER PACKAGE
+  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+  CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+  case "$INSTANCE" in
+    keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+    forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+    restic) mappings='replicas:replicas' ;;
+    *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+  esac
+  for mapping in $mappings; do
+    key=${mapping%%:*}; field=${mapping#*:}
+    if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+      value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+      case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+        *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+    fi
+  done
+  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+    -f "$VALUES" "${TARGET_ARGS[@]}"
+  GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o jsonpath='{.metadata.generation}')
+  kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
+  kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=condition=Stopped --timeout=20m
+  current_condition "$KUBECONFIG" "$NS" "${INSTANCE}application/$INSTANCE" Stopped
 done
-hcloud server describe "$INSTALLATION-b" --output json | jq -e '.status=="off"'
+for DEPLOYMENT in keycloak forgejo; do
+  DEPLOYMENT="$DEPLOYMENT" yq -i '.operations.deployments[strenv(DEPLOYMENT)].replicas = 1' "$VALUES"
+  export DEPLOYMENT
+  INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+  RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+  PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+  export INSTANCE CLUSTER PACKAGE
+  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+  CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+  case "$INSTANCE" in
+    keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+    forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+    restic) mappings='replicas:replicas' ;;
+    *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+  esac
+  for mapping in $mappings; do
+    key=${mapping%%:*}; field=${mapping#*:}
+    if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+      value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+      case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+        *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+    fi
+  done
+  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+    -f "$VALUES" "${TARGET_ARGS[@]}"
+  GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o jsonpath='{.metadata.generation}')
+  kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
+  kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=condition=Ready --timeout=20m
+  current_condition "$KUBECONFIG" "$NS" "${INSTANCE}application/$INSTANCE" Ready
+done
 ```
 
-## Move the hostnames while C remains restricted
+The historical walkthrough upgraded Restic/Keycloak package versions before recovery. Do not run its old flat-interface upgrade commands against these charts. For an authorized supported chart upgrade, retain a distinct package entry, point only the selected deployment at it, acquire/checksum the archive, apply the package's CRD upgrade procedure (Helm does not upgrade CRDs automatically), reapply `VALUES` and check current-generation/package status. This exercise's native Forgejo 16.0.7 to 17.0.1 replacement remains below; it does not imply arbitrary cross-interface upgrades are supported.
 
-Confirm each deSEC record belongs to this installation and points to B before changing it to C. Wait the full previous TTL (900 seconds), then check authoritative and public DNS before requesting certificates:
+## Close writes, capture final state and retire B
+
+Arrange the accepted interruption and data-loss boundary first. Stop user/configuration changes, withdraw source Forgejo HTTP and direct SSH access including existing connections, and close identity changes. Background effects are disabled in this profile. Mere DNS changes do not stop writes. Record source routing disabled and use the package's planned-promotion procedure to enforce all paths before final capture.
+
+```bash
+yq -i '.operations.deployments.forgejo.ingressEnabled = false' "$VALUES"
+DEPLOYMENT=forgejo
+export DEPLOYMENT
+INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+export INSTANCE CLUSTER PACKAGE
+CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+case "$INSTANCE" in
+  keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+  forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+  restic) mappings='replicas:replicas' ;;
+  *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+esac
+for mapping in $mappings; do
+  key=${mapping%%:*}; field=${mapping#*:}
+  if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+    value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+    case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+      *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+  fi
+done
+helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+  -f "$VALUES" "${TARGET_ARGS[@]}"
+kubectl --context "$CTX" -n "$NS" delete service forgejo-ssh --ignore-not-found
+label=final
+export DEPLOYMENT
+INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+export INSTANCE CLUSTER PACKAGE
+CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+case "$INSTANCE" in
+  keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+  forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+  restic) mappings='replicas:replicas' ;;
+  *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+esac
+for mapping in $mappings; do
+  key=${mapping%%:*}; field=${mapping#*:}
+  if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+    value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+    case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+      *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+  fi
+done
+request="$label-$(date -u +%Y%m%dT%H%M%SZ)"
+result="$WORK_DIR/evidence/$INSTANCE-$label-backup.json"
+case "$INSTANCE" in
+  keycloak)
+    kubectl --context "$CTX" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
+    kubectl --context "$CTX" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
+    kubectl --context "$CTX" -n "$NS" logs "job/$request" -c backup > "$result"
+    snapshot=$(jq -er '.snapshotID | select(test("^[a-f0-9]{64}$"))' "$result")
+    ;;
+  forgejo)
+    kubectl --context "$CTX" -n "$NS" annotate forgejoapplication forgejo \
+      forgejo.bartl.sh/backup-request="$request" --overwrite
+    kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+      --for=jsonpath='{.status.backup.request}'="$request" --timeout=20m
+    kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+      --for=jsonpath='{.status.backup.success}'=true --timeout=20m
+    kubectl --context "$CTX" -n "$NS" get forgejoapplication/forgejo -o json |
+      jq -e --arg request "$request" '.status.backup | select(.request==$request and .success==true)' > "$result"
+    snapshot=$(jq -er '.snapshot | select(test("^[a-f0-9]{64}$"))' "$result")
+    ;;
+  *) exit 1 ;;
+esac
+LABEL="$label" SNAPSHOT="$snapshot" yq -i '
+  .operations.recovery.points[strenv(LABEL)][strenv(INSTANCE)] = {
+    "deployment":strenv(DEPLOYMENT),"snapshot":strenv(SNAPSHOT)}
+' "$VALUES"
+```
+
+The chart may recreate SSH routing on later reapply: keep firewall admission withdrawn through retirement and confirm no existing write connection remains. Request the final Forgejo capture through the block above with a fresh `final-...` request; require matching request, successful publication and snapshot ID. Record that final point separately. Complete Keycloak's documented final-write closure and manual backup, retaining its successful point. These are two coordinated application points, not an atomic stack snapshot.
+
+```bash
+yq -i '
+  .operations.deployments.forgejo.replicas = 0 |
+  .operations.deployments.forgejo.ingressEnabled = false |
+  .operations.deployments.keycloak.replicas = 0 |
+  .operations.deployments.keycloak.ingressEnabled = false |
+  .operations.deployments.keycloak.backupSuspend = true
+' "$VALUES"
+for DEPLOYMENT in forgejo keycloak; do
+  export DEPLOYMENT
+  INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+  RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+  PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+  export INSTANCE CLUSTER PACKAGE
+  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+  CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+  case "$INSTANCE" in
+    keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+    forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+    restic) mappings='replicas:replicas' ;;
+    *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+  esac
+  for mapping in $mappings; do
+    key=${mapping%%:*}; field=${mapping#*:}
+    if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+      value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+      case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+        *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+    fi
+  done
+  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+    -f "$VALUES" "${TARGET_ARGS[@]}"
+  GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o jsonpath='{.metadata.generation}')
+  kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
+  kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=condition=Stopped --timeout=20m
+  current_condition "$KUBECONFIG" "$NS" "${INSTANCE}application/$INSTANCE" Stopped
+done
+DEPLOYMENT=keycloak
+label=final
+export DEPLOYMENT
+INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+export INSTANCE CLUSTER PACKAGE
+CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+case "$INSTANCE" in
+  keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+  forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+  restic) mappings='replicas:replicas' ;;
+  *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+esac
+for mapping in $mappings; do
+  key=${mapping%%:*}; field=${mapping#*:}
+  if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+    value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+    case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+      *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+  fi
+done
+request="$label-$(date -u +%Y%m%dT%H%M%SZ)"
+result="$WORK_DIR/evidence/$INSTANCE-$label-backup.json"
+case "$INSTANCE" in
+  keycloak)
+    kubectl --context "$CTX" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
+    kubectl --context "$CTX" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
+    kubectl --context "$CTX" -n "$NS" logs "job/$request" -c backup > "$result"
+    snapshot=$(jq -er '.snapshotID | select(test("^[a-f0-9]{64}$"))' "$result")
+    ;;
+  forgejo)
+    kubectl --context "$CTX" -n "$NS" annotate forgejoapplication forgejo \
+      forgejo.bartl.sh/backup-request="$request" --overwrite
+    kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+      --for=jsonpath='{.status.backup.request}'="$request" --timeout=20m
+    kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+      --for=jsonpath='{.status.backup.success}'=true --timeout=20m
+    kubectl --context "$CTX" -n "$NS" get forgejoapplication/forgejo -o json |
+      jq -e --arg request "$request" '.status.backup | select(.request==$request and .success==true)' > "$result"
+    snapshot=$(jq -er '.snapshot | select(test("^[a-f0-9]{64}$"))' "$result")
+    ;;
+  *) exit 1 ;;
+esac
+LABEL="$label" SNAPSHOT="$snapshot" yq -i '
+  .operations.recovery.points[strenv(LABEL)][strenv(INSTANCE)] = {
+    "deployment":strenv(DEPLOYMENT),"snapshot":strenv(SNAPSHOT)}
+' "$VALUES"
+for instance in keycloak forgejo; do
+  kubectl --kubeconfig "$KB" -n "$instance" get pvc -o json > "$WORK_DIR/evidence/$instance-source-pvc.json"
+done
+SOURCE_SERVER=$(yq -er '.clusters.b.observed.server.id' "$VALUES")
+hcloud server describe "$SOURCE_SERVER" --output json | jq '{id,name,status,public_net}'
+```
+
+Before retiring B, retain the source-independent Keycloak handoff on the workstation. The final receipt and storage inventory were collected above while its API was available; native recovery credentials must already be independently retained.
+
+```bash
+export SOURCE_DEPLOYMENT=keycloak TARGET_DEPLOYMENT=keycloak-replacement
+SOURCE_CLUSTER=$(yq -er '.deployments.keycloak.cluster' "$VALUES")
+SOURCE_NS=$(yq -er '.deployments.keycloak.namespace' "$VALUES")
+SOURCE_CTX=$(CLUSTER="$SOURCE_CLUSTER" yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+SOURCE_KUBECONFIG="$WORK_DIR/clusters/$SOURCE_CLUSTER/base/kubeconfig"
+SOURCE_DIR="$WORK_DIR/clusters/$SOURCE_CLUSTER/applications/keycloak"
+SOURCE_SNAPSHOT=$(jq -er '.snapshotID | select(test("^[a-f0-9]{64}$"))' "$WORK_DIR/evidence/keycloak-final-backup.json")
+test -s "$SOURCE_DIR/recovery-admin/username"
+test -s "$SOURCE_DIR/recovery-admin/password"
+test -s "$SOURCE_DIR/credentials/database/username"
+test -s "$SOURCE_DIR/credentials/database/database"
+for role in reader writer; do
+  for key in password username restPassword; do test -s "$SOURCE_DIR/repository/$role/$key"; done
+done
+cp "$WORK_DIR/evidence/keycloak-final-backup.json" "$SOURCE_DIR/backup-result.json"
+cp "$WORK_DIR/evidence/keycloak-source-pvc.json" "$SOURCE_DIR/source-pvc.json"
+jq -e '.items | length > 0' "$SOURCE_DIR/source-pvc.json"
+```
+
+Keep that directory, the same `VALUES`, chart archive and target base access usable with B powered off. No later target-preparation step may query B's Kubernetes API.
+
+Match live ID/name/address to the retained B observations before poweroff. Confirm all final points are published and no capture remains pending. Then:
+
+```bash
+hcloud server poweroff "$SOURCE_SERVER"
+hcloud server describe "$SOURCE_SERVER" --output json | jq -e '.status=="off"'
+yq -i '.operations.recovery.sourceRetired = true | .operations.recovery.retirementMethod = "confirmed B poweroff; restart prohibited"' "$VALUES"
+```
+
+Keep B off and prevent unauthorized restart for the remainder of the run. If stop or identity is uncertain, do not promote. Unreachability alone is not retirement. No automatic return to B is permitted after candidate writes.
+
+## Prepare isolated C and recover in dependency order
+
+Use fresh empty state on C, never mount/copy source volumes. Preserve installation/instance identity, hostnames, Forgejo identity keys/host key, repository keys and the retained Keycloak recovery administrator. Restore protected inputs from independent custody into each package's target directory, not another values file. Keycloak may create new target database passwords through its documented replacement procedure; do not confuse these with stable native identity/repository keys.
+
+```bash
+yq -i '
+  .operations.deployments."keycloak-replacement" = ({"replicas":1,"ingressEnabled":false,"maintenance":false,"backupSuspend":true} * (.operations.deployments."keycloak-replacement" // {})) |
+  .operations.deployments."forgejo-replacement" = ({"replicas":1,"ingressEnabled":false,"version":"17.0.1"} * (.operations.deployments."forgejo-replacement" // {}))
+' "$VALUES"
+```
+
+
+## Move hostnames while C stays restricted
+
+Confirm the predecessor is off, live DNS still points to retained B, and candidate access is restricted at the firewall/ingress boundary. C needs HTTP-01 validation and usable restricted HTTPS/SSH from the administrator and A. Configure those rules through the base/package procedures, using C's retained firewall ID; do not open unrestricted access accidentally. Read every record before replacing its address:
+
+First restrict C's public HTTPS while leaving HTTP available for ACME. Inspect its retained firewall attachment before modifying the identified rules; if a rule already has the requested state, verify it rather than repeating the mutation.
+
+```bash
+C_FIREWALL=$(yq -er '.clusters.c.observed.firewall.id' "$VALUES")
+hcloud firewall describe "$C_FIREWALL"
+hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 --source-ips 0.0.0.0/0,::/0
+hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
+  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
+hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 30222 \
+  --source-ips "$ADMIN_IP/32,$A_IP/32"
+```
+
+Move the stable hostnames and wait for their public/authoritative C answers **before** invoking either package's certificate-dependent installation waits:
 
 ```bash
 for host in "$KC_HOST" "$FORGEJO_HOST"; do
   subname=${host%.$DNS_ZONE}
-  desec "$DNS_API/rrsets/$subname/A/" | jq .
+  desec "$DNS_API/rrsets/$subname/A/" |
+    jq -e --arg ip "$B_IP" '.records==[$ip] and .ttl==900'
   desec --request PATCH "$DNS_API/rrsets/$subname/A/" \
-    --json "$(jq -nc --arg ip "$C_IP" '{ttl:900,records:[$ip]}')"
-  sleep 2
+    --json "$(jq -nc --arg ip "$C_IP" '{records:[$ip],ttl:900}')"
+  HOST="$host" IP="$C_IP" yq -i '.operations.dns[strenv(HOST)].address = strenv(IP)' "$VALUES"
 done
 sleep 900
 for host in "$KC_HOST" "$FORGEJO_HOST"; do
@@ -346,224 +515,407 @@ for host in "$KC_HOST" "$FORGEJO_HOST"; do
 done
 ```
 
-Every answer must point to C. Keep the restricted firewall while obtaining certificates:
+Require authoritative and public DNS answers for C before continuing. Reconstruct the retained Keycloak handoff without contacting B; this block also supports resuming a new workstation shell:
 
 ```bash
-export KUBECONFIG="$KC"
-kubectl apply -f values/keycloak-tls.yaml
-kubectl apply -f values/forgejo-tls.yaml
-kubectl -n keycloak wait certificate/keycloak-tls --for=condition=Ready --timeout=15m
-kubectl -n forgejo wait certificate/forgejo-tls --for=condition=Ready --timeout=15m
-helm upgrade keycloak "$KEYCLOAK_CHART" -n keycloak -f values/keycloak-c.yaml \
-  --set ingress.enabled=true,ingress.maintenance=false
-helm upgrade forgejo "$FORGEJO_CHART" -n forgejo -f values/forgejo-c.yaml --set ingress.enabled=true
-kubectl -n keycloak wait keycloakapplication/keycloak --for=condition=Ready --timeout=10m
-kubectl -n forgejo wait forgejoapplication/forgejo --for=condition=Ready --timeout=10m
-current_condition "$KC" keycloak keycloakapplication/keycloak Ready
-current_condition "$KC" forgejo forgejoapplication/forgejo Ready
-curl --fail --silent --show-error "https://$KC_HOST/realms/reference/.well-known/openid-configuration" |
-  jq -e --arg issuer "https://$KC_HOST/realms/reference" '.issuer==$issuer'
+export SOURCE_DEPLOYMENT=keycloak TARGET_DEPLOYMENT=keycloak-replacement INSTANCE=keycloak
+SOURCE_CLUSTER=$(yq -er '.deployments.keycloak.cluster' "$VALUES")
+SOURCE_NS=$(yq -er '.deployments.keycloak.namespace' "$VALUES")
+SOURCE_CTX=$(CLUSTER="$SOURCE_CLUSTER" yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+SOURCE_KUBECONFIG="$WORK_DIR/clusters/$SOURCE_CLUSTER/base/kubeconfig"
+SOURCE_DIR="$WORK_DIR/clusters/$SOURCE_CLUSTER/applications/keycloak"
+SOURCE_SNAPSHOT=$(jq -er '.snapshotID' "$SOURCE_DIR/backup-result.json")
+TARGET_KUBECONFIG="$KC"
+export DEPLOYMENT="$TARGET_DEPLOYMENT"
+test -s "$SOURCE_DIR/source-pvc.json"
 ```
 
-If ACME fails, inspect `kubectl describe challenge -n keycloak` for the address reached by the CA. Resolve DNS/routing before retrying; do not bypass TLS.
+In the [Keycloak fresh-storage procedure](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#recover-onto-fresh-storage), execute **only** the target-preparation block immediately following “Prepare the independent namespace, database credentials, retained backup access and TLS”: it starts `DEPLOYMENT=$TARGET_DEPLOYMENT`. Execute through the closing subshell after its target certificate wait, stopping before `wait_application Ready`. Do **not** rerun that section's initial source-capture/source-stop blocks or its later source-Pod check: B is deliberately unavailable. The handoff above replaces those source dependencies. The target-only block prepares new database credentials, copies retained recovery/repository inputs, creates declared target Secrets and performs ordinary installation on C with the same `VALUES`.
 
-Only if renewal is needed and the responsible administrator approves it, follow the [cert-manager procedure](https://cert-manager.io/docs/usage/certificate/) below. From the workstation, open C:
+Require current-generation readiness, the final snapshot and independent target storage using only C plus retained source evidence:
 
 ```bash
-(cd "$WORK_DIR/.lab/c"; ssh -F .lab/ssh.config k3s)
+GEN=$(kubectl --kubeconfig "$KC" --context "$CTX" -n "$NS" get keycloakapplication/keycloak -o jsonpath='{.metadata.generation}')
+kubectl --kubeconfig "$KC" --context "$CTX" -n "$NS" wait keycloakapplication/keycloak --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
+kubectl --kubeconfig "$KC" --context "$CTX" -n "$NS" wait keycloakapplication/keycloak --for=condition=Ready --timeout=20m
+current_condition "$KC" "$NS" keycloakapplication/keycloak Ready
+kubectl --kubeconfig "$KC" --context "$CTX" -n "$NS" get keycloakapplication/keycloak -o json |
+  jq -e --arg snapshot "$SOURCE_SNAPSHOT" '.status.operation.snapshot.id == $snapshot'
+kubectl --kubeconfig "$KC" --context "$CTX" -n "$NS" get pvc -o json |
+  jq -e --slurpfile source "$SOURCE_DIR/source-pvc.json" '
+    (.items | length > 0) and all(.items[]; . as $target |
+      all($source[0].items[]; .metadata.uid != $target.metadata.uid
+        and .spec.volumeName != $target.spec.volumeName))'
 ```
 
-On C:
+Its work directory is `clusters/c/applications/keycloak/deployments/keycloak-replacement`. Keep the source intent stopped. Check recovered realm/user/client identities before relying on it; DNS alone never establishes source retirement.
+
+Then select `DEPLOYMENT=forgejo-replacement` and execute Forgejo's retained-identity, storage, Secret/configuration preparation and ordinary install against independent claims. Its work directory is `clusters/c/applications/forgejo/deployments/forgejo-replacement`. Apply the recorded 17.0.1 native version during rendering and install. The package restores and migrates; no restore mode or second technical release command is allowed. Check native preparation version, current-generation Ready, preserved SSH key and recovered data. Keep candidate production HTTP/SSH access restricted until acceptance.
+
+Require authoritative/public C answers and valid TLS. With network restrictions still enforced, record replacement `ingressEnabled=true` and apply Keycloak then Forgejo; verify their certificates and real endpoints. The effective Keycloak hostname must remain the declared stable issuer, not a workstation rewrite. Run [all recovered-data checks](verification.md#verify-the-same-data-after-recovery), including real browser login, permission boundary, preserved SSH identity, LFS, issue/attachment/package/release and new HTTP/SSH writes. Do not activate after a partial check.
 
 ```bash
-umask 077
-mkdir -p /root/cmctl-download
-cd /root/cmctl-download
-curl -fL -o cmctl https://github.com/cert-manager/cmctl/releases/download/v2.6.2/cmctl_linux_amd64
-printf '690f38f71bb5540ea98bc6a33e1ab0caad246a3c2b932a84d4671369b6736fe4  cmctl\n' | sha256sum --check
-chmod 700 cmctl
-KUBECONFIG=/etc/rancher/k3s/k3s.yaml ./cmctl renew keycloak-tls -n keycloak
-exit
-```
-
-Back on the workstation, wait for `kubectl --kubeconfig "$KC" -n keycloak wait certificate/keycloak-tls --for=condition=Ready --timeout=15m` to succeed.
-
-Create SSH access from the current Service selector. Compare the recovered host key against the retained trust anchor:
-
-```bash
-export KUBECONFIG="$KC"
-kubectl -n forgejo get service forgejo -o json | jq '{apiVersion:"v1",kind:"Service",
-  metadata:{name:"forgejo-ssh",namespace:"forgejo"},spec:{type:"NodePort",
-  externalTrafficPolicy:"Local",selector:.spec.selector,
-  ports:[{name:"ssh",port:2222,targetPort:2222,nodePort:30222}]}}' > values/forgejo-ssh-c.json
-kubectl apply -f values/forgejo-ssh-c.json
-hcloud firewall add-rule "$INSTALLATION-c" --direction in --protocol tcp --port 30222 \
-  --source-ips "$ADMIN_IP/32,$A_IP/32"
-POD=$(kubectl -n forgejo get pod -l forgejo.bartl.sh/role=app -o jsonpath='{.items[0].metadata.name}')
-kubectl -n forgejo exec "$POD" -- cat /data/data/ssh/forgejo.ed25519.pub \
-  > evidence/forgejo-recovered-host-key.pub
-cmp evidence/forgejo-host-key.pub evidence/forgejo-recovered-host-key.pub
-```
-
-`cmp` must exit 0. On a mismatch, stop; do not replace the original key. Run all [post-recovery checks](verification.md#verify-the-same-data-after-recovery), including fresh login, data, identities, permissions and new writes, before opening public access.
-
-For an OIDC HTTP `500`, inspect Forgejo logs and check whether a Keycloak maintenance rule blocks discovery. Check the middleware reference on the Ingress, not merely its existence.
-
-## Reinstall Restic without replacing its PVC
-
-Use Restic 0.2.1 for finalization; do not bypass old 0.2.0 finalizers. Run no concurrent backups, restores or maintenance.
-
-```bash
-export KUBECONFIG="$KA"
-kubectl -n backup get pvc repository -o json > evidence/restic-pvc-before-reinstall.json
-helm upgrade backup "$RESTIC_CHART" -n backup -f values/restic-a.yaml --set application.replicas=0
-kubectl -n backup wait resticapplication/backup-restic --for=condition=Stopped --timeout=5m
-current_condition "$KA" backup resticapplication/backup-restic Stopped
-kubectl -n backup delete resticapplication backup-restic --wait=true --timeout=3m
-helm uninstall backup -n backup --wait --timeout=3m
-kubectl -n backup get pvc repository
-kubectl -n backup get secret repository-tls keycloak-repository-key forgejo-repository-key
-helm install backup "$RESTIC_CHART" -n backup -f values/restic-a.yaml --wait=legacy --timeout=5m
-kubectl -n backup wait resticapplication/backup-restic --for=condition=Ready --timeout=30m
-current_condition "$KA" backup resticapplication/backup-restic Ready
-kubectl -n backup get pvc repository -o json |
-  jq -e --slurpfile before evidence/restic-pvc-before-reinstall.json '.metadata.uid==$before[0].metadata.uid'
-for app in keycloak forgejo; do
-  helm template backup "$RESTIC_CHART" -n backup -f values/restic-a.yaml \
-    --set maintenance.enabled=true --set maintenance.name="check-$app" \
-    --set maintenance.repository="$app" --set maintenance.action=check \
-    --set maintenance.host="$BACKUP_HOST" --set maintenance.credentialsSecret="$app-repository-admin" \
-    --show-only templates/maintenance.yaml | kubectl -n backup apply -f -
-  kubectl -n backup wait job/backup-restic-check-"$app" --for=condition=complete --timeout=30m
-  kubectl -n backup logs job/backup-restic-check-"$app" > "evidence/restic-check-$app.log"
+yq -i '.operations.deployments."keycloak-replacement".ingressEnabled = true |
+  .operations.deployments."forgejo-replacement".ingressEnabled = true' "$VALUES"
+for DEPLOYMENT in keycloak-replacement forgejo-replacement; do
+  export DEPLOYMENT
+  INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+  RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+  PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+  export INSTANCE CLUSTER PACKAGE
+  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+  CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+  case "$INSTANCE" in
+    keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+    forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+    restic) mappings='replicas:replicas' ;;
+    *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+  esac
+  for mapping in $mappings; do
+    key=${mapping%%:*}; field=${mapping#*:}
+    if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+      value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+      case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+        *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+    fi
+  done
+  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+    -f "$VALUES" "${TARGET_ARGS[@]}"
+  GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o jsonpath='{.metadata.generation}')
+  kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
+  kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=condition=Ready --timeout=20m
+  current_condition "$KUBECONFIG" "$NS" "${INSTANCE}application/$INSTANCE" Ready
+done
+kubectl --kubeconfig "$KC" -n keycloak wait certificate/keycloak-tls --for=condition=Ready --timeout=15m
+kubectl --kubeconfig "$KC" -n forgejo wait certificate/forgejo-tls --for=condition=Ready --timeout=15m
+POD=$(kubectl --kubeconfig "$KC" -n forgejo get pod -l forgejo.bartl.sh/role=app -o jsonpath='{.items[0].metadata.name}')
+kubectl --kubeconfig "$KC" -n forgejo exec "$POD" -- cat /data/data/ssh/forgejo.ed25519.pub > "$WORK_DIR/evidence/forgejo-recovered-host-key.pub"
+cmp "$WORK_DIR/evidence/forgejo-host-key.pub" "$WORK_DIR/evidence/forgejo-recovered-host-key.pub"
+for instance in keycloak forgejo; do
+  kubectl --kubeconfig "$KC" -n "$instance" get pvc -o json |
+    jq -e --slurpfile source "$WORK_DIR/evidence/$instance-source-pvc.json" \
+      'all(.items[]; . as $target | all($source[0].items[]; .metadata.uid!=$target.metadata.uid))'
 done
 ```
 
-The jobs run `check --read-data` with separate admin credentials and native locks. Retain all snapshot history.
+## Reinstall Restic with retained state
+
+Pause concurrent backup/restore/maintenance. Follow Restic's current stop/finalize/CR-delete/Helm-uninstall procedure for `DEPLOYMENT=restic`; keep its controller available until finalization completes. Retain its PVC, TLS and supplied repository Secrets/keys. Reinstall ordinarily from `VALUES` with the same retained target/package and replicas 1. Require current-generation Ready and authenticated reader access to both histories. Do not bypass historical finalizers or delete state to make reinstall work.
 
 ## Open C and back up new work
 
-Record C's running state, changing only these fields:
-
-In `values/keycloak-c.yaml`:
-
-```diff
- ingress:
--  enabled: false
-+  enabled: true
-   maintenance: false
- backup:
--  suspend: true
-+  suspend: false
-```
-
-In `values/forgejo-c.yaml`:
-
-```diff
- ingress:
--  enabled: false
-+  enabled: true
-```
-
-Keep B's values stopped. Open HTTPS publicly; leave Git SSH restricted to lab administrators and A. First confirm B is off:
+After acceptance, explicitly open intended production paths on C and retain the active deployment IDs and final-write boundary:
 
 ```bash
-hcloud server describe "$INSTALLATION-b" --output json | jq -e '.status=="off"'
+yq -i '
+  .operations.deployments."keycloak-replacement".backupSuspend = false |
+  .operations.recovery.active.keycloak = "keycloak-replacement" |
+  .operations.recovery.active.forgejo = "forgejo-replacement"
+' "$VALUES"
+for DEPLOYMENT in keycloak-replacement forgejo-replacement; do
+  export DEPLOYMENT
+  INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+  RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+  PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+  export INSTANCE CLUSTER PACKAGE
+  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+  CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+  case "$INSTANCE" in
+    keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+    forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+    restic) mappings='replicas:replicas' ;;
+    *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+  esac
+  for mapping in $mappings; do
+    key=${mapping%%:*}; field=${mapping#*:}
+    if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+      value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+      case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+        *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+    fi
+  done
+  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+    -f "$VALUES" "${TARGET_ARGS[@]}"
+  GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o jsonpath='{.metadata.generation}')
+  kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
+  kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=condition=Ready --timeout=20m
+  current_condition "$KUBECONFIG" "$NS" "${INSTANCE}application/$INSTANCE" Ready
+done
 ```
 
-Continue only on `true`; otherwise keep C closed.
+Remove only the candidate validation restrictions now, through the corresponding package/base procedure. Leave B's stopped/routing-disabled intent intact. Publish and verify a subsequent backup from each recovered application after new work; record snapshot IDs and actual interruption/acceptance results. Do not treat old-point readability as proof that new scheduling/publication works.
 
 ```bash
-hcloud firewall add-rule "$INSTALLATION-c" --direction in --protocol tcp --port 443 --source-ips 0.0.0.0/0,::/0
-hcloud firewall delete-rule "$INSTALLATION-c" --direction in --protocol tcp --port 443 \
-  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
-export KUBECONFIG="$KC"
-helm upgrade keycloak "$KEYCLOAK_CHART" -n keycloak -f values/keycloak-c.yaml --wait=legacy --timeout=10m
-helm upgrade forgejo "$FORGEJO_CHART" -n forgejo -f values/forgejo-c.yaml --wait=legacy --timeout=5m
-JOB="keycloak-recovered-$(date -u +%Y%m%d%H%M%S)"
-kubectl -n keycloak create job "$JOB" --from=cronjob/keycloak-backup
-kubectl -n keycloak wait job/"$JOB" --for=condition=complete --timeout=30m
-kubectl -n keycloak logs job/"$JOB" -c backup > evidence/keycloak-recovered-backup.json
-jq -e --slurpfile source evidence/keycloak-final-backup.json \
-  '.snapshotID!=$source[0].snapshotID and .applicationUID!=$source[0].applicationUID and .pvcUID!=$source[0].pvcUID' \
-  evidence/keycloak-recovered-backup.json
-REQUEST="recovered-$(date -u +%Y%m%dT%H%M%SZ)"
-kubectl -n forgejo annotate forgejoapplication forgejo forgejo.bartl.sh/backup-request="$REQUEST" --overwrite
-kubectl -n forgejo wait forgejoapplication/forgejo --for=jsonpath='{.status.backup.request}'="$REQUEST" --timeout=20m
-kubectl -n forgejo wait forgejoapplication/forgejo --for=jsonpath='{.status.backup.success}'=true --timeout=20m
-kubectl -n forgejo get forgejoapplication/forgejo -o json | jq '.status.backup' > evidence/forgejo-recovered-backup.json
-jq -e --slurpfile source evidence/forgejo-final-backup.json \
-  '.success==true and .snapshot!=$source[0].snapshot' evidence/forgejo-recovered-backup.json
-kubectl -n keycloak get cronjob keycloak-backup
-kubectl -n forgejo get cronjob forgejo-backup
+for DEPLOYMENT in keycloak-replacement forgejo-replacement; do
+  label=recovered
+  export DEPLOYMENT
+  INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+  RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+  PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+  export INSTANCE CLUSTER PACKAGE
+  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+  CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+  case "$INSTANCE" in
+    keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+    forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+    restic) mappings='replicas:replicas' ;;
+    *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+  esac
+  for mapping in $mappings; do
+    key=${mapping%%:*}; field=${mapping#*:}
+    if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+      value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+      case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+        *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+    fi
+  done
+  request="$label-$(date -u +%Y%m%dT%H%M%SZ)"
+  result="$WORK_DIR/evidence/$INSTANCE-$label-backup.json"
+  case "$INSTANCE" in
+    keycloak)
+      kubectl --context "$CTX" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
+      kubectl --context "$CTX" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
+      kubectl --context "$CTX" -n "$NS" logs "job/$request" -c backup > "$result"
+      snapshot=$(jq -er '.snapshotID | select(test("^[a-f0-9]{64}$"))' "$result")
+      ;;
+    forgejo)
+      kubectl --context "$CTX" -n "$NS" annotate forgejoapplication forgejo \
+        forgejo.bartl.sh/backup-request="$request" --overwrite
+      kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+        --for=jsonpath='{.status.backup.request}'="$request" --timeout=20m
+      kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+        --for=jsonpath='{.status.backup.success}'=true --timeout=20m
+      kubectl --context "$CTX" -n "$NS" get forgejoapplication/forgejo -o json |
+        jq -e --arg request "$request" '.status.backup | select(.request==$request and .success==true)' > "$result"
+      snapshot=$(jq -er '.snapshot | select(test("^[a-f0-9]{64}$"))' "$result")
+      ;;
+    *) exit 1 ;;
+  esac
+  LABEL="$label" SNAPSHOT="$snapshot" yq -i '
+    .operations.recovery.points[strenv(LABEL)][strenv(INSTANCE)] = {
+      "deployment":strenv(DEPLOYMENT),"snapshot":strenv(SNAPSHOT)}
+  ' "$VALUES"
+done
+kubectl --kubeconfig "$KC" -n keycloak get cronjob keycloak-backup
+kubectl --kubeconfig "$KC" -n forgejo get cronjob forgejo-backup
 ```
 
-Both schedules must be active. The manual backup results above do not prove an overnight scheduled run.
+Require both schedules active; manual success does not prove a scheduled run.
 
-## Reinstall Forgejo on C with its state retained
 
-Require a fully published and verified post-takeover backup. Retain state and capture PVCs, configuration Secrets and backup Secrets. Delete the Application CR while its controller is running, then uninstall the Helm release. Never delete a namespace before finalization finishes:
+## Reinstall Forgejo with state retained
 
-```bash
-export KUBECONFIG="$KC"
-kubectl -n forgejo get pvc -o json > evidence/forgejo-before-reinstall-pvc.json
-helm upgrade forgejo "$FORGEJO_CHART" -n forgejo -f values/forgejo-c.yaml --set replicas=0
-kubectl -n forgejo wait forgejoapplication/forgejo --for=condition=Stopped --timeout=10m
-current_condition "$KC" forgejo forgejoapplication/forgejo Stopped
-kubectl -n forgejo delete forgejoapplication forgejo --wait=true --timeout=20m
-helm uninstall forgejo -n forgejo
-kubectl -n forgejo get pvc,secret
-helm install forgejo "$FORGEJO_CHART" -n forgejo -f values/forgejo-c.yaml --wait=legacy --timeout=5m
-kubectl -n forgejo wait forgejoapplication/forgejo --for=condition=Ready --timeout=20m
-current_condition "$KC" forgejo forgejoapplication/forgejo Ready
-kubectl -n forgejo get pvc -o json | jq -e --slurpfile before evidence/forgejo-before-reinstall-pvc.json \
-  '([.items[].metadata.uid]|sort)==([$before[0].items[].metadata.uid]|sort)'
-```
-
-The new Application CR has a new owner UID, so the old SSH Service selector no longer matches. Regenerate it below, then recheck HTTPS, Git over SSH, `recovered.txt`, `reference-user`'s read permission and native Keycloak login.
+Require the fully published post-takeover point and no pending publication. Select `forgejo-replacement` and follow Forgejo's stop/removal sequence: retain stop intent, await current-generation Stopped, delete its CR while the controller is alive, wait for finalization, then uninstall Helm. Retain both PVCs, native identity/configuration and backup Secrets. Record replicas 1 and perform ordinary reinstall using the same retained deployment. Verify existing data and new work, then publish another successful point. Never delete the namespace before finalization, force-remove a finalizer, or regenerate identity keys.
 
 ```bash
-kubectl -n forgejo get service forgejo -o json | jq '{apiVersion:"v1",kind:"Service",
-  metadata:{name:"forgejo-ssh",namespace:"forgejo"},spec:{type:"NodePort",
-  externalTrafficPolicy:"Local",selector:.spec.selector,
-  ports:[{name:"ssh",port:2222,targetPort:2222,nodePort:30222}]}}' > values/forgejo-ssh-c.json
-kubectl apply -f values/forgejo-ssh-c.json
-REQUEST="reinstalled-$(date -u +%Y%m%dT%H%M%SZ)"
-kubectl -n forgejo annotate forgejoapplication forgejo forgejo.bartl.sh/backup-request="$REQUEST" --overwrite
-kubectl -n forgejo wait forgejoapplication/forgejo --for=jsonpath='{.status.backup.request}'="$REQUEST" --timeout=20m
-kubectl -n forgejo wait forgejoapplication/forgejo --for=jsonpath='{.status.backup.success}'=true --timeout=20m
-kubectl -n forgejo get forgejoapplication/forgejo -o json |
-  jq '.status.backup' > evidence/forgejo-reinstalled-backup.json
+DEPLOYMENT=forgejo-replacement
+export DEPLOYMENT
+INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+export INSTANCE CLUSTER PACKAGE
+CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+case "$INSTANCE" in
+  keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+  forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+  restic) mappings='replicas:replicas' ;;
+  *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+esac
+for mapping in $mappings; do
+  key=${mapping%%:*}; field=${mapping#*:}
+  if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+    value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+    case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+      *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+  fi
+done
+kubectl --context "$CTX" -n "$NS" get pvc -o json > "$WORK_DIR/evidence/forgejo-before-reinstall-pvc.json"
+DEPLOYMENT="$DEPLOYMENT" yq -i '.operations.deployments[strenv(DEPLOYMENT)].replicas = 0' "$VALUES"
+export DEPLOYMENT
+INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+export INSTANCE CLUSTER PACKAGE
+CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+case "$INSTANCE" in
+  keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+  forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+  restic) mappings='replicas:replicas' ;;
+  *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+esac
+for mapping in $mappings; do
+  key=${mapping%%:*}; field=${mapping#*:}
+  if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+    value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+    case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+      *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+  fi
+done
+helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+  -f "$VALUES" "${TARGET_ARGS[@]}"
+GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get forgejoapplication/forgejo -o jsonpath='{.metadata.generation}')
+kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait forgejoapplication/forgejo --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
+kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait forgejoapplication/forgejo --for=condition=Stopped --timeout=20m
+current_condition "$KUBECONFIG" "$NS" forgejoapplication/forgejo Stopped
+kubectl --context "$CTX" -n "$NS" delete forgejoapplication forgejo --wait=true --timeout=20m
+helm uninstall "$RELEASE" --kube-context "$CTX" -n "$NS"
+DEPLOYMENT="$DEPLOYMENT" yq -i '.operations.deployments[strenv(DEPLOYMENT)].replicas = 1' "$VALUES"
+export DEPLOYMENT
+INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+export INSTANCE CLUSTER PACKAGE
+CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+case "$INSTANCE" in
+  keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+  forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+  restic) mappings='replicas:replicas' ;;
+  *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+esac
+for mapping in $mappings; do
+  key=${mapping%%:*}; field=${mapping#*:}
+  if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+    value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+    case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+      *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+  fi
+done
+helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+  -f "$VALUES" "${TARGET_ARGS[@]}"
+GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get forgejoapplication/forgejo -o jsonpath='{.metadata.generation}')
+kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait forgejoapplication/forgejo --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
+kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait forgejoapplication/forgejo --for=condition=Ready --timeout=20m
+current_condition "$KUBECONFIG" "$NS" forgejoapplication/forgejo Ready
+kubectl --context "$CTX" -n "$NS" get pvc -o json |
+  jq -e --slurpfile before "$WORK_DIR/evidence/forgejo-before-reinstall-pvc.json" \
+    '([.items[].metadata.uid]|sort)==([$before[0].items[].metadata.uid]|sort)'
+label=reinstalled
+export DEPLOYMENT
+INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
+CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
+RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
+PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
+export INSTANCE CLUSTER PACKAGE
+CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
+CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
+case "$INSTANCE" in
+  keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
+  forgejo) mappings='replicas:replicas ingressEnabled:ingress.enabled version:version hostname:hostname' ;;
+  restic) mappings='replicas:replicas' ;;
+  *) printf 'Unsupported reference instance\n' >&2; exit 1 ;;
+esac
+for mapping in $mappings; do
+  key=${mapping%%:*}; field=${mapping#*:}
+  if KEY="$key" yq -e '.operations.deployments[strenv(DEPLOYMENT)] | has(strenv(KEY))' "$VALUES" >/dev/null; then
+    value=$(KEY="$key" yq -r '.operations.deployments[strenv(DEPLOYMENT)][strenv(KEY)]' "$VALUES")
+    case "$key" in version|hostname) TARGET_ARGS+=(--set-string "services.${INSTANCE//./\\.}.$field=$value") ;;
+      *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
+  fi
+done
+request="$label-$(date -u +%Y%m%dT%H%M%SZ)"
+result="$WORK_DIR/evidence/$INSTANCE-$label-backup.json"
+case "$INSTANCE" in
+  keycloak)
+    kubectl --context "$CTX" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
+    kubectl --context "$CTX" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
+    kubectl --context "$CTX" -n "$NS" logs "job/$request" -c backup > "$result"
+    snapshot=$(jq -er '.snapshotID | select(test("^[a-f0-9]{64}$"))' "$result")
+    ;;
+  forgejo)
+    kubectl --context "$CTX" -n "$NS" annotate forgejoapplication forgejo \
+      forgejo.bartl.sh/backup-request="$request" --overwrite
+    kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+      --for=jsonpath='{.status.backup.request}'="$request" --timeout=20m
+    kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+      --for=jsonpath='{.status.backup.success}'=true --timeout=20m
+    kubectl --context "$CTX" -n "$NS" get forgejoapplication/forgejo -o json |
+      jq -e --arg request "$request" '.status.backup | select(.request==$request and .success==true)' > "$result"
+    snapshot=$(jq -er '.snapshot | select(test("^[a-f0-9]{64}$"))' "$result")
+    ;;
+  *) exit 1 ;;
+esac
+LABEL="$label" SNAPSHOT="$snapshot" yq -i '
+  .operations.recovery.points[strenv(LABEL)][strenv(INSTANCE)] = {
+    "deployment":strenv(DEPLOYMENT),"snapshot":strenv(SNAPSHOT)}
+' "$VALUES"
 ```
 
 ## Read new work from the subsequent backup
 
-From the workstation, transfer the sanitized snapshot record to A and connect there. Keep application data off the workstation.
+Use the recorded subsequent snapshot ID and independently retained reader credentials on A with the package's native Restic verification procedure. Restore into a fresh test directory on A, not on the workstation or over a running application. Verify capture metadata/checksums, native Git object visibility for the post-recovery commit, and the issue/package content created after recovery. A listing or successful upload alone is insufficient. Protect these verified point identities and results with the installation's operating record. This closes the recovery-to-new-backup cycle; finish with [cleanup](README.md#cleanup).
+
+On the workstation, supply only the selected Forgejo repository's reader inputs and the sanitized point record to the test client:
 
 ```bash
-jq -e '.success==true and (.snapshot|test("^[a-f0-9]{64}$"))' evidence/forgejo-reinstalled-backup.json
-(cd "$WORK_DIR/.lab/a";
- scp -F .lab/ssh.config ../../evidence/forgejo-reinstalled-backup.json k3s:/root/bartl-reference/forgejo-reinstalled-backup.json
- ssh -F .lab/ssh.config k3s)
+CLIENT_SSH="$WORK_DIR/clusters/a/base/ssh.config"
+REPOSITORY_INPUTS="$WORK_DIR/clusters/a/applications/restic/protected/repositories/forgejo"
+ssh -F "$CLIENT_SSH" k3s 'umask 077; mkdir -p /root/bartl-reference/repositories/forgejo/reader'
+ssh -F "$CLIENT_SSH" k3s 'cat > /root/bartl-reference/repositories/forgejo/reader/password' < "$REPOSITORY_INPUTS/password"
+ssh -F "$CLIENT_SSH" k3s 'cat > /root/bartl-reference/repositories/forgejo/reader/restPassword' < "$REPOSITORY_INPUTS/reader.restPassword"
+ssh -F "$CLIENT_SSH" k3s 'cat > /root/bartl-reference/forgejo-reinstalled-backup.json' < "$WORK_DIR/evidence/forgejo-reinstalled-backup.json"
+ssh -F "$CLIENT_SSH" k3s
 ```
 
-On A, restore the selected snapshot with the checksum-verified Restic client:
+On A, obtain the independently checksummed native client and read the new commit from that exact subsequent point:
 
 ```bash
 cd /root/bartl-reference
-SNAPSHOT=$(jq -er .snapshot forgejo-reinstalled-backup.json)
 umask 077
+SNAPSHOT=$(jq -er '.snapshot | select(test("^[a-f0-9]{64}$"))' forgejo-reinstalled-backup.json)
 curl -fL -o restic.bz2 https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_linux_amd64.bz2
 printf 'f415415624dcc452f2a02b8c33641791a8c6d6d3b65bbb3543fcf9a25151585c  restic.bz2\n' | sha256sum --check
 bzip2 -d restic.bz2
 chmod 700 restic
-./restic version
 source installation.env
 export RESTIC_REPOSITORY="rest:https://$BACKUP_HOST/forgejo/"
 export RESTIC_PASSWORD_FILE=/root/bartl-reference/repositories/forgejo/reader/password
 export RESTIC_REST_USERNAME=reader
 export RESTIC_REST_PASSWORD="$(cat repositories/forgejo/reader/restPassword)"
-: "${SNAPSHOT:?Supply the full ID of the verified backup from C}"
+test ! -e /root/bartl-reference/reinstalled-restore
 ./restic restore "$SNAPSHOT" --target /root/bartl-reference/reinstalled-restore
 repo=/root/bartl-reference/reinstalled-restore/capture/state/data/repositories/reference-admin/reference.git
 actual=$(git --git-dir="$repo" show main:recovered.txt)
@@ -571,6 +923,4 @@ test "$actual" = 'New write on recovered C'
 exit
 ```
 
-The check must read `recovered.txt`, written after takeover on C, from the restored backup, not a live Forgejo PVC mount.
-
-Finish with [Cleanup](README.md#cleanup).
+This must read `recovered.txt` from restored backup contents, not a live PVC or an old client copy. Keep the point identity and acceptance result; then continue with cleanup.

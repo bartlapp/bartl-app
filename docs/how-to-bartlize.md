@@ -66,7 +66,7 @@ The installation administrator coordinates applications, infrastructure, endpoin
 
 ## Installation inputs
 
-Operating and recovering an installation requires its effective configuration, selected releases and protected inputs. Their storage is an operational choice, not a requirement to create another repository.
+Each customer installation has exactly one authoritative `installation.yaml`. It holds installation and application identities, effective configuration, selected releases, application-to-cluster and cluster-to-provider mappings, protected-input references and the resource identities needed for operation. Operators must not reconcile directory names, shell variables and separate inventories to determine what belongs to an installation. A Git repository and a particular secret-store implementation are not prerequisites for standalone package operation.
 
 Keep these installation-specific inputs and results available:
 
@@ -78,11 +78,56 @@ Keep these installation-specific inputs and results available:
 | Operating decisions | Permitted interruption and data loss, source-retirement method, backup/replication schedules, retention policy, capacity and alerting responsibilities, useful acceptance checks and required handling of restored identities or records. |
 | Procedure and results | Dependency order, links to package commands, installation-specific deviations, active target/resource identities, selected recovery points, acceptance results and unresolved failures. Keep desired values separate from observed outcomes. |
 
+### One installation record
+
+Keep stable application settings under `services.<instance>`. Placement and package version do not define application identity: moving an application to another cluster must not create a new identity or rename its retained secrets. Each `deployments.<deployment>` entry selects an `instance`, `cluster`, actual Kubernetes `namespace`, Helm `release` and `package` reference. The selected `packages` entry identifies the release artifacts. Multiple deployment targets may refer to one logical instance during replacement; this does not authorize concurrent production writers.
+
+The operator selects a deployment; the procedure reads its application identity, target and package from the record. Cluster entries select their provider and retained Kubernetes context. Existing recorded choices are authoritative; defaults initialize missing choices, not overwrite them. Keep desired cluster settings under `clusters.<cluster>.configuration` and actual resource identities under `clusters.<cluster>.observed`. Store target-specific lifecycle intent under `operations.deployments.<deployment>` when a replacement needs different source and target settings. Commands derive any necessary Helm overrides from that intent rather than maintaining another values file.
+
+Provisioning extracts only required resource identities and addresses from provider responses and records each resource immediately in `installation.yaml`, preserving unrelated entries. Operations use those retained identifiers and check current provider state and ownership before destructive changes. If creation succeeds but recording fails, stop and reconcile the created resource before retrying. Recorded state identifies resources; it does not prove their current existence or authorize deletion.
+
+Secret values remain in the selected protected store. Put references beside their consumers in `installation.yaml`; retain only genuinely protected content there, not ordinary infrastructure inventory. Independently preserve required credentials and keys before relying on them. A successor must be able to retrieve and use them without the original workstation or cluster.
+
+### Working files and protected storage
+
+Set `WORK_DIR` to the installation root and `VALUES` to the absolute path of its one `installation.yaml`. Every package procedure uses that same path, including operation and recovery. A rendered `connections.yaml` contains derived declarations, not another configuration source. Only materialize local files where the invoked tools need them.
+
+For the Git-backed arrangement with a sibling GPG-backed `pass` store, the layout is:
+
+```text
+acme-installation/
+  installation.yaml
+  README.md
+  .gitignore
+  packages/                         # Downloaded charts and checksums; ignored
+  clusters/                         # Local working files; ignored
+    blue/
+      base/                         # kubeconfig and SSH working files
+      applications/
+        keycloak/                   # Derived connections and required access files
+        paperless/
+    green/
+      base/
+      applications/
+        restic/
+acme-secrets/                       # Independently retained encrypted store
+  .gpg-id
+  providers/
+  clusters/                         # Cluster-specific protected access
+  applications/                     # Stable instance-specific secrets
+```
+
+The actual namespace is recorded in the deployment mapping, not introduced as a local directory category. A deployment whose ID equals its instance uses `clusters/<cluster>/applications/<instance>/`; other deployments use its `deployments/<deployment>/` subdirectory. This keeps source and candidate files separate without changing existing paths when a target is added. Chart archives remain under `packages/` while procedures download and verify them before use; this local directory alone does not establish independent artifact retention.
+
+In this arrangement, `credentials.passStore` names the sibling store and `passEntry` names each retained entry. Select that store explicitly; never fall back to the operator's personal store. The store's recipients identify authorized GPG keys; private keys remain outside both repositories. Application secret references remain independent of cluster placement. Restrict local plaintext access, keep it out of Git and remove it when no longer needed. Application data and backups live on their designated volumes and backup targets, not in these working directories.
+
+The customer workflow owns repository access, retention and handover. Package READMEs own executable procedures and accept supplied protected inputs without requiring this particular storage arrangement.
+
 The [reference walkthrough](https://github.com/bartlapp/bartl-app/blob/main/docs/reference-installation/README.md) uses a working directory for configuration, protected access files and small operational records. The required inputs must remain accessible during the covered failure and transferable to a successor. Shared package documentation describes reusable procedures, not a particular installation's values or risk decisions.
 
 ### Helm configuration and connections
 
-The Kubernetes packages use Helm as their service-configuration interface. Each chart accepts shared installation context, its own entry under `services.<instance>` and its documented connection inputs under `resolved`. Independent releases can consume the same values file; they do not require an umbrella chart or generated per-service values files. The filename, storage location and preparation tooling are the operator's choice.
+The Kubernetes packages use Helm as their service-configuration interface. Each chart accepts shared installation context, its own entry under `services.<instance>` and its documented connection inputs under `resolved`. Independent releases consume the same absolute `VALUES` path to `installation.yaml`; they do not require an umbrella chart, generated per-service values files or recovery configuration copies.
 
 The package distinguishes required operator inputs, optional overrides and advanced settings normally left at their supported defaults. A value required by the application is not necessarily a required operator input. Derive it when the package has enough information. Shared context is supplied once; conditional inputs are required only for the selected configuration. Supported advanced settings remain accessible through the same Helm interface, not a second onboarding configuration language.
 

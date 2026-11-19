@@ -18,13 +18,13 @@ For development, start with the contract and implementation guide, then the rele
 
 Start from the question: "What would operating IT look like if we took resilience and sovereignty seriously?" Derive the operating consequences before introducing mechanisms. Preserve the causal argument, not a wall of principles: pictures must show relationships, not merely labels. Keep the illustrative document service distinct from qualified Keycloak evidence. A changed prerequisite creates uncertainty until checked, not proof of failure. Replacement and provider-loss recovery illustrate the approach; they do not define its entire scope. No customer-specific broker or portfolio model is implied.
 
-Both languages share the homepage, navigation and four-page structure. Approach, Implement and Contract render the maintained Markdown documents and their German translations. The English contract is normative; the website does not maintain another account. The interactive decision uses that contract's pseudocode.
+Both languages share the homepage, navigation and four-page structure. Approach and Contract render their maintained Markdown documents and German translations. Implement renders the canonical English operating guide in both language routes, without a translated copy. The English contract is normative; the website does not maintain another account. The interactive decision uses that contract's pseudocode.
 
 | Page or responsibility | Source |
 | --- | --- |
 | Homepage | `src/components/ServiceHomepage.astro`, `src/content/landing.ts` |
 | Approach `/derivation/` | `docs/philosophy.md`, `docs/philosophy.de.md` |
-| Implement `/implement/` | `docs/how-to-bartlize.md`, `docs/how-to-bartlize.de.md` |
+| Implement `/implement/` | `docs/how-to-bartlize.md` for both languages |
 | Contract `/spec/` | `docs/application-contract.md`, `docs/application-contract.de.md` |
 | Shared document layout | `src/components/DocumentArticle.astro` |
 | Interactive decision | `src/components/InteractivePseudoCode.astro`, `src/content/startup-code.ts` |
