@@ -13,12 +13,14 @@ Prepare this workstation before using an installation checkout or the [reference
 | [Mike Farah yq](https://github.com/mikefarah/yq#install) | Read YAML inventory as JSON | Go-based yq v4, not the Python tool of the same name |
 | jq | Query JSON and check operation results | jq 1.6 or later |
 | kubectl | Prepare access files and operate Kubernetes | Within one minor version of the target API server |
-| Helm | Install and operate application packages | 4.3.0 for the current journey and reference installation |
+| Helm | Install and operate application packages | Helm 4.x, minimum supported version 4.3.0; select 4.3.2 for new workstation installations |
 | OpenSSL | Prepare backup endpoint password hashes | OpenSSL 3 with `passwd -apr1` support |
 | hcloud | Hetzner project operations | Required for the Hetzner profile |
 | curl and dig | DNS API requests and authoritative/public DNS checks | Required for the deSEC profile |
 
 Ruby and MessagePack are not required. Installing these tools does not install customer workloads on the workstation.
+
+Helm 4.3.0 is the recorded tested baseline for the current journey and reference installation. It is our minimum supported recipe version, not a demonstrated technical minimum of Keycloak or K3s. The recipes use Helm 4's `--wait=legacy` syntax; Helm 3's boolean `--wait` is not compatible with these commands. Selecting a newer Helm version does not extend the existing qualification evidence: record the actual version and exercised path when verifying an installation.
 
 ## Install and configure
 
@@ -30,7 +32,7 @@ Use the platform package manager or the tools' official distributions. On macOS 
 brew install git bash pass gnupg pinentry-mac yq jq kubernetes-cli hcloud openssl@3
 ```
 
-This command does not pin versions. Select [Helm 4.3.0](https://github.com/helm/helm/releases/tag/v4.3.0) and a [kubectl version compatible with the target cluster](https://kubernetes.io/docs/tasks/tools/) explicitly. macOS supplies SSH, curl and dig. Put the installed OpenSSL 3 binary on `PATH`; Homebrew's `openssl@3` is keg-only. On Linux, use distribution packages where their versions meet the requirements, otherwise use official release binaries. `pass`'s package supplies its platform dependencies.
+This command does not pin versions. Select [Helm 4.3.2](https://github.com/helm/helm/releases/tag/v4.3.2) and a [kubectl version compatible with the target cluster](https://kubernetes.io/docs/tasks/tools/) explicitly. macOS supplies SSH, curl and dig. Put the installed OpenSSL 3 binary on `PATH`; Homebrew's `openssl@3` is keg-only. On Linux, use distribution packages where their versions meet the requirements, otherwise use official release binaries. `pass`'s package supplies its platform dependencies.
 
 No directory hook or shell-management wrapper is required. Use a dedicated shell without inherited provider tokens, Helm target overrides or personal Kubernetes configuration. Explicitly select the customer's password store, provider credentials and kubeconfig/context before operating. Until selection succeeds, disable implicit access (for example `PASSWORD_STORE_DIR=/dev/null`, `HCLOUD_CONFIG=/dev/null` and `KUBECONFIG=/dev/null` in a clean environment). A missing store or failed decryption must stop the operation, not select a personal default. When retiring old direnv activation, leave that session first: unloading it may restore personal credentials.
 
