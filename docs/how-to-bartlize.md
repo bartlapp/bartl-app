@@ -84,6 +84,8 @@ Keep stable application settings under `services.<instance>`. Placement and pack
 
 The operator selects a deployment; the procedure reads its application identity, target and package from the record. Existing recorded choices are authoritative; defaults initialize missing choices, not overwrite them. Store target-specific lifecycle intent under `operations.deployments.<deployment>` when a replacement needs different source and target settings. Commands derive any necessary Helm overrides from that intent rather than maintaining another values file.
 
+After recording newly selected settings, a procedure can keep using those shell values in the same session; resumption loads the retained settings rather than choosing them again.
+
 Provisioning extracts only required resource identities and addresses from provider responses and records each resource immediately in `installation.yaml`, preserving unrelated entries. Operations use those retained identifiers and check current provider state and ownership before destructive changes. If creation succeeds but recording fails, stop and reconcile the created resource before retrying. Recorded state identifies resources; it does not prove their current existence or authorize deletion.
 
 Secret values remain in the selected protected store. Put references beside their consumers in `installation.yaml`; retain only genuinely protected content there, not ordinary infrastructure inventory. Independently preserve required credentials and keys before relying on them. A successor must be able to retrieve and use them without the original workstation or cluster.
@@ -91,6 +93,8 @@ Secret values remain in the selected protected store. Put references beside thei
 ### Versioned resource contract
 
 The authoritative shared structure is [installation.schema.json](https://github.com/bartlapp/bartl-app/blob/main/schemas/installation.schema.json), a JSON Schema Draft 7 document. `schemaVersion: 1` identifies this resource model, independently of package versions. `customer` identifies the customer; `installation` identifies the operational unit within that customer. Select a schema from the same retained source revision as the installation's procedures rather than validating against a moving branch.
+
+An installation groups resources operated and handed over together; it does not prescribe a containment hierarchy. Standalone VMs need no Kubernetes cluster, provider-managed Kubernetes need not expose independently managed VMs, and networks can serve multiple resources. Therefore, the record expresses these relationships through references rather than nesting resources under an assumed owner.
 
 Version 1 separates VMs from clusters. Each VM selects a named provider configuration and records its machine settings under `configuration`. A self-managed cluster references VM IDs under `nodes`; a provider-managed cluster selects its provider directly. Provider configurations identify both the API type and administrative scope with a protected access reference. A token or profile must actually grant access to that scope; declaring a project or account in YAML is not verification.
 
