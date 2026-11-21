@@ -19,7 +19,7 @@ export HCLOUD_TOKEN DESEC_TOKEN
 export CUSTOMER=${CUSTOMER:-acme}
 : "${HETZNER_PROJECT:?Supply the authorized Hetzner project designation}"
 export HETZNER_PROJECT
-export INSTALLATION_ID=${INSTALLATION_ID:-acme}
+export INSTALLATION_ID=${INSTALLATION_ID:-$CUSTOMER}
 export WORK_DIR=${WORK_DIR:-"$HOME/bartl/$INSTALLATION_ID"}
 case "$WORK_DIR" in /*) ;; *) printf 'Absolute WORK_DIR required\n' >&2; exit 1;; esac
 export VALUES=${VALUES:-"$WORK_DIR/installation.yaml"}

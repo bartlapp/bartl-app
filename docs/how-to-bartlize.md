@@ -68,6 +68,8 @@ The installation administrator coordinates applications, infrastructure, endpoin
 
 Each customer installation has exactly one authoritative `installation.yaml`. It holds installation and application identities, effective configuration, selected releases, resource relationships, protected-input references and the resource identities needed for operation. An installation may contain standalone VMs, self-managed or provider-managed Kubernetes clusters and networks; it is not a mandatory installation-to-cluster-to-VM hierarchy. Operators must not reconcile directory names, shell variables and separate inventories to determine what belongs to an installation. A Git repository and a particular secret-store implementation are not prerequisites for standalone package operation.
 
+Normally, one installation covers one customer's environment and operational credentials; its ID defaults to the customer ID. Separate installations where administrative access must be kept separate, not merely because another cluster, application or upgrade slot is needed. Each installation's protected store and access grants follow that boundary. Separate stores do not isolate installations if their provider credentials grant access across the intended boundary.
+
 Keep these installation-specific inputs and results available:
 
 | Record | Required installation content |
@@ -184,7 +186,7 @@ acme-secrets/                       # Independently retained encrypted store
 
 The actual namespace is recorded in the deployment mapping, not introduced as a local directory category. A deployment whose ID equals its instance uses `clusters/<cluster>/applications/<instance>/`; other deployments use its `deployments/<deployment>/` subdirectory. This keeps source and candidate files separate without changing existing paths when a target is added. Chart archives remain under `packages/` while procedures download and verify them before use; this local directory alone does not establish independent artifact retention.
 
-In this arrangement, `credentials.passStore` names the sibling store and `passEntry` names each retained entry. Select that store explicitly; never fall back to the operator's personal store. The store's recipients identify authorized GPG keys; private keys remain outside both repositories. Application secret references remain independent of cluster placement. Restrict local plaintext access, keep it out of Git and remove it when no longer needed. Application data and backups live on their designated volumes and backup targets, not in these working directories.
+In this arrangement, each installation has its own sibling store named by `credentials.passStore`; `passEntry` names an entry within that store. Select the store explicitly; never fall back to the operator's personal store. Its recipients identify authorized GPG keys; private keys remain outside both repositories. Cluster and application secret paths need no additional installation prefix within this store, and application references remain independent of cluster placement. Existing store and entry references remain authoritative. Restrict local plaintext access, keep it out of Git and remove it when no longer needed. Application data and backups live on their designated volumes and backup targets, not in these working directories.
 
 The customer workflow owns repository access, retention and handover. Package READMEs own executable procedures and accept supplied protected inputs without requiring this particular storage arrangement.
 
