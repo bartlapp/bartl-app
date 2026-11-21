@@ -149,7 +149,7 @@ The repository's [validation command](https://github.com/bartlapp/bartl-app#vali
 
 Operational checks still establish accessible credentials, usable capacity, current ownership and the prerequisites of the requested operation. The validator does not check application dependency cycles or package-owned connection semantics; the selected package procedures remain responsible for those checks. Schema defaults do not populate configuration, and validation does not derive or rewrite values.
 
-**Adoption boundary:** the existing Base and package recipes and customer template still use the unversioned, cluster-owned single-VM record. They have not been migrated by defining version 1. Do not add `schemaVersion: 1` to those records without migrating their structure and all consuming procedures together. Their existing qualification evidence does not establish version-1 operation.
+**Adoption boundary:** the coordinated Base/package recipes, reference walkthrough and customer template use version 1. Base provisions only the existing single-VM Hetzner/K3s profile; the broader schema does not add managed-Kubernetes or private-network provisioning. Use the matching retained procedure revisions together. Older unversioned records require moving VM configuration and observations, adding node references, provider scope/credential references and explicit ownership, and updating every consumer before setting `schemaVersion: 1`. Local schema and command checks do not renew live Base/Keycloak qualification; the historical evidence remains attached to its original procedures and artifacts.
 
 ### Working files and protected storage
 

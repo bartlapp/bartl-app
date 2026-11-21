@@ -20,7 +20,13 @@ For composition, select `services.forgejo.identityProvider: keycloak` and `backu
 The retained service choices select NodePort 30222. The chart owns its SSH Service; do not create a competing manual Service or copy a predecessor's selector. Permit this port only from the administrator and test-client A. Read B's retained firewall ID, then inspect live attachment before adding the rule:
 
 ```bash
-FIREWALL=$(yq -er '.clusters.b.observed.firewall.id' "$VALUES")
+yq -e '.clusters.b.ownership == "managed" and .vms[strenv(B_VM)].ownership == "managed" and
+  .clusters.b.observed.firewalls.admin.ownership == "managed" and
+  .clusters.b.observed.firewalls.admin.type == "hetzner" and
+  .clusters.b.observed.firewalls.admin.provider == .vms[strenv(B_VM)].provider and
+  (.clusters.b.observed.firewalls.admin.attachedVms | length) == 1 and
+  .clusters.b.observed.firewalls.admin.attachedVms[0] == strenv(B_VM)' "$VALUES" >/dev/null
+FIREWALL=$(yq -er '.clusters.b.observed.firewalls.admin.id' "$VALUES")
 hcloud firewall describe "$FIREWALL"
 hcloud firewall add-rule "$FIREWALL" --direction in --protocol tcp --port 30222 \
   --source-ips "$ADMIN_IP/32,$A_IP/32"

@@ -7,7 +7,7 @@ Source of [bartl.app](https://bartl.app), the bilingual website for Bartl. Devel
 - [Operating philosophy](docs/philosophy.md): why resilience and sovereignty change how we build and operate services.
 - [Application contract](docs/application-contract.md): required application behavior, complete-service recovery and the additional automation goal.
 - [How to bartlize and operate](docs/how-to-bartlize.md): native procedures, the selected Kubernetes package architecture, installation inputs, qualification and handover.
-- [Installation schema](schemas/installation.schema.json): versioned shared resource structure; [resource and ownership rules](docs/how-to-bartlize.md#versioned-resource-contract) distinguish the new contract from existing, unmigrated procedures.
+- [Installation schema](schemas/installation.schema.json): versioned shared resource structure; [resource and ownership rules](docs/how-to-bartlize.md#versioned-resource-contract) define its operating boundary.
 - [Operator workstation setup](docs/operator-workstation.md): ordinary tools, explicit customer access selection and independently usable operator identities; no directory hook is required.
 - [Reference installation walkthrough](docs/reference-installation/README.md): build three independent bases, install Restic, Keycloak and Forgejo, exercise replacement/recovery and remove the lab using your own inputs.
 
@@ -17,7 +17,7 @@ For development, start with the contract and implementation guide, then the rele
 
 ## Validate an installation record
 
-The version-1 schema defines the new resource graph; existing Base/application procedures are not migrated by this change. From this checkout, using the Node version in `.nvmrc`:
+The version-1 resource graph is used by the coordinated Base/application recipes, reference walkthrough and customer template. Use their matching retained revisions together; older unversioned records require an explicit structural migration, not just a version field. From this checkout, using the Node version in `.nvmrc`:
 
 ```sh
 npm ci

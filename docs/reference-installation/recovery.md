@@ -70,7 +70,7 @@ for DEPLOYMENT in keycloak forgejo; do
     *) exit 1 ;;
   esac
   LABEL="$label" SNAPSHOT="$snapshot" yq -i '
-    .operations.recovery.points[strenv(LABEL)][strenv(INSTANCE)] = {
+    .operations.recovery.points[strenv(INSTANCE)][strenv(LABEL)] = {
       "deployment":strenv(DEPLOYMENT),"snapshot":strenv(SNAPSHOT)}
   ' "$VALUES"
 done
@@ -322,7 +322,7 @@ case "$INSTANCE" in
   *) exit 1 ;;
 esac
 LABEL="$label" SNAPSHOT="$snapshot" yq -i '
-  .operations.recovery.points[strenv(LABEL)][strenv(INSTANCE)] = {
+  .operations.recovery.points[strenv(INSTANCE)][strenv(LABEL)] = {
     "deployment":strenv(DEPLOYMENT),"snapshot":strenv(SNAPSHOT)}
 ' "$VALUES"
 ```
@@ -424,13 +424,13 @@ case "$INSTANCE" in
   *) exit 1 ;;
 esac
 LABEL="$label" SNAPSHOT="$snapshot" yq -i '
-  .operations.recovery.points[strenv(LABEL)][strenv(INSTANCE)] = {
+  .operations.recovery.points[strenv(INSTANCE)][strenv(LABEL)] = {
     "deployment":strenv(DEPLOYMENT),"snapshot":strenv(SNAPSHOT)}
 ' "$VALUES"
 for instance in keycloak forgejo; do
   kubectl --kubeconfig "$KB" -n "$instance" get pvc -o json > "$WORK_DIR/evidence/$instance-source-pvc.json"
 done
-SOURCE_SERVER=$(yq -er '.clusters.b.observed.server.id' "$VALUES")
+SOURCE_SERVER=$(yq -er '.vms[strenv(B_VM)].observed.server.id' "$VALUES")
 hcloud server describe "$SOURCE_SERVER" --output json | jq '{id,name,status,public_net}'
 ```
 
@@ -462,8 +462,10 @@ Match live ID/name/address to the retained B observations before poweroff. Confi
 
 ```bash
 hcloud server poweroff "$SOURCE_SERVER"
-hcloud server describe "$SOURCE_SERVER" --output json | jq -e '.status=="off"'
-yq -i '.operations.recovery.sourceRetired = true | .operations.recovery.retirementMethod = "confirmed B poweroff; restart prohibited"' "$VALUES"
+hcloud server describe "$SOURCE_SERVER" --output json |
+  jq -e --arg id "$SOURCE_SERVER" 'select((.id | tostring) == $id and .status == "off") | {id,name,status}' \
+  > "$WORK_DIR/evidence/source-retirement.json"
+yq -i '.vms[strenv(B_VM)].observed.server.status = "off"' "$VALUES"
 ```
 
 Keep B off and prevent unauthorized restart for the remainder of the run. If stop or identity is uncertain, do not promote. Unreachability alone is not retirement. No automatic return to B is permitted after candidate writes.
@@ -487,7 +489,13 @@ Confirm the predecessor is off, live DNS still points to retained B, and candida
 First restrict C's public HTTPS while leaving HTTP available for ACME. Inspect its retained firewall attachment before modifying the identified rules; if a rule already has the requested state, verify it rather than repeating the mutation.
 
 ```bash
-C_FIREWALL=$(yq -er '.clusters.c.observed.firewall.id' "$VALUES")
+yq -e '.clusters.c.ownership == "managed" and .vms[strenv(C_VM)].ownership == "managed" and
+  .clusters.c.observed.firewalls.admin.ownership == "managed" and
+  .clusters.c.observed.firewalls.admin.type == "hetzner" and
+  .clusters.c.observed.firewalls.admin.provider == .vms[strenv(C_VM)].provider and
+  (.clusters.c.observed.firewalls.admin.attachedVms | length) == 1 and
+  .clusters.c.observed.firewalls.admin.attachedVms[0] == strenv(C_VM)' "$VALUES" >/dev/null
+C_FIREWALL=$(yq -er '.clusters.c.observed.firewalls.admin.id' "$VALUES")
 hcloud firewall describe "$C_FIREWALL"
 hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 --source-ips 0.0.0.0/0,::/0
 hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
@@ -613,11 +621,11 @@ Pause concurrent backup/restore/maintenance. Follow Restic's current stop/finali
 After acceptance, explicitly open intended production paths on C and retain the active deployment IDs and final-write boundary:
 
 ```bash
-yq -i '
-  .operations.deployments."keycloak-replacement".backupSuspend = false |
-  .operations.recovery.active.keycloak = "keycloak-replacement" |
-  .operations.recovery.active.forgejo = "forgejo-replacement"
-' "$VALUES"
+yq -i '.operations.deployments."keycloak-replacement".backupSuspend = false' "$VALUES"
+yq -o=json '{
+  "keycloak": .deployments."keycloak-replacement",
+  "forgejo": .deployments."forgejo-replacement"
+}' "$VALUES" > "$WORK_DIR/evidence/accepted-deployments.json"
 for DEPLOYMENT in keycloak-replacement forgejo-replacement; do
   export DEPLOYMENT
   INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
@@ -710,7 +718,7 @@ for DEPLOYMENT in keycloak-replacement forgejo-replacement; do
     *) exit 1 ;;
   esac
   LABEL="$label" SNAPSHOT="$snapshot" yq -i '
-    .operations.recovery.points[strenv(LABEL)][strenv(INSTANCE)] = {
+    .operations.recovery.points[strenv(INSTANCE)][strenv(LABEL)] = {
       "deployment":strenv(DEPLOYMENT),"snapshot":strenv(SNAPSHOT)}
   ' "$VALUES"
 done
@@ -879,7 +887,7 @@ case "$INSTANCE" in
   *) exit 1 ;;
 esac
 LABEL="$label" SNAPSHOT="$snapshot" yq -i '
-  .operations.recovery.points[strenv(LABEL)][strenv(INSTANCE)] = {
+  .operations.recovery.points[strenv(INSTANCE)][strenv(LABEL)] = {
     "deployment":strenv(DEPLOYMENT),"snapshot":strenv(SNAPSHOT)}
 ' "$VALUES"
 ```
