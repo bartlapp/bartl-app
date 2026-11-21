@@ -20,9 +20,10 @@ export CUSTOMER=${CUSTOMER:-acme}
 : "${HETZNER_PROJECT:?Supply the authorized Hetzner project designation}"
 export HETZNER_PROJECT
 export INSTALLATION_ID=${INSTALLATION_ID:-$CUSTOMER}
-export WORK_DIR=${WORK_DIR:-"$HOME/bartl/$INSTALLATION_ID"}
+export WORK_DIR_ROOT=${WORK_DIR_ROOT:-"$HOME/bartl"}
+export WORK_DIR=${WORK_DIR:-"$WORK_DIR_ROOT/$CUSTOMER/${INSTALLATION_ID}-installation"}
 case "$WORK_DIR" in /*) ;; *) printf 'Absolute WORK_DIR required\n' >&2; exit 1;; esac
-export VALUES=${VALUES:-"$WORK_DIR/installation.yaml"}
+export VALUES="$WORK_DIR/installation.yaml"
 case "$VALUES" in /*) ;; *) printf 'Absolute VALUES required\n' >&2; exit 1;; esac
 mkdir -p "$WORK_DIR/packages" "$WORK_DIR/operations" "$WORK_DIR/evidence"
 if test ! -e "$VALUES"; then
@@ -43,7 +44,7 @@ For a real run, review the retained installation identity and DNS root before pr
 
 ## Build three independent K3s bases
 
-Follow the [base-k3s recipe](https://github.com/bartlapp/base-k3s/blob/main/README.md) three times in fresh shells, starting with the read block in **B. Use an existing installation** and continuing through handover. Supply the same absolute `VALUES` path and authorized `HETZNER_PROJECT`; the record already exists. In Base's **Define the new cluster** block, choose `CLUSTER=cluster-1` and `VM=vm-1`, then `cluster-2` and `vm-2`, then `cluster-3` and `vm-3`. These are explicit assignments in that block, not environment overrides. The recipe initializes the provider binding, desired VM configuration, cluster node reference and derived kubeconfig context. Do not precreate partial cluster entries or run **A. Create a new installation** again. Existing clusters use the read-only resumption path.
+Follow the [base-k3s recipe](https://github.com/bartlapp/base-k3s/blob/main/README.md) three times in fresh shells, starting with the read block in **B. Use an existing installation** and continuing through handover. Supply the same absolute `WORK_DIR` and authorized `HETZNER_PROJECT`; its installation record already exists and Base derives `VALUES` from that directory. In Base's **Define the new cluster** block, choose `CLUSTER=cluster-1` and `VM=vm-1`, then `cluster-2` and `vm-2`, then `cluster-3` and `vm-3`. These are explicit assignments in that block, not environment overrides. The recipe initializes the provider binding, desired VM configuration, cluster node reference and derived kubeconfig context. Do not precreate partial cluster entries or run **A. Create a new installation** again. Existing clusters use the read-only resumption path.
 
 Each server must be independent, not joined to another cluster. Base records machine identities and IP allocations under the referenced `vms` entry, and API access and typed firewall observations under the cluster. Do not repeat uncertain creation: reconcile the retained intent and live provider inventory first.
 

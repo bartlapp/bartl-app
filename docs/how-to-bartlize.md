@@ -157,7 +157,7 @@ Operational checks still establish accessible credentials, usable capacity, curr
 
 ### Working files and protected storage
 
-Set `WORK_DIR` to the installation root and `VALUES` to the absolute path of its one `installation.yaml`. Every package procedure uses that same path, including operation and recovery. A rendered `connections.yaml` contains derived declarations, not another configuration source. Only materialize local files where the invoked tools need them.
+Select the absolute installation root as `WORK_DIR`, then derive `VALUES="$WORK_DIR/installation.yaml"`. `WORK_DIR` contains the installation record and local working files, not the package source checkout. For new standalone installations, select `WORK_DIR_ROOT` (default `$HOME/bartl`) and derive `$WORK_DIR_ROOT/$CUSTOMER/${INSTALLATION_ID}-installation`. Operators may choose `$HOME/repos` or another storage root; no Git repository is required. For existing installations or a company-workflow handoff, select the actual `WORK_DIR` directly rather than reconstructing its location. Local storage paths are not installation configuration. Every package procedure uses the derived `VALUES` path, including operation and recovery. A rendered `connections.yaml` contains derived declarations, not another configuration source. Only materialize local files where the invoked tools need them.
 
 For the Git-backed arrangement with a sibling GPG-backed `pass` store, the layout is:
 
