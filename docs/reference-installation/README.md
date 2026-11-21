@@ -16,20 +16,20 @@ umask 077
 : "${HCLOUD_TOKEN:?Supply the authorized project credential}"
 : "${DESEC_TOKEN:?Supply the authorized zone credential}"
 export HCLOUD_TOKEN DESEC_TOKEN
-export CUSTOMER=${CUSTOMER:-acme}
+export CUSTOMER_ID=${CUSTOMER_ID:-acme}
 : "${HETZNER_PROJECT:?Supply the authorized Hetzner project designation}"
 export HETZNER_PROJECT
-export INSTALLATION_ID=${INSTALLATION_ID:-$CUSTOMER}
+export INSTALLATION_ID=${INSTALLATION_ID:-$CUSTOMER_ID}
 export WORK_DIR_ROOT=${WORK_DIR_ROOT:-"$HOME/bartl"}
-export WORK_DIR=${WORK_DIR:-"$WORK_DIR_ROOT/$CUSTOMER/${INSTALLATION_ID}-installation"}
+export WORK_DIR=${WORK_DIR:-"$WORK_DIR_ROOT/$CUSTOMER_ID/${INSTALLATION_ID}-installation"}
 case "$WORK_DIR" in /*) ;; *) printf 'Absolute WORK_DIR required\n' >&2; exit 1;; esac
 export VALUES="$WORK_DIR/installation.yaml"
 case "$VALUES" in /*) ;; *) printf 'Absolute VALUES required\n' >&2; exit 1;; esac
 mkdir -p "$WORK_DIR/packages" "$WORK_DIR/operations" "$WORK_DIR/evidence"
 if test ! -e "$VALUES"; then
-  DNS_ROOT="${DNS_ROOT:-acme.fke.systems}" yq -n '
-    .schemaVersion = 1 | .customer = strenv(CUSTOMER) |
-    .installation = strenv(INSTALLATION_ID) | .dns.root = strenv(DNS_ROOT)
+  BASE_DOMAIN="${BASE_DOMAIN:-acme.fke.systems}" yq -n '
+    .schemaVersion = 1 | .customer = strenv(CUSTOMER_ID) |
+    .installation = strenv(INSTALLATION_ID) | .dns.root = strenv(BASE_DOMAIN)
   ' > "$VALUES"
 fi
 yq -e '.schemaVersion == 1' "$VALUES" >/dev/null
@@ -44,15 +44,15 @@ For a real run, review the retained installation identity and DNS root before pr
 
 ## Build three independent K3s bases
 
-Follow the [base-k3s recipe](https://github.com/bartlapp/base-k3s/blob/main/README.md) three times in fresh shells, starting with the read block in **B. Use an existing installation** and continuing through handover. Supply the same absolute `WORK_DIR` and authorized `HETZNER_PROJECT`; its installation record already exists and Base derives `VALUES` from that directory. In Base's **Define the new cluster** block, choose `CLUSTER=cluster-1` and `VM=vm-1`, then `cluster-2` and `vm-2`, then `cluster-3` and `vm-3`. These are explicit assignments in that block, not environment overrides. The recipe initializes the provider binding, desired VM configuration, cluster node reference and derived kubeconfig context. Do not precreate partial cluster entries or run **A. Create a new installation** again. Existing clusters use the read-only resumption path.
+Follow the [base-k3s recipe](https://github.com/bartlapp/base-k3s/blob/main/README.md) three times in fresh shells, starting with the read block in **B. Use an existing installation** and continuing through handover. Supply the same absolute `WORK_DIR` and authorized `HETZNER_PROJECT`; its installation record already exists and Base derives `VALUES` from that directory. In Base's **Define the new cluster** block, choose `CLUSTER_ID=cluster-1` and `VM_ID=vm-1`, then `cluster-2` and `vm-2`, then `cluster-3` and `vm-3`. These are explicit assignments in that block, not environment overrides. The recipe initializes the provider binding, desired VM configuration, cluster node reference and derived kubeconfig context. Do not precreate partial cluster entries or run **A. Create a new installation** again. Existing clusters use the read-only resumption path.
 
 Each server must be independent, not joined to another cluster. Base records machine identities and IP allocations under the referenced `vms` entry, and API access and typed firewall observations under the cluster. Do not repeat uncertain creation: reconcile the retained intent and live provider inventory first.
 
 Base access is under `$WORK_DIR/clusters/<id>/base/{kubeconfig,ssh.config,known_hosts}`. Derive addresses from the retained observations. After the three passes:
 
 ```bash
-for CLUSTER in cluster-1 cluster-2 cluster-3; do
-  config="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
+for CLUSTER_ID in cluster-1 cluster-2 cluster-3; do
+  config="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
   kubectl --kubeconfig "$config" get nodes,storageclass
   kubectl --kubeconfig "$config" get namespace kube-system -o jsonpath='{.metadata.uid}{"\n"}'
 done
@@ -104,8 +104,8 @@ C_IP=$(yq -er '.vms[strenv(C_VM)].observed.primaryIPv4.address' "$VALUES")
 DNS_ZONE=$(yq -er '.providers[.dns.provider].scope.zone // .dns.root' "$VALUES")
 for DEPLOYMENT in restic keycloak forgejo; do
   INSTANCE=$(DEPLOYMENT="$DEPLOYMENT" yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-  CLUSTER=$(DEPLOYMENT="$DEPLOYMENT" yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
-  DIRECTORY="$WORK_DIR/clusters/$CLUSTER/applications/$INSTANCE"
+  CLUSTER_ID=$(DEPLOYMENT="$DEPLOYMENT" yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  DIRECTORY="$WORK_DIR/clusters/$CLUSTER_ID/applications/$INSTANCE"
   if [ "$DEPLOYMENT" != "$INSTANCE" ]; then DIRECTORY="$DIRECTORY/deployments/$DEPLOYMENT"; fi
   case "$INSTANCE" in keycloak) DECLARATION="$DIRECTORY/connections.yaml" ;;
     *) DECLARATION="$DIRECTORY/$INSTANCE-connections.yaml" ;; esac
@@ -145,7 +145,7 @@ for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
 done
 ```
 
-Then select `CLUSTER=cluster-2`, `cluster-3`, `cluster-1` in order and execute the base recipe's teardown using the same `VALUES`, including any firewall-only interrupted run. Complete package removal on reachable targets; B's confirmed source retirement must not be undone merely to uninstall it. After confirming data disposition, retain the historical configuration/evidence and remove the retired deployment mappings and their referencing operation/recovery entries as required by Base's remaining-consumer guard. Verify each live VM, Primary IP, firewall and attachment against retained observations before deletion; names alone are insufficient. Deleting A destroys this exercise's synthetic backup history and credentials. Confirm the provider inventory contains no remaining resources from the run. Local deletion is a separate explicit retention decision, not an automatic command in this recipe.
+Then select `CLUSTER_ID=cluster-2`, `cluster-3`, `cluster-1` in order and execute the base recipe's teardown using the same `VALUES`, including any firewall-only interrupted run. Complete package removal on reachable targets; B's confirmed source retirement must not be undone merely to uninstall it. After confirming data disposition, retain the historical configuration/evidence and remove the retired deployment mappings and their referencing operation/recovery entries as required by Base's remaining-consumer guard. Verify each live VM, Primary IP, firewall and attachment against retained observations before deletion; names alone are insufficient. Deleting A destroys this exercise's synthetic backup history and credentials. Confirm the provider inventory contains no remaining resources from the run. Local deletion is a separate explicit retention decision, not an automatic command in this recipe.
 
 ## Historical version evidence
 

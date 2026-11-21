@@ -15,9 +15,13 @@
       "const": 1
     },
     "customer": {
+      "description": "Stable customer identity in the operator's customer inventory, not a DNS domain or provider-issued ID. Installations of the same customer retain this value; distinguish different customers in that inventory. The operator recipe selects it, not this schema.",
+      "examples": ["acme"],
       "$ref": "#/definitions/identifier"
     },
     "installation": {
+      "description": "Stable operational and administrative-access boundary within this customer; unique among that customer's installations. The new-installation recipe defaults it to customer (acme), not the schema. Separate it when protected stores and actual access grants must be separate, not for each cluster or application. A separate ID or store alone does not restrict provider credentials.",
+      "examples": ["acme", "production"],
       "$ref": "#/definitions/identifier"
     },
     "dns": {
@@ -28,6 +32,8 @@
       ],
       "properties": {
         "root": {
+          "description": "DNS base domain for application endpoint derivation, not the customer or installation ID. The operator selects an authorized domain; packages derive their own hostnames. DNS names must not collide with other installations using that namespace. This need not equal the provider's delegated zone, and the schema neither derives it nor verifies DNS control.",
+          "examples": ["acme.fke.systems"],
           "type": "string",
           "minLength": 1
         },
@@ -58,6 +64,8 @@
       "additionalProperties": false,
       "properties": {
         "passStore": {
+          "description": "Explicit protected store for this installation's administrative-access boundary. Existing references are authoritative; do not fall back to a personal store. Separate stores require correspondingly scoped credentials and access grants to provide isolation.",
+          "examples": ["acme-secrets"],
           "type": "string",
           "minLength": 1
         }
@@ -82,8 +90,11 @@
       }
     },
     "vms": {
+      "description": "VMs keyed by stable installation-local VM IDs, unique within this map, independent of cluster membership and provider-issued IDs. IDs are not positions and are not renumbered after deletion; recipes select them explicitly.",
       "type": "object",
       "propertyNames": {
+        "description": "Installation-local VM map key, such as vm-1. References under clusters.<cluster>.nodes use this key, not configuration.name or observed.server.id.",
+        "examples": ["vm-1"],
         "$ref": "#/definitions/identifier"
       },
       "additionalProperties": {
@@ -91,8 +102,11 @@
       }
     },
     "clusters": {
+      "description": "Clusters keyed by stable installation-local cluster IDs, unique within this map. Other installations may reuse cluster-1; the customer/installation pair supplies its wider identity. Recipes select keys explicitly, not this schema.",
       "type": "object",
       "propertyNames": {
+        "description": "Installation-local cluster map key, such as cluster-1, not a provider-visible name, kubectl context or provider-issued ID. Retain it across ordinary operation without positional renumbering.",
+        "examples": ["cluster-1"],
         "$ref": "#/definitions/identifier"
       },
       "additionalProperties": {
@@ -242,6 +256,8 @@
       ]
     },
     "hetznerId": {
+      "description": "Provider-issued Hetzner resource identifier, interpreted with resource type and the selected provider binding/scope. Record the API result; never derive it from a VM/cluster map key or desired name. This is not deletion authorization.",
+      "examples": [12345678, "12345678"],
       "oneOf": [
         {
           "type": "integer",
@@ -396,6 +412,8 @@
       ],
       "properties": {
         "name": {
+          "description": "Desired provider-visible server name, distinct from the installation-local VM key and observed.server.id. The Base new-cluster recipe derives <installation>-<cluster> (acme-cluster-1) and retains it; the schema does not derive or enforce naming uniqueness. Avoid collisions in the selected Hetzner project and respect provider naming rules.",
+          "examples": ["acme-cluster-1"],
           "type": "string",
           "minLength": 1
         },
@@ -441,6 +459,8 @@
       ],
       "properties": {
         "name": {
+          "description": "Desired provider-visible VM name, not the installation-local VM key or observed.instanceId. Select and retain it according to the operator recipe and the selected AWS account/region's naming policy; a name is not a unique EC2 instance identity. The schema does not derive it.",
+          "examples": ["acme-cluster-1"],
           "type": "string",
           "minLength": 1
         },
@@ -473,6 +493,7 @@
       }
     },
     "hetznerVmObserved": {
+      "description": "Provider API observations for this VM under its selected Hetzner binding. Resource IDs and allocated addresses identify actual results, not desired names or installation-local map keys; do not synthesize them from naming conventions.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -484,9 +505,13 @@
           ],
           "properties": {
             "id": {
+              "description": "Provider-issued server ID in the selected Hetzner project, not vm-1, cluster-1 or acme-cluster-1. Retain the returned identity for reconciliation and live checks.",
+              "examples": [12345678],
               "$ref": "#/definitions/hetznerId"
             },
             "name": {
+              "description": "Server name observed from the provider, not an identity substitute or a second desired-name input. It may differ from configuration.name.",
+              "examples": ["acme-cluster-1"],
               "type": "string",
               "minLength": 1
             },
@@ -505,6 +530,7 @@
           ],
           "properties": {
             "id": {
+              "description": "Provider-issued Primary IPv4 resource ID, separate from the server ID and its allocated IP address.",
               "$ref": "#/definitions/hetznerId"
             },
             "address": {
@@ -527,6 +553,7 @@
           ],
           "properties": {
             "id": {
+              "description": "Provider-issued Primary IPv6 resource ID, separate from the server ID and its allocated address/network.",
               "$ref": "#/definitions/hetznerId"
             },
             "address": {
@@ -556,6 +583,7 @@
             ],
             "properties": {
               "networkId": {
+                "description": "Provider-issued network ID, not the installation-local network or attachment map key.",
                 "$ref": "#/definitions/hetznerId"
               },
               "address": {
@@ -571,6 +599,8 @@
       "additionalProperties": false,
       "properties": {
         "instanceId": {
+          "description": "Provider-issued EC2 instance ID in the selected account/region, not the VM map key or desired name.",
+          "examples": ["i-0123456789abcdef0"],
           "type": "string",
           "minLength": 1
         },
@@ -596,6 +626,8 @@
             ],
             "properties": {
               "id": {
+                "description": "Provider-issued network-interface ID in the selected account/region, not its installation-local map key.",
+                "examples": ["eni-0123456789abcdef0"],
                 "type": "string",
                 "minLength": 1
               },
@@ -931,6 +963,8 @@
       ],
       "properties": {
         "context": {
+          "description": "Retained kubectl context name; must distinguish clusters in the operator's kubeconfig inventory. For a new cluster the Base recipe derives <customer>-<installation>-<cluster>, giving acme-acme-cluster-1 for acme/acme/cluster-1. The schema performs no derivation or uniqueness check. Read an existing name unchanged on resumption; it is neither a provider name nor a provider-issued ID.",
+          "examples": ["acme-acme-cluster-1", "acme-production-cluster-1"],
           "type": "string",
           "minLength": 1
         },
@@ -982,6 +1016,8 @@
               ]
             },
             "id": {
+              "description": "Provider-issued Hetzner firewall ID in this firewall's provider binding, not its installation-local observation key or display name.",
+              "examples": [23456789],
               "$ref": "#/definitions/hetznerId"
             },
             "name": {
@@ -1020,6 +1056,8 @@
               ]
             },
             "id": {
+              "description": "Provider-issued AWS security-group ID in this firewall's account/region, not its installation-local observation key or display name.",
+              "examples": ["sg-0123456789abcdef0"],
               "type": "string",
               "minLength": 1
             },
@@ -1114,6 +1152,8 @@
           "const": "eks"
         },
         "name": {
+          "description": "Desired provider-visible EKS cluster name, distinct from the installation-local cluster key and observed provider identifiers. Select a name unique within the AWS account/region and retain it; the schema does not derive it or verify provider naming rules.",
+          "examples": ["acme-cluster-1"],
           "type": "string",
           "minLength": 1
         },
@@ -1174,6 +1214,7 @@
               ]
             },
             "nodes": {
+              "description": "Membership keyed by references to installation-local vms map keys, such as vm-1, not provider server IDs or names. Membership does not transfer resource ownership.",
               "type": "object",
               "propertyNames": {
                 "$ref": "#/definitions/identifier"
@@ -1206,6 +1247,8 @@
                   }
                 },
                 "kubeSystemUid": {
+                  "description": "Observed Kubernetes UID of the kube-system namespace, used to distinguish actual cluster incarnations. Kubernetes issues it; neither the cluster key nor its kubectl context derives it.",
+                  "examples": ["12345678-1234-4234-8234-123456789abc"],
                   "type": "string",
                   "minLength": 1
                 }
@@ -1246,10 +1289,13 @@
               "additionalProperties": false,
               "properties": {
                 "id": {
+                  "description": "Provider-reported managed-cluster identifier under the selected provider binding; not the installation-local cluster key or kubectl context. Retain the provider's returned value, even if it uses the configured name.",
                   "type": "string",
                   "minLength": 1
                 },
                 "arn": {
+                  "description": "Provider-issued EKS ARN, identifying the managed cluster with account and region. Record the provider result rather than constructing it from the installation-local cluster key.",
+                  "examples": ["arn:aws:eks:eu-central-1:123456789012:cluster/acme-cluster-1"],
                   "type": "string",
                   "minLength": 1
                 },

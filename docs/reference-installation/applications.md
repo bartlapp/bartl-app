@@ -21,7 +21,7 @@ Acquire the selected charts and render their nonsecret declarations before DNS o
 for DEPLOYMENT in restic keycloak forgejo; do
   export DEPLOYMENT
   INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
   NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
   RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
   PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
@@ -32,7 +32,7 @@ for DEPLOYMENT in restic keycloak forgejo; do
   test -s "$CHART" || helm pull "$CHART_REF" --version "$VERSION" --destination "$WORK_DIR/packages"
   printf '%s  %s\n' "$(yq -er '.packages[strenv(PACKAGE)].chartSha256' "$VALUES")" "$CHART" |
     shasum -a 256 --check -
-  DIRECTORY="$WORK_DIR/clusters/$CLUSTER/applications/$INSTANCE"
+  DIRECTORY="$WORK_DIR/clusters/$CLUSTER_ID/applications/$INSTANCE"
   if [ "$DEPLOYMENT" != "$INSTANCE" ]; then DIRECTORY="$DIRECTORY/deployments/$DEPLOYMENT"; fi
   mkdir -p "$DIRECTORY"
   case "$INSTANCE" in keycloak) DECLARATION="$DIRECTORY/connections.yaml" ;;
@@ -111,15 +111,15 @@ REPOSITORY="$REPOSITORY" yq -i '
 ' "$VALUES"
 export DEPLOYMENT=keycloak
 export INSTANCE=keycloak
-CLUSTER=$(yq -er '.deployments.keycloak.cluster' "$VALUES")
+CLUSTER_ID=$(yq -er '.deployments.keycloak.cluster' "$VALUES")
 NS=$(yq -er '.deployments.keycloak.namespace' "$VALUES")
 RELEASE=$(yq -er '.deployments.keycloak.release' "$VALUES")
 PACKAGE=$(yq -er '.deployments.keycloak.package' "$VALUES")
-CTX=$(CLUSTER="$CLUSTER" yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+KUBE_CONTEXT=$(CLUSTER_ID="$CLUSTER_ID" yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
 PACKAGE_VERSION=$(PACKAGE="$PACKAGE" yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
 CHART="$WORK_DIR/packages/bartl-keycloak-$PACKAGE_VERSION.tgz"
-export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-INSTALL_DIR="$WORK_DIR/clusters/$CLUSTER/applications/$INSTANCE"
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+INSTALL_DIR="$WORK_DIR/clusters/$CLUSTER_ID/applications/$INSTANCE"
 INTENT_ARGS=()
 for mapping in replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend; do
   key=${mapping%%:*}; field=${mapping#*:}

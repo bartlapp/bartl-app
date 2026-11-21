@@ -22,16 +22,16 @@ for DEPLOYMENT in keycloak forgejo; do
   label=source
   export DEPLOYMENT
   INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
   NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
   RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
   PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-  export INSTANCE CLUSTER PACKAGE
-  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  export INSTANCE CLUSTER_ID PACKAGE
+  KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
   VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
   CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+  kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
   TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
   case "$INSTANCE" in
     keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -51,19 +51,19 @@ for DEPLOYMENT in keycloak forgejo; do
   result="$WORK_DIR/evidence/$INSTANCE-$label-backup.json"
   case "$INSTANCE" in
     keycloak)
-      kubectl --context "$CTX" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
-      kubectl --context "$CTX" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
-      kubectl --context "$CTX" -n "$NS" logs "job/$request" -c backup > "$result"
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" logs "job/$request" -c backup > "$result"
       snapshot=$(jq -er '.snapshotID | select(test("^[a-f0-9]{64}$"))' "$result")
       ;;
     forgejo)
-      kubectl --context "$CTX" -n "$NS" annotate forgejoapplication forgejo \
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" annotate forgejoapplication forgejo \
         forgejo.bartl.sh/backup-request="$request" --overwrite
-      kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" wait forgejoapplication/forgejo \
         --for=jsonpath='{.status.backup.request}'="$request" --timeout=20m
-      kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" wait forgejoapplication/forgejo \
         --for=jsonpath='{.status.backup.success}'=true --timeout=20m
-      kubectl --context "$CTX" -n "$NS" get forgejoapplication/forgejo -o json |
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" get forgejoapplication/forgejo -o json |
         jq -e --arg request "$request" '.status.backup | select(.request==$request and .success==true)' > "$result"
       snapshot=$(jq -er '.snapshot | select(test("^[a-f0-9]{64}$"))' "$result")
       ;;
@@ -83,16 +83,16 @@ yq -i '.operations.deployments.restic.replicas = 0' "$VALUES"
 DEPLOYMENT=restic
 export DEPLOYMENT
 INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
 NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
 RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
 PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-export INSTANCE CLUSTER PACKAGE
-CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+export INSTANCE CLUSTER_ID PACKAGE
+KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
 VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
 CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
 TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
 case "$INSTANCE" in
   keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -108,7 +108,7 @@ for mapping in $mappings; do
       *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
   fi
 done
-helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+helm upgrade --install "$RELEASE" "$CHART" --kube-context "$KUBE_CONTEXT" -n "$NS" \
   -f "$VALUES" "${TARGET_ARGS[@]}"
 GEN=$(kubectl --kubeconfig "$KA" -n backup get resticapplication/backup-restic -o jsonpath='{.metadata.generation}')
 kubectl --kubeconfig "$KA" -n backup wait resticapplication/backup-restic --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
@@ -122,16 +122,16 @@ yq -i '.operations.deployments.restic.replicas = 1' "$VALUES"
 DEPLOYMENT=restic
 export DEPLOYMENT
 INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
 NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
 RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
 PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-export INSTANCE CLUSTER PACKAGE
-CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+export INSTANCE CLUSTER_ID PACKAGE
+KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
 VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
 CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
 TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
 case "$INSTANCE" in
   keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -147,7 +147,7 @@ for mapping in $mappings; do
       *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
   fi
 done
-helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+helm upgrade --install "$RELEASE" "$CHART" --kube-context "$KUBE_CONTEXT" -n "$NS" \
   -f "$VALUES" "${TARGET_ARGS[@]}"
 GEN=$(kubectl --kubeconfig "$KA" -n backup get resticapplication/backup-restic -o jsonpath='{.metadata.generation}')
 kubectl --kubeconfig "$KA" -n backup wait resticapplication/backup-restic --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
@@ -162,16 +162,16 @@ for DEPLOYMENT in forgejo keycloak; do
   DEPLOYMENT="$DEPLOYMENT" yq -i '.operations.deployments[strenv(DEPLOYMENT)].replicas = 0' "$VALUES"
   export DEPLOYMENT
   INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
   NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
   RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
   PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-  export INSTANCE CLUSTER PACKAGE
-  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  export INSTANCE CLUSTER_ID PACKAGE
+  KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
   VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
   CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+  kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
   TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
   case "$INSTANCE" in
     keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -187,7 +187,7 @@ for DEPLOYMENT in forgejo keycloak; do
         *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
     fi
   done
-  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$KUBE_CONTEXT" -n "$NS" \
     -f "$VALUES" "${TARGET_ARGS[@]}"
   GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o jsonpath='{.metadata.generation}')
   kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
@@ -198,16 +198,16 @@ for DEPLOYMENT in keycloak forgejo; do
   DEPLOYMENT="$DEPLOYMENT" yq -i '.operations.deployments[strenv(DEPLOYMENT)].replicas = 1' "$VALUES"
   export DEPLOYMENT
   INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
   NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
   RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
   PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-  export INSTANCE CLUSTER PACKAGE
-  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  export INSTANCE CLUSTER_ID PACKAGE
+  KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
   VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
   CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+  kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
   TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
   case "$INSTANCE" in
     keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -223,7 +223,7 @@ for DEPLOYMENT in keycloak forgejo; do
         *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
     fi
   done
-  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$KUBE_CONTEXT" -n "$NS" \
     -f "$VALUES" "${TARGET_ARGS[@]}"
   GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o jsonpath='{.metadata.generation}')
   kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
@@ -243,16 +243,16 @@ yq -i '.operations.deployments.forgejo.ingressEnabled = false' "$VALUES"
 DEPLOYMENT=forgejo
 export DEPLOYMENT
 INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
 NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
 RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
 PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-export INSTANCE CLUSTER PACKAGE
-CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+export INSTANCE CLUSTER_ID PACKAGE
+KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
 VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
 CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
 TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
 case "$INSTANCE" in
   keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -268,22 +268,22 @@ for mapping in $mappings; do
       *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
   fi
 done
-helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+helm upgrade --install "$RELEASE" "$CHART" --kube-context "$KUBE_CONTEXT" -n "$NS" \
   -f "$VALUES" "${TARGET_ARGS[@]}"
-kubectl --context "$CTX" -n "$NS" delete service forgejo-ssh --ignore-not-found
+kubectl --context "$KUBE_CONTEXT" -n "$NS" delete service forgejo-ssh --ignore-not-found
 label=final
 export DEPLOYMENT
 INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
 NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
 RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
 PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-export INSTANCE CLUSTER PACKAGE
-CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+export INSTANCE CLUSTER_ID PACKAGE
+KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
 VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
 CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
 TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
 case "$INSTANCE" in
   keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -303,19 +303,19 @@ request="$label-$(date -u +%Y%m%dT%H%M%SZ)"
 result="$WORK_DIR/evidence/$INSTANCE-$label-backup.json"
 case "$INSTANCE" in
   keycloak)
-    kubectl --context "$CTX" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
-    kubectl --context "$CTX" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
-    kubectl --context "$CTX" -n "$NS" logs "job/$request" -c backup > "$result"
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" logs "job/$request" -c backup > "$result"
     snapshot=$(jq -er '.snapshotID | select(test("^[a-f0-9]{64}$"))' "$result")
     ;;
   forgejo)
-    kubectl --context "$CTX" -n "$NS" annotate forgejoapplication forgejo \
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" annotate forgejoapplication forgejo \
       forgejo.bartl.sh/backup-request="$request" --overwrite
-    kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" wait forgejoapplication/forgejo \
       --for=jsonpath='{.status.backup.request}'="$request" --timeout=20m
-    kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" wait forgejoapplication/forgejo \
       --for=jsonpath='{.status.backup.success}'=true --timeout=20m
-    kubectl --context "$CTX" -n "$NS" get forgejoapplication/forgejo -o json |
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" get forgejoapplication/forgejo -o json |
       jq -e --arg request "$request" '.status.backup | select(.request==$request and .success==true)' > "$result"
     snapshot=$(jq -er '.snapshot | select(test("^[a-f0-9]{64}$"))' "$result")
     ;;
@@ -340,16 +340,16 @@ yq -i '
 for DEPLOYMENT in forgejo keycloak; do
   export DEPLOYMENT
   INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
   NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
   RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
   PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-  export INSTANCE CLUSTER PACKAGE
-  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  export INSTANCE CLUSTER_ID PACKAGE
+  KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
   VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
   CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+  kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
   TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
   case "$INSTANCE" in
     keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -365,7 +365,7 @@ for DEPLOYMENT in forgejo keycloak; do
         *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
     fi
   done
-  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$KUBE_CONTEXT" -n "$NS" \
     -f "$VALUES" "${TARGET_ARGS[@]}"
   GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o jsonpath='{.metadata.generation}')
   kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
@@ -376,16 +376,16 @@ DEPLOYMENT=keycloak
 label=final
 export DEPLOYMENT
 INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
 NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
 RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
 PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-export INSTANCE CLUSTER PACKAGE
-CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+export INSTANCE CLUSTER_ID PACKAGE
+KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
 VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
 CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
 TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
 case "$INSTANCE" in
   keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -405,19 +405,19 @@ request="$label-$(date -u +%Y%m%dT%H%M%SZ)"
 result="$WORK_DIR/evidence/$INSTANCE-$label-backup.json"
 case "$INSTANCE" in
   keycloak)
-    kubectl --context "$CTX" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
-    kubectl --context "$CTX" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
-    kubectl --context "$CTX" -n "$NS" logs "job/$request" -c backup > "$result"
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" logs "job/$request" -c backup > "$result"
     snapshot=$(jq -er '.snapshotID | select(test("^[a-f0-9]{64}$"))' "$result")
     ;;
   forgejo)
-    kubectl --context "$CTX" -n "$NS" annotate forgejoapplication forgejo \
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" annotate forgejoapplication forgejo \
       forgejo.bartl.sh/backup-request="$request" --overwrite
-    kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" wait forgejoapplication/forgejo \
       --for=jsonpath='{.status.backup.request}'="$request" --timeout=20m
-    kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" wait forgejoapplication/forgejo \
       --for=jsonpath='{.status.backup.success}'=true --timeout=20m
-    kubectl --context "$CTX" -n "$NS" get forgejoapplication/forgejo -o json |
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" get forgejoapplication/forgejo -o json |
       jq -e --arg request "$request" '.status.backup | select(.request==$request and .success==true)' > "$result"
     snapshot=$(jq -er '.snapshot | select(test("^[a-f0-9]{64}$"))' "$result")
     ;;
@@ -440,7 +440,7 @@ Before retiring B, retain the source-independent Keycloak handoff on the worksta
 export SOURCE_DEPLOYMENT=keycloak TARGET_DEPLOYMENT=keycloak-replacement
 SOURCE_CLUSTER=$(yq -er '.deployments.keycloak.cluster' "$VALUES")
 SOURCE_NS=$(yq -er '.deployments.keycloak.namespace' "$VALUES")
-SOURCE_CTX=$(CLUSTER="$SOURCE_CLUSTER" yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+SOURCE_CTX=$(CLUSTER_ID="$SOURCE_CLUSTER" yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
 SOURCE_KUBECONFIG="$WORK_DIR/clusters/$SOURCE_CLUSTER/base/kubeconfig"
 SOURCE_DIR="$WORK_DIR/clusters/$SOURCE_CLUSTER/applications/keycloak"
 SOURCE_SNAPSHOT=$(jq -er '.snapshotID | select(test("^[a-f0-9]{64}$"))' "$WORK_DIR/evidence/keycloak-final-backup.json")
@@ -529,7 +529,7 @@ Require authoritative and public DNS answers for C before continuing. Reconstruc
 export SOURCE_DEPLOYMENT=keycloak TARGET_DEPLOYMENT=keycloak-replacement INSTANCE=keycloak
 SOURCE_CLUSTER=$(yq -er '.deployments.keycloak.cluster' "$VALUES")
 SOURCE_NS=$(yq -er '.deployments.keycloak.namespace' "$VALUES")
-SOURCE_CTX=$(CLUSTER="$SOURCE_CLUSTER" yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+SOURCE_CTX=$(CLUSTER_ID="$SOURCE_CLUSTER" yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
 SOURCE_KUBECONFIG="$WORK_DIR/clusters/$SOURCE_CLUSTER/base/kubeconfig"
 SOURCE_DIR="$WORK_DIR/clusters/$SOURCE_CLUSTER/applications/keycloak"
 SOURCE_SNAPSHOT=$(jq -er '.snapshotID' "$SOURCE_DIR/backup-result.json")
@@ -543,13 +543,13 @@ In the [Keycloak fresh-storage procedure](https://github.com/bartlapp/bartl-keyc
 Require current-generation readiness, the final snapshot and independent target storage using only C plus retained source evidence:
 
 ```bash
-GEN=$(kubectl --kubeconfig "$KC" --context "$CTX" -n "$NS" get keycloakapplication/keycloak -o jsonpath='{.metadata.generation}')
-kubectl --kubeconfig "$KC" --context "$CTX" -n "$NS" wait keycloakapplication/keycloak --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
-kubectl --kubeconfig "$KC" --context "$CTX" -n "$NS" wait keycloakapplication/keycloak --for=condition=Ready --timeout=20m
+GEN=$(kubectl --kubeconfig "$KC" --context "$KUBE_CONTEXT" -n "$NS" get keycloakapplication/keycloak -o jsonpath='{.metadata.generation}')
+kubectl --kubeconfig "$KC" --context "$KUBE_CONTEXT" -n "$NS" wait keycloakapplication/keycloak --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
+kubectl --kubeconfig "$KC" --context "$KUBE_CONTEXT" -n "$NS" wait keycloakapplication/keycloak --for=condition=Ready --timeout=20m
 current_condition "$KC" "$NS" keycloakapplication/keycloak Ready
-kubectl --kubeconfig "$KC" --context "$CTX" -n "$NS" get keycloakapplication/keycloak -o json |
+kubectl --kubeconfig "$KC" --context "$KUBE_CONTEXT" -n "$NS" get keycloakapplication/keycloak -o json |
   jq -e --arg snapshot "$SOURCE_SNAPSHOT" '.status.operation.snapshot.id == $snapshot'
-kubectl --kubeconfig "$KC" --context "$CTX" -n "$NS" get pvc -o json |
+kubectl --kubeconfig "$KC" --context "$KUBE_CONTEXT" -n "$NS" get pvc -o json |
   jq -e --slurpfile source "$SOURCE_DIR/source-pvc.json" '
     (.items | length > 0) and all(.items[]; . as $target |
       all($source[0].items[]; .metadata.uid != $target.metadata.uid
@@ -568,16 +568,16 @@ yq -i '.operations.deployments."keycloak-replacement".ingressEnabled = true |
 for DEPLOYMENT in keycloak-replacement forgejo-replacement; do
   export DEPLOYMENT
   INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
   NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
   RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
   PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-  export INSTANCE CLUSTER PACKAGE
-  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  export INSTANCE CLUSTER_ID PACKAGE
+  KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
   VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
   CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+  kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
   TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
   case "$INSTANCE" in
     keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -593,7 +593,7 @@ for DEPLOYMENT in keycloak-replacement forgejo-replacement; do
         *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
     fi
   done
-  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$KUBE_CONTEXT" -n "$NS" \
     -f "$VALUES" "${TARGET_ARGS[@]}"
   GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o jsonpath='{.metadata.generation}')
   kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
@@ -629,16 +629,16 @@ yq -o=json '{
 for DEPLOYMENT in keycloak-replacement forgejo-replacement; do
   export DEPLOYMENT
   INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
   NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
   RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
   PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-  export INSTANCE CLUSTER PACKAGE
-  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  export INSTANCE CLUSTER_ID PACKAGE
+  KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
   VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
   CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+  kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
   TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
   case "$INSTANCE" in
     keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -654,7 +654,7 @@ for DEPLOYMENT in keycloak-replacement forgejo-replacement; do
         *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
     fi
   done
-  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+  helm upgrade --install "$RELEASE" "$CHART" --kube-context "$KUBE_CONTEXT" -n "$NS" \
     -f "$VALUES" "${TARGET_ARGS[@]}"
   GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o jsonpath='{.metadata.generation}')
   kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
@@ -670,16 +670,16 @@ for DEPLOYMENT in keycloak-replacement forgejo-replacement; do
   label=recovered
   export DEPLOYMENT
   INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-  CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+  CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
   NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
   RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
   PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-  export INSTANCE CLUSTER PACKAGE
-  CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+  export INSTANCE CLUSTER_ID PACKAGE
+  KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
   VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
   CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-  kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+  export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+  kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
   TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
   case "$INSTANCE" in
     keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -699,19 +699,19 @@ for DEPLOYMENT in keycloak-replacement forgejo-replacement; do
   result="$WORK_DIR/evidence/$INSTANCE-$label-backup.json"
   case "$INSTANCE" in
     keycloak)
-      kubectl --context "$CTX" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
-      kubectl --context "$CTX" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
-      kubectl --context "$CTX" -n "$NS" logs "job/$request" -c backup > "$result"
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" logs "job/$request" -c backup > "$result"
       snapshot=$(jq -er '.snapshotID | select(test("^[a-f0-9]{64}$"))' "$result")
       ;;
     forgejo)
-      kubectl --context "$CTX" -n "$NS" annotate forgejoapplication forgejo \
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" annotate forgejoapplication forgejo \
         forgejo.bartl.sh/backup-request="$request" --overwrite
-      kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" wait forgejoapplication/forgejo \
         --for=jsonpath='{.status.backup.request}'="$request" --timeout=20m
-      kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" wait forgejoapplication/forgejo \
         --for=jsonpath='{.status.backup.success}'=true --timeout=20m
-      kubectl --context "$CTX" -n "$NS" get forgejoapplication/forgejo -o json |
+      kubectl --context "$KUBE_CONTEXT" -n "$NS" get forgejoapplication/forgejo -o json |
         jq -e --arg request "$request" '.status.backup | select(.request==$request and .success==true)' > "$result"
       snapshot=$(jq -er '.snapshot | select(test("^[a-f0-9]{64}$"))' "$result")
       ;;
@@ -737,16 +737,16 @@ Require the fully published post-takeover point and no pending publication. Sele
 DEPLOYMENT=forgejo-replacement
 export DEPLOYMENT
 INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
 NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
 RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
 PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-export INSTANCE CLUSTER PACKAGE
-CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+export INSTANCE CLUSTER_ID PACKAGE
+KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
 VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
 CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
 TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
 case "$INSTANCE" in
   keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -762,20 +762,20 @@ for mapping in $mappings; do
       *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
   fi
 done
-kubectl --context "$CTX" -n "$NS" get pvc -o json > "$WORK_DIR/evidence/forgejo-before-reinstall-pvc.json"
+kubectl --context "$KUBE_CONTEXT" -n "$NS" get pvc -o json > "$WORK_DIR/evidence/forgejo-before-reinstall-pvc.json"
 DEPLOYMENT="$DEPLOYMENT" yq -i '.operations.deployments[strenv(DEPLOYMENT)].replicas = 0' "$VALUES"
 export DEPLOYMENT
 INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
 NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
 RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
 PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-export INSTANCE CLUSTER PACKAGE
-CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+export INSTANCE CLUSTER_ID PACKAGE
+KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
 VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
 CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
 TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
 case "$INSTANCE" in
   keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -791,27 +791,27 @@ for mapping in $mappings; do
       *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
   fi
 done
-helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+helm upgrade --install "$RELEASE" "$CHART" --kube-context "$KUBE_CONTEXT" -n "$NS" \
   -f "$VALUES" "${TARGET_ARGS[@]}"
 GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get forgejoapplication/forgejo -o jsonpath='{.metadata.generation}')
 kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait forgejoapplication/forgejo --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
 kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait forgejoapplication/forgejo --for=condition=Stopped --timeout=20m
 current_condition "$KUBECONFIG" "$NS" forgejoapplication/forgejo Stopped
-kubectl --context "$CTX" -n "$NS" delete forgejoapplication forgejo --wait=true --timeout=20m
-helm uninstall "$RELEASE" --kube-context "$CTX" -n "$NS"
+kubectl --context "$KUBE_CONTEXT" -n "$NS" delete forgejoapplication forgejo --wait=true --timeout=20m
+helm uninstall "$RELEASE" --kube-context "$KUBE_CONTEXT" -n "$NS"
 DEPLOYMENT="$DEPLOYMENT" yq -i '.operations.deployments[strenv(DEPLOYMENT)].replicas = 1' "$VALUES"
 export DEPLOYMENT
 INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
 NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
 RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
 PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-export INSTANCE CLUSTER PACKAGE
-CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+export INSTANCE CLUSTER_ID PACKAGE
+KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
 VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
 CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
 TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
 case "$INSTANCE" in
   keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -827,28 +827,28 @@ for mapping in $mappings; do
       *) TARGET_ARGS+=(--set "services.${INSTANCE//./\\.}.$field=$value") ;; esac
   fi
 done
-helm upgrade --install "$RELEASE" "$CHART" --kube-context "$CTX" -n "$NS" \
+helm upgrade --install "$RELEASE" "$CHART" --kube-context "$KUBE_CONTEXT" -n "$NS" \
   -f "$VALUES" "${TARGET_ARGS[@]}"
 GEN=$(kubectl --kubeconfig "$KUBECONFIG" -n "$NS" get forgejoapplication/forgejo -o jsonpath='{.metadata.generation}')
 kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait forgejoapplication/forgejo --for=jsonpath='{.status.observedGeneration}'="$GEN" --timeout=20m
 kubectl --kubeconfig "$KUBECONFIG" -n "$NS" wait forgejoapplication/forgejo --for=condition=Ready --timeout=20m
 current_condition "$KUBECONFIG" "$NS" forgejoapplication/forgejo Ready
-kubectl --context "$CTX" -n "$NS" get pvc -o json |
+kubectl --context "$KUBE_CONTEXT" -n "$NS" get pvc -o json |
   jq -e --slurpfile before "$WORK_DIR/evidence/forgejo-before-reinstall-pvc.json" \
     '([.items[].metadata.uid]|sort)==([$before[0].items[].metadata.uid]|sort)'
 label=reinstalled
 export DEPLOYMENT
 INSTANCE=$(yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-CLUSTER=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
+CLUSTER_ID=$(yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
 NS=$(yq -er '.deployments[strenv(DEPLOYMENT)].namespace' "$VALUES")
 RELEASE=$(yq -er '.deployments[strenv(DEPLOYMENT)].release' "$VALUES")
 PACKAGE=$(yq -er '.deployments[strenv(DEPLOYMENT)].package' "$VALUES")
-export INSTANCE CLUSTER PACKAGE
-CTX=$(yq -er '.clusters[strenv(CLUSTER)].kubeconfig.context' "$VALUES")
+export INSTANCE CLUSTER_ID PACKAGE
+KUBE_CONTEXT=$(yq -er '.clusters[strenv(CLUSTER_ID)].kubeconfig.context' "$VALUES")
 VERSION=$(yq -er '.packages[strenv(PACKAGE)].version' "$VALUES")
 CHART="$WORK_DIR/packages/bartl-$INSTANCE-$VERSION.tgz"
-export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
-kubectl config get-contexts "$CTX" -o name | jq -Re --arg ctx "$CTX" '.==$ctx' >/dev/null
+export KUBECONFIG="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
+kubectl config get-contexts "$KUBE_CONTEXT" -o name | jq -Re --arg ctx "$KUBE_CONTEXT" '.==$ctx' >/dev/null
 TARGET_ARGS=(--set-string "instance=$INSTANCE" --set-string "services.${INSTANCE//./\\.}.release=$VERSION")
 case "$INSTANCE" in
   keycloak) mappings='replicas:application.replicas ingressEnabled:ingress.enabled maintenance:ingress.maintenance backupSuspend:backup.suspend' ;;
@@ -868,19 +868,19 @@ request="$label-$(date -u +%Y%m%dT%H%M%SZ)"
 result="$WORK_DIR/evidence/$INSTANCE-$label-backup.json"
 case "$INSTANCE" in
   keycloak)
-    kubectl --context "$CTX" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
-    kubectl --context "$CTX" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
-    kubectl --context "$CTX" -n "$NS" logs "job/$request" -c backup > "$result"
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" create job "$request" --from=cronjob/keycloak-backup
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" wait "job/$request" --for=condition=complete --timeout=30m
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" logs "job/$request" -c backup > "$result"
     snapshot=$(jq -er '.snapshotID | select(test("^[a-f0-9]{64}$"))' "$result")
     ;;
   forgejo)
-    kubectl --context "$CTX" -n "$NS" annotate forgejoapplication forgejo \
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" annotate forgejoapplication forgejo \
       forgejo.bartl.sh/backup-request="$request" --overwrite
-    kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" wait forgejoapplication/forgejo \
       --for=jsonpath='{.status.backup.request}'="$request" --timeout=20m
-    kubectl --context "$CTX" -n "$NS" wait forgejoapplication/forgejo \
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" wait forgejoapplication/forgejo \
       --for=jsonpath='{.status.backup.success}'=true --timeout=20m
-    kubectl --context "$CTX" -n "$NS" get forgejoapplication/forgejo -o json |
+    kubectl --context "$KUBE_CONTEXT" -n "$NS" get forgejoapplication/forgejo -o json |
       jq -e --arg request "$request" '.status.backup | select(.request==$request and .success==true)' > "$result"
     snapshot=$(jq -er '.snapshot | select(test("^[a-f0-9]{64}$"))' "$result")
     ;;
