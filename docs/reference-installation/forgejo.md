@@ -20,13 +20,13 @@ For composition, select `services.forgejo.identityProvider: keycloak` and `backu
 The retained service choices select NodePort 30222. The chart owns its SSH Service; do not create a competing manual Service or copy a predecessor's selector. Permit this port only from the administrator and test-client A. Read B's retained firewall ID, then inspect live attachment before adding the rule:
 
 ```bash
-yq -e '.clusters.b.ownership == "managed" and .vms[strenv(B_VM)].ownership == "managed" and
-  .clusters.b.observed.firewalls.admin.ownership == "managed" and
-  .clusters.b.observed.firewalls.admin.type == "hetzner" and
-  .clusters.b.observed.firewalls.admin.provider == .vms[strenv(B_VM)].provider and
-  (.clusters.b.observed.firewalls.admin.attachedVms | length) == 1 and
-  .clusters.b.observed.firewalls.admin.attachedVms[0] == strenv(B_VM)' "$VALUES" >/dev/null
-FIREWALL=$(yq -er '.clusters.b.observed.firewalls.admin.id' "$VALUES")
+yq -e '.clusters."cluster-2".ownership == "managed" and .vms[strenv(B_VM)].ownership == "managed" and
+  .clusters."cluster-2".observed.firewalls.admin.ownership == "managed" and
+  .clusters."cluster-2".observed.firewalls.admin.type == "hetzner" and
+  .clusters."cluster-2".observed.firewalls.admin.provider == .vms[strenv(B_VM)].provider and
+  (.clusters."cluster-2".observed.firewalls.admin.attachedVms | length) == 1 and
+  .clusters."cluster-2".observed.firewalls.admin.attachedVms[0] == strenv(B_VM)' "$VALUES" >/dev/null
+FIREWALL=$(yq -er '.clusters."cluster-2".observed.firewalls.admin.id' "$VALUES")
 hcloud firewall describe "$FIREWALL"
 hcloud firewall add-rule "$FIREWALL" --direction in --protocol tcp --port 30222 \
   --source-ips "$ADMIN_IP/32,$A_IP/32"
@@ -44,15 +44,15 @@ If a matching rule exists, verify it rather than adding another. Trust the SSH k
 On the workstation, stream the source's retained bootstrap files to A, not payload data back to the workstation. Bootstrap credentials were supplied/generated once in the package preparation; for this exercise choose username `reference-admin` and email `reference-admin@example.invalid` before initial initialization. Do not change the account merely to fit a probe after creation.
 
 ```bash
-ssh -F "$WORK_DIR/clusters/a/base/ssh.config" k3s 'apt-get update && apt-get install -y jq git git-lfs bzip2'
-SOURCE_DIR="$WORK_DIR/clusters/b/applications/forgejo"
-ssh -F "$WORK_DIR/clusters/a/base/ssh.config" k3s \
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" k3s 'apt-get update && apt-get install -y jq git git-lfs bzip2'
+SOURCE_DIR="$WORK_DIR/clusters/cluster-2/applications/forgejo"
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" k3s \
   'umask 077; mkdir -p /root/bartl-reference/forgejo/bootstrap'
 for key in username email password; do
-  ssh -F "$WORK_DIR/clusters/a/base/ssh.config" k3s \
+  ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" k3s \
     "cat > /root/bartl-reference/forgejo/bootstrap/$key" < "$SOURCE_DIR/protected/bootstrap/$key"
 done
-ssh -F "$WORK_DIR/clusters/a/base/ssh.config" k3s \
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" k3s \
   'cat > /root/bartl-reference/forgejo/host-key.pub' < "$WORK_DIR/evidence/forgejo-host-key.pub"
 ```
 

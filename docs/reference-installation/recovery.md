@@ -489,13 +489,13 @@ Confirm the predecessor is off, live DNS still points to retained B, and candida
 First restrict C's public HTTPS while leaving HTTP available for ACME. Inspect its retained firewall attachment before modifying the identified rules; if a rule already has the requested state, verify it rather than repeating the mutation.
 
 ```bash
-yq -e '.clusters.c.ownership == "managed" and .vms[strenv(C_VM)].ownership == "managed" and
-  .clusters.c.observed.firewalls.admin.ownership == "managed" and
-  .clusters.c.observed.firewalls.admin.type == "hetzner" and
-  .clusters.c.observed.firewalls.admin.provider == .vms[strenv(C_VM)].provider and
-  (.clusters.c.observed.firewalls.admin.attachedVms | length) == 1 and
-  .clusters.c.observed.firewalls.admin.attachedVms[0] == strenv(C_VM)' "$VALUES" >/dev/null
-C_FIREWALL=$(yq -er '.clusters.c.observed.firewalls.admin.id' "$VALUES")
+yq -e '.clusters."cluster-3".ownership == "managed" and .vms[strenv(C_VM)].ownership == "managed" and
+  .clusters."cluster-3".observed.firewalls.admin.ownership == "managed" and
+  .clusters."cluster-3".observed.firewalls.admin.type == "hetzner" and
+  .clusters."cluster-3".observed.firewalls.admin.provider == .vms[strenv(C_VM)].provider and
+  (.clusters."cluster-3".observed.firewalls.admin.attachedVms | length) == 1 and
+  .clusters."cluster-3".observed.firewalls.admin.attachedVms[0] == strenv(C_VM)' "$VALUES" >/dev/null
+C_FIREWALL=$(yq -er '.clusters."cluster-3".observed.firewalls.admin.id' "$VALUES")
 hcloud firewall describe "$C_FIREWALL"
 hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 --source-ips 0.0.0.0/0,::/0
 hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
@@ -556,9 +556,9 @@ kubectl --kubeconfig "$KC" --context "$CTX" -n "$NS" get pvc -o json |
         and .spec.volumeName != $target.spec.volumeName))'
 ```
 
-Its work directory is `clusters/c/applications/keycloak/deployments/keycloak-replacement`. Keep the source intent stopped. Check recovered realm/user/client identities before relying on it; DNS alone never establishes source retirement.
+Its work directory is `clusters/cluster-3/applications/keycloak/deployments/keycloak-replacement`. Keep the source intent stopped. Check recovered realm/user/client identities before relying on it; DNS alone never establishes source retirement.
 
-Then select `DEPLOYMENT=forgejo-replacement` and execute Forgejo's retained-identity, storage, Secret/configuration preparation and ordinary install against independent claims. Its work directory is `clusters/c/applications/forgejo/deployments/forgejo-replacement`. Apply the recorded 17.0.1 native version during rendering and install. The package restores and migrates; no restore mode or second technical release command is allowed. Check native preparation version, current-generation Ready, preserved SSH key and recovered data. Keep candidate production HTTP/SSH access restricted until acceptance.
+Then select `DEPLOYMENT=forgejo-replacement` and execute Forgejo's retained-identity, storage, Secret/configuration preparation and ordinary install against independent claims. Its work directory is `clusters/cluster-3/applications/forgejo/deployments/forgejo-replacement`. Apply the recorded 17.0.1 native version during rendering and install. The package restores and migrates; no restore mode or second technical release command is allowed. Check native preparation version, current-generation Ready, preserved SSH key and recovered data. Keep candidate production HTTP/SSH access restricted until acceptance.
 
 Require authoritative/public C answers and valid TLS. With network restrictions still enforced, record replacement `ingressEnabled=true` and apply Keycloak then Forgejo; verify their certificates and real endpoints. The effective Keycloak hostname must remain the declared stable issuer, not a workstation rewrite. Run [all recovered-data checks](verification.md#verify-the-same-data-after-recovery), including real browser login, permission boundary, preserved SSH identity, LFS, issue/attachment/package/release and new HTTP/SSH writes. Do not activate after a partial check.
 
@@ -899,8 +899,8 @@ Use the recorded subsequent snapshot ID and independently retained reader creden
 On the workstation, supply only the selected Forgejo repository's reader inputs and the sanitized point record to the test client:
 
 ```bash
-CLIENT_SSH="$WORK_DIR/clusters/a/base/ssh.config"
-REPOSITORY_INPUTS="$WORK_DIR/clusters/a/applications/restic/protected/repositories/forgejo"
+CLIENT_SSH="$WORK_DIR/clusters/cluster-1/base/ssh.config"
+REPOSITORY_INPUTS="$WORK_DIR/clusters/cluster-1/applications/restic/protected/repositories/forgejo"
 ssh -F "$CLIENT_SSH" k3s 'umask 077; mkdir -p /root/bartl-reference/repositories/forgejo/reader'
 ssh -F "$CLIENT_SSH" k3s 'cat > /root/bartl-reference/repositories/forgejo/reader/password' < "$REPOSITORY_INPUTS/password"
 ssh -F "$CLIENT_SSH" k3s 'cat > /root/bartl-reference/repositories/forgejo/reader/restPassword' < "$REPOSITORY_INPUTS/reader.restPassword"

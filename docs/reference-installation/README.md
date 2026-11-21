@@ -1,6 +1,6 @@
 # Recover a Bartl installation on a separate cluster
 
-Run one customer installation across three independent single-node K3s clusters: A holds Restic and the synthetic test client; B runs Keycloak and Forgejo; C starts empty and replaces B. A remains available. This exercises planned source retirement and recovery, not loss of the backup provider or source-independent fencing.
+Run one customer installation across three independent single-node K3s clusters: A (`cluster-1`) holds Restic and the synthetic test client; B (`cluster-2`) runs Keycloak and Forgejo; C (`cluster-3`) starts empty and replaces B. A remains available. A/B/C are shorthand for these fixed IDs throughout the walkthrough. This exercises planned source retirement and recovery, not loss of the backup provider or source-independent fencing.
 
 Follow [application installation](applications.md), [Forgejo integration](forgejo.md), [service acceptance](verification.md), [lifecycle and recovery](recovery.md), then [cleanup](#cleanup). Run workstation blocks in Bash with tracing off. Package READMEs own application preparation and lifecycle commands; this walkthrough supplies composition, retained targets and acceptance order. No company tooling or password store is required when the operator supplies protected credentials.
 
@@ -43,19 +43,19 @@ For a real run, review the retained installation identity and DNS root before pr
 
 ## Build three independent K3s bases
 
-Follow the [base-k3s recipe](https://github.com/bartlapp/base-k3s/blob/main/README.md), from initialization through handover, three times in fresh shells with `CLUSTER=a`, `b`, then `c`; supply the same absolute `WORK_DIR`, `VALUES` and authorized `HETZNER_PROJECT`. The recipe initializes the unique VM key, provider binding, desired VM configuration, cluster node reference and kubeconfig context. Do not precreate partial cluster entries or carry a previous pass's `VM`, `NAME` or `CTX` into the next new-cluster shell. Existing clusters use the read-only resumption path.
+Follow the [base-k3s recipe](https://github.com/bartlapp/base-k3s/blob/main/README.md), from initialization through handover, three times in fresh shells with `CLUSTER=cluster-1 VM=vm-1`, then `CLUSTER=cluster-2 VM=vm-2`, then `CLUSTER=cluster-3 VM=vm-3`. Export the selected pair and supply the same absolute `WORK_DIR`, `VALUES` and authorized `HETZNER_PROJECT`. The recipe initializes the provider binding, desired VM configuration, cluster node reference and derived kubeconfig context. Do not precreate partial cluster entries or carry a previous pass's `NAME` or `CTX` into the next new-cluster shell. Existing clusters use the read-only resumption path.
 
 Each server must be independent, not joined to another cluster. Base records machine identities and IP allocations under the referenced `vms` entry, and API access and typed firewall observations under the cluster. Do not repeat uncertain creation: reconcile the retained intent and live provider inventory first.
 
 Base access is under `$WORK_DIR/clusters/<id>/base/{kubeconfig,ssh.config,known_hosts}`. Derive addresses from the retained observations. After the three passes:
 
 ```bash
-for CLUSTER in a b c; do
+for CLUSTER in cluster-1 cluster-2 cluster-3; do
   config="$WORK_DIR/clusters/$CLUSTER/base/kubeconfig"
   kubectl --kubeconfig "$config" get nodes,storageclass
   kubectl --kubeconfig "$config" get namespace kube-system -o jsonpath='{.metadata.uid}{"\n"}'
 done
-kubectl --kubeconfig "$WORK_DIR/clusters/c/base/kubeconfig" get namespaces,pvc --all-namespaces
+kubectl --kubeconfig "$WORK_DIR/clusters/cluster-3/base/kubeconfig" get namespaces,pvc --all-namespaces
 ```
 
 Require three distinct `kube-system` UIDs, one Ready node per cluster, usable CoreDNS/local-path/Traefik/cert-manager, enforced NetworkPolicy and empty application state on C. Restrict SSH/API to the administrator; allow required HTTPS and Git SSH paths deliberately.
@@ -69,11 +69,11 @@ yq -i '
   .packages.restic = ({"version":"0.3.0","chart":"oci://ghcr.io/bartlapp/bartl-restic","chartSha256":"57feb5b39b325e3972fe9a9c870cd6c0c5fe54f2f91faba8b4b1652fb4918253"} * (.packages.restic // {})) |
   .packages.keycloak = ({"version":"0.6.1","chart":"oci://ghcr.io/bartlapp/bartl-keycloak","chartSha256":"7abb55bcefbcde70dc8f29309d508d314a48783547067b529d48617d23c9225a"} * (.packages.keycloak // {})) |
   .packages.forgejo = ({"version":"0.2.2","chart":"oci://ghcr.io/bartlapp/bartl-forgejo","chartSha256":"16405a6d485138d16ebe4afca0c7a3d9a68705194a39ed430311ea16d9bf0664"} * (.packages.forgejo // {})) |
-  .deployments.restic = ({"instance":"restic","cluster":"a","namespace":"backup","release":"backup","package":"restic"} * (.deployments.restic // {})) |
-  .deployments.keycloak = ({"instance":"keycloak","cluster":"b","namespace":"keycloak","release":"keycloak","package":"keycloak"} * (.deployments.keycloak // {})) |
-  .deployments.forgejo = ({"instance":"forgejo","cluster":"b","namespace":"forgejo","release":"forgejo","package":"forgejo"} * (.deployments.forgejo // {})) |
-  .deployments."keycloak-replacement" = ({"instance":"keycloak","cluster":"c","namespace":"keycloak","release":"keycloak","package":"keycloak"} * (.deployments."keycloak-replacement" // {})) |
-  .deployments."forgejo-replacement" = ({"instance":"forgejo","cluster":"c","namespace":"forgejo","release":"forgejo","package":"forgejo"} * (.deployments."forgejo-replacement" // {})) |
+  .deployments.restic = ({"instance":"restic","cluster":"cluster-1","namespace":"backup","release":"backup","package":"restic"} * (.deployments.restic // {})) |
+  .deployments.keycloak = ({"instance":"keycloak","cluster":"cluster-2","namespace":"keycloak","release":"keycloak","package":"keycloak"} * (.deployments.keycloak // {})) |
+  .deployments.forgejo = ({"instance":"forgejo","cluster":"cluster-2","namespace":"forgejo","release":"forgejo","package":"forgejo"} * (.deployments.forgejo // {})) |
+  .deployments."keycloak-replacement" = ({"instance":"keycloak","cluster":"cluster-3","namespace":"keycloak","release":"keycloak","package":"keycloak"} * (.deployments."keycloak-replacement" // {})) |
+  .deployments."forgejo-replacement" = ({"instance":"forgejo","cluster":"cluster-3","namespace":"forgejo","release":"forgejo","package":"forgejo"} * (.deployments."forgejo-replacement" // {})) |
   .services[.deployments.restic.instance] = (.services[.deployments.restic.instance] // {}) |
   .services[.deployments.keycloak.instance] = (.services[.deployments.keycloak.instance] // {}) |
   .services[.deployments.forgejo.instance] = (.services[.deployments.forgejo.instance] // {})
@@ -90,12 +90,12 @@ Retain the walkthrough's workstation helper under `operations/` alongside its op
 cat > "$WORK_DIR/operations/workstation.env" <<'ENV'
 : "${WORK_DIR:?}" "${VALUES:?}"
 cd "$WORK_DIR"
-export KA="$WORK_DIR/clusters/a/base/kubeconfig"
-export KB="$WORK_DIR/clusters/b/base/kubeconfig"
-export KC="$WORK_DIR/clusters/c/base/kubeconfig"
-A_VM=$(yq -o=json '.clusters.a.nodes' "$VALUES" | jq -er 'if length == 1 and (to_entries[0].value.role == "server") then keys[0] else error("Expected one server VM") end')
-B_VM=$(yq -o=json '.clusters.b.nodes' "$VALUES" | jq -er 'if length == 1 and (to_entries[0].value.role == "server") then keys[0] else error("Expected one server VM") end')
-C_VM=$(yq -o=json '.clusters.c.nodes' "$VALUES" | jq -er 'if length == 1 and (to_entries[0].value.role == "server") then keys[0] else error("Expected one server VM") end')
+export KA="$WORK_DIR/clusters/cluster-1/base/kubeconfig"
+export KB="$WORK_DIR/clusters/cluster-2/base/kubeconfig"
+export KC="$WORK_DIR/clusters/cluster-3/base/kubeconfig"
+A_VM=$(yq -o=json '.clusters."cluster-1".nodes' "$VALUES" | jq -er 'if length == 1 and (to_entries[0].value.role == "server") then keys[0] else error("Expected one server VM") end')
+B_VM=$(yq -o=json '.clusters."cluster-2".nodes' "$VALUES" | jq -er 'if length == 1 and (to_entries[0].value.role == "server") then keys[0] else error("Expected one server VM") end')
+C_VM=$(yq -o=json '.clusters."cluster-3".nodes' "$VALUES" | jq -er 'if length == 1 and (to_entries[0].value.role == "server") then keys[0] else error("Expected one server VM") end')
 export A_VM B_VM C_VM
 A_IP=$(yq -er '.vms[strenv(A_VM)].observed.primaryIPv4.address' "$VALUES")
 B_IP=$(yq -er '.vms[strenv(B_VM)].observed.primaryIPv4.address' "$VALUES")
@@ -144,7 +144,7 @@ for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
 done
 ```
 
-Then select `CLUSTER=b`, `c`, `a` in order and execute the base recipe's teardown using the same `VALUES`, including any firewall-only interrupted run. Complete package removal on reachable targets; B's confirmed source retirement must not be undone merely to uninstall it. After confirming data disposition, retain the historical configuration/evidence and remove the retired deployment mappings and their referencing operation/recovery entries as required by Base's remaining-consumer guard. Verify each live VM, Primary IP, firewall and attachment against retained observations before deletion; names alone are insufficient. Deleting A destroys this exercise's synthetic backup history and credentials. Confirm the provider inventory contains no remaining resources from the run. Local deletion is a separate explicit retention decision, not an automatic command in this recipe.
+Then select `CLUSTER=cluster-2`, `cluster-3`, `cluster-1` in order and execute the base recipe's teardown using the same `VALUES`, including any firewall-only interrupted run. Complete package removal on reachable targets; B's confirmed source retirement must not be undone merely to uninstall it. After confirming data disposition, retain the historical configuration/evidence and remove the retired deployment mappings and their referencing operation/recovery entries as required by Base's remaining-consumer guard. Verify each live VM, Primary IP, firewall and attachment against retained observations before deletion; names alone are insufficient. Deleting A destroys this exercise's synthetic backup history and credentials. Confirm the provider inventory contains no remaining resources from the run. Local deletion is a separate explicit retention decision, not an automatic command in this recipe.
 
 ## Historical version evidence
 

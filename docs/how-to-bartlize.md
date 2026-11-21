@@ -114,28 +114,30 @@ providers:
     credentials:
       environment: HCLOUD_TOKEN
 vms:
-  blue-server:
+  vm-1:
     provider: primary
     ownership: managed
     configuration:
-      name: acme-production-blue
+      name: production-cluster-1
       location: hel1
       serverType: cpx32
       image: debian-13
 clusters:
-  blue:
+  cluster-1:
     management: self-managed
     ownership: managed
     configuration:
       distribution: k3s
     nodes:
-      blue-server:
+      vm-1:
         role: server
     kubeconfig:
-      context: acme-production-blue
+      context: acme-production-cluster-1
 ```
 
 The project scope above is a retained administrative designation, not an API selector. `HCLOUD_TOKEN` names the environment variable containing the credential, not its value. No provider type is repeated on a VM or network; its provider reference selects the appropriate configuration profile. Context and provider-visible resource names are retained operational identifiers.
+
+Use stable resource IDs such as `cluster-1` and `vm-1`, not positional numbering that changes after deletion. Membership is an explicit reference. Derive a new kubectl context as `<customer>-<installation>-<cluster>` and retain it with the access record; resumption must not rename an existing context.
 
 Networks are independent resources with their own provider and named subnets. VM attachments reference a network and subnet instead of copying their configuration. A managed cluster can select its provider networks directly. Network membership does not establish firewall policy, Kubernetes NetworkPolicy enforcement or cross-provider reachability. Provider networks and Kubernetes pod/service networks have separate address spaces and operating requirements.
 
@@ -164,12 +166,12 @@ acme-installation/
   .gitignore
   packages/                         # Downloaded charts and checksums; ignored
   clusters/                         # Local working files; ignored
-    blue/
+    cluster-1/
       base/                         # kubeconfig and SSH working files
       applications/
         keycloak/                   # Derived connections and required access files
         paperless/
-    green/
+    cluster-2/
       base/
       applications/
         restic/
