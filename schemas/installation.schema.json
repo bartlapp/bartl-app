@@ -1,0 +1,1436 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://bartl.app/schemas/installation.schema.json",
+  "title": "Bartl installation record",
+  "description": "Versioned installation-wide identity, resource graph, protected-input references, package placement and typed observations. This schema does not provision resources, derive defaults or validate package-owned service fields. Cross-record reference and provider compatibility checks are separate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "customer",
+    "installation"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "customer": {
+      "$ref": "#/definitions/identifier"
+    },
+    "installation": {
+      "$ref": "#/definitions/identifier"
+    },
+    "dns": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root"
+      ],
+      "properties": {
+        "root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "$ref": "#/definitions/identifier"
+        }
+      }
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        }
+      }
+    },
+    "credentials": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "passStore": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "providers": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/definitions/identifier"
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/provider"
+      }
+    },
+    "networks": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/definitions/identifier"
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/network"
+      }
+    },
+    "vms": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/definitions/identifier"
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/vm"
+      }
+    },
+    "clusters": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/definitions/identifier"
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/cluster"
+      }
+    },
+    "packages": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/definitions/identifier"
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/package"
+      }
+    },
+    "services": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/definitions/identifier"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "description": "Package-owned service configuration, validated by the selected package rather than duplicated centrally."
+      }
+    },
+    "deployments": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/definitions/identifier"
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/deployment"
+      }
+    },
+    "operations": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deployments": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/definitions/identifier"
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/deploymentOperation"
+          }
+        },
+        "dns": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/dnsRecord"
+          }
+        },
+        "recovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "points": {
+              "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/identifier"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "propertyNames": {
+                  "$ref": "#/definitions/identifier"
+                },
+                "additionalProperties": {
+                  "$ref": "#/definitions/recoveryPoint"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "resolved": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      },
+      "description": "Package-owned connection sections. Validate their contents through the consuming packages."
+    }
+  },
+  "definitions": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "maxLength": 63
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ownership": {
+      "enum": [
+        "managed",
+        "external"
+      ]
+    },
+    "credentialRef": {
+      "description": "Protected input reference, never a plaintext credential. passEntry is relative to credentials.passStore; file is an independently retained protected file.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "passEntry"
+          ],
+          "properties": {
+            "passEntry": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "environment"
+          ],
+          "properties": {
+            "environment": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "file"
+          ],
+          "properties": {
+            "file": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "hetznerId": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        }
+      ]
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "ipv4": {
+      "type": "string",
+      "format": "ipv4"
+    },
+    "ipv6": {
+      "type": "string",
+      "format": "ipv6"
+    },
+    "address": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/ipv4"
+        },
+        {
+          "$ref": "#/definitions/ipv6"
+        }
+      ]
+    },
+    "cidr": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F:.]+/[0-9]{1,3}$",
+      "description": "CIDR text; network-family prefix bounds and host-bit checks require semantic validation."
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "provider": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "scope",
+            "credentials"
+          ],
+          "properties": {
+            "type": {
+              "const": "hetzner"
+            },
+            "scope": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "project"
+              ],
+              "properties": {
+                "project": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "credentials": {
+              "$ref": "#/definitions/credentialRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "scope",
+            "credentials"
+          ],
+          "properties": {
+            "type": {
+              "const": "aws"
+            },
+            "scope": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "accountId",
+                "region"
+              ],
+              "properties": {
+                "accountId": {
+                  "type": "string",
+                  "pattern": "^[0-9]{12}$"
+                },
+                "region": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "credentials": {
+              "$ref": "#/definitions/credentialRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "scope",
+            "credentials"
+          ],
+          "properties": {
+            "type": {
+              "const": "desec"
+            },
+            "scope": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "zone"
+              ],
+              "properties": {
+                "zone": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "credentials": {
+              "$ref": "#/definitions/credentialRef"
+            }
+          }
+        }
+      ]
+    },
+    "hetznerVmConfiguration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "serverType",
+        "location",
+        "image"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serverType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sshKeys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "labels": {
+          "$ref": "#/definitions/labels"
+        },
+        "publicIPv4": {
+          "type": "boolean"
+        },
+        "publicIPv6": {
+          "type": "boolean"
+        }
+      }
+    },
+    "awsVmConfiguration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "instanceType",
+        "image",
+        "availabilityZone"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instanceType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "image": {
+          "type": "string",
+          "minLength": 1
+        },
+        "availabilityZone": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sshKeyName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rootVolumeGiB": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "publicIPv4": {
+          "type": "boolean"
+        },
+        "tags": {
+          "$ref": "#/definitions/labels"
+        }
+      }
+    },
+    "hetznerVmObserved": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "server": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/definitions/hetznerId"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "primaryIPv4": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "ownership"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/definitions/hetznerId"
+            },
+            "address": {
+              "$ref": "#/definitions/ipv4"
+            },
+            "ownership": {
+              "enum": [
+                "managed",
+                "external"
+              ]
+            }
+          }
+        },
+        "primaryIPv6": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "ownership"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/definitions/hetznerId"
+            },
+            "address": {
+              "$ref": "#/definitions/ipv6"
+            },
+            "network": {
+              "$ref": "#/definitions/cidr"
+            },
+            "ownership": {
+              "enum": [
+                "managed",
+                "external"
+              ]
+            }
+          }
+        },
+        "networkAttachments": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/definitions/identifier"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "networkId"
+            ],
+            "properties": {
+              "networkId": {
+                "$ref": "#/definitions/hetznerId"
+              },
+              "address": {
+                "$ref": "#/definitions/ipv4"
+              }
+            }
+          }
+        }
+      }
+    },
+    "awsVmObserved": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "instanceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "privateIPv4": {
+          "$ref": "#/definitions/ipv4"
+        },
+        "publicIPv4": {
+          "$ref": "#/definitions/ipv4"
+        },
+        "publicIPv6": {
+          "$ref": "#/definitions/ipv6"
+        },
+        "networkInterfaces": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/definitions/identifier"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "address": {
+                "$ref": "#/definitions/address"
+              }
+            }
+          }
+        }
+      }
+    },
+    "vm": {
+      "description": "Standalone machine. Provider scope and resource ownership apply to observations; an attached resource has independent ownership where stated.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "provider",
+            "ownership",
+            "configuration"
+          ],
+          "properties": {
+            "provider": {
+              "$ref": "#/definitions/identifier"
+            },
+            "ownership": {
+              "enum": [
+                "managed",
+                "external"
+              ]
+            },
+            "networkAttachments": {
+              "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/identifier"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "network",
+                  "subnet"
+                ],
+                "properties": {
+                  "network": {
+                    "$ref": "#/definitions/identifier"
+                  },
+                  "subnet": {
+                    "$ref": "#/definitions/identifier"
+                  },
+                  "address": {
+                    "$ref": "#/definitions/address"
+                  }
+                }
+              }
+            },
+            "configuration": {
+              "$ref": "#/definitions/hetznerVmConfiguration"
+            },
+            "observed": {
+              "$ref": "#/definitions/hetznerVmObserved"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "provider",
+            "ownership",
+            "configuration"
+          ],
+          "properties": {
+            "provider": {
+              "$ref": "#/definitions/identifier"
+            },
+            "ownership": {
+              "enum": [
+                "managed",
+                "external"
+              ]
+            },
+            "networkAttachments": {
+              "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/identifier"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "network",
+                  "subnet"
+                ],
+                "properties": {
+                  "network": {
+                    "$ref": "#/definitions/identifier"
+                  },
+                  "subnet": {
+                    "$ref": "#/definitions/identifier"
+                  },
+                  "address": {
+                    "$ref": "#/definitions/address"
+                  }
+                }
+              }
+            },
+            "configuration": {
+              "$ref": "#/definitions/awsVmConfiguration"
+            },
+            "observed": {
+              "$ref": "#/definitions/awsVmObserved"
+            }
+          }
+        }
+      ]
+    },
+    "hetznerSubnet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cidr",
+        "configuration"
+      ],
+      "properties": {
+        "cidr": {
+          "$ref": "#/definitions/cidr"
+        },
+        "configuration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "networkZone",
+            "type"
+          ],
+          "properties": {
+            "networkZone": {
+              "type": "string",
+              "minLength": 1
+            },
+            "type": {
+              "const": "cloud"
+            }
+          }
+        }
+      }
+    },
+    "awsSubnet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cidr",
+        "configuration"
+      ],
+      "properties": {
+        "cidr": {
+          "$ref": "#/definitions/cidr"
+        },
+        "configuration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "availabilityZone"
+          ],
+          "properties": {
+            "availabilityZone": {
+              "type": "string",
+              "minLength": 1
+            },
+            "assignPublicIPv4": {
+              "type": "boolean"
+            }
+          }
+        },
+        "observed": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "network": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "provider",
+            "ownership",
+            "configuration",
+            "subnets"
+          ],
+          "properties": {
+            "provider": {
+              "$ref": "#/definitions/identifier"
+            },
+            "ownership": {
+              "enum": [
+                "managed",
+                "external"
+              ]
+            },
+            "configuration": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "cidr"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "cidr": {
+                  "$ref": "#/definitions/cidr"
+                },
+                "labels": {
+                  "$ref": "#/definitions/labels"
+                }
+              }
+            },
+            "subnets": {
+              "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/identifier"
+              },
+              "additionalProperties": {
+                "$ref": "#/definitions/hetznerSubnet"
+              },
+              "minProperties": 1
+            },
+            "observed": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "$ref": "#/definitions/hetznerId"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "provider",
+            "ownership",
+            "configuration",
+            "subnets"
+          ],
+          "properties": {
+            "provider": {
+              "$ref": "#/definitions/identifier"
+            },
+            "ownership": {
+              "enum": [
+                "managed",
+                "external"
+              ]
+            },
+            "configuration": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "cidr"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "cidr": {
+                  "$ref": "#/definitions/cidr"
+                },
+                "enableDnsSupport": {
+                  "type": "boolean"
+                },
+                "enableDnsHostnames": {
+                  "type": "boolean"
+                },
+                "tags": {
+                  "$ref": "#/definitions/labels"
+                }
+              }
+            },
+            "subnets": {
+              "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/identifier"
+              },
+              "additionalProperties": {
+                "$ref": "#/definitions/awsSubnet"
+              },
+              "minProperties": 1
+            },
+            "observed": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "kubeconfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "context"
+      ],
+      "properties": {
+        "context": {
+          "type": "string",
+          "minLength": 1
+        },
+        "credential": {
+          "$ref": "#/definitions/credentialRef"
+        }
+      }
+    },
+    "api": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "endpoint"
+      ],
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "caSha256": {
+          "$ref": "#/definitions/sha256"
+        }
+      }
+    },
+    "firewall": {
+      "description": "Independently scoped firewall identity. Reference or attachment never grants permission to modify or delete an external resource.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "provider",
+            "ownership",
+            "id"
+          ],
+          "properties": {
+            "type": {
+              "const": "hetzner"
+            },
+            "provider": {
+              "$ref": "#/definitions/identifier"
+            },
+            "ownership": {
+              "enum": [
+                "managed",
+                "external"
+              ]
+            },
+            "id": {
+              "$ref": "#/definitions/hetznerId"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "attachedVms": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/identifier"
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "provider",
+            "ownership",
+            "id"
+          ],
+          "properties": {
+            "type": {
+              "const": "aws-security-group"
+            },
+            "provider": {
+              "$ref": "#/definitions/identifier"
+            },
+            "ownership": {
+              "enum": [
+                "managed",
+                "external"
+              ]
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "attachedVms": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/identifier"
+              },
+              "uniqueItems": true
+            }
+          }
+        }
+      ]
+    },
+    "k3sConfiguration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "distribution"
+      ],
+      "properties": {
+        "distribution": {
+          "const": "k3s"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clusterCIDR": {
+          "$ref": "#/definitions/cidr"
+        },
+        "serviceCIDR": {
+          "$ref": "#/definitions/cidr"
+        },
+        "clusterDNS": {
+          "$ref": "#/definitions/address"
+        },
+        "disable": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "traefik",
+              "servicelb",
+              "local-storage",
+              "metrics-server"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "tlsSANs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "server",
+            "agent"
+          ]
+        }
+      }
+    },
+    "eksConfiguration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service",
+        "name",
+        "version",
+        "roleArn",
+        "network",
+        "subnets"
+      ],
+      "properties": {
+        "service": {
+          "const": "eks"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "roleArn": {
+          "type": "string",
+          "minLength": 1
+        },
+        "network": {
+          "$ref": "#/definitions/identifier"
+        },
+        "subnets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/identifier"
+          },
+          "uniqueItems": true,
+          "minItems": 2
+        },
+        "endpointPublicAccess": {
+          "type": "boolean"
+        },
+        "endpointPrivateAccess": {
+          "type": "boolean"
+        },
+        "publicAccessCidrs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/cidr"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "cluster": {
+      "description": "Self-managed nodes reference standalone VMs; provider-managed EKS describes an explicit provider service, not a supported provisioning procedure.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "management",
+            "ownership",
+            "nodes",
+            "configuration"
+          ],
+          "properties": {
+            "management": {
+              "const": "self-managed"
+            },
+            "ownership": {
+              "enum": [
+                "managed",
+                "external"
+              ]
+            },
+            "nodes": {
+              "type": "object",
+              "propertyNames": {
+                "$ref": "#/definitions/identifier"
+              },
+              "additionalProperties": {
+                "$ref": "#/definitions/node"
+              },
+              "minProperties": 1
+            },
+            "configuration": {
+              "$ref": "#/definitions/k3sConfiguration"
+            },
+            "kubeconfig": {
+              "$ref": "#/definitions/kubeconfig"
+            },
+            "observed": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "api": {
+                  "$ref": "#/definitions/api"
+                },
+                "firewalls": {
+                  "type": "object",
+                  "propertyNames": {
+                    "$ref": "#/definitions/identifier"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/definitions/firewall"
+                  }
+                },
+                "kubeSystemUid": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "management",
+            "provider",
+            "ownership",
+            "configuration"
+          ],
+          "properties": {
+            "management": {
+              "const": "provider-managed"
+            },
+            "provider": {
+              "$ref": "#/definitions/identifier"
+            },
+            "ownership": {
+              "enum": [
+                "managed",
+                "external"
+              ]
+            },
+            "configuration": {
+              "$ref": "#/definitions/eksConfiguration"
+            },
+            "kubeconfig": {
+              "$ref": "#/definitions/kubeconfig"
+            },
+            "observed": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "arn": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "api": {
+                  "$ref": "#/definitions/api"
+                },
+                "firewalls": {
+                  "type": "object",
+                  "propertyNames": {
+                    "$ref": "#/definitions/identifier"
+                  },
+                  "additionalProperties": {
+                    "$ref": "#/definitions/firewall"
+                  }
+                },
+                "kubeSystemUid": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "chart"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "chart": {
+          "type": "string",
+          "pattern": "^(oci://|https://)"
+        },
+        "chartSha256": {
+          "$ref": "#/definitions/sha256"
+        },
+        "images": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/definitions/identifier"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "reference",
+              "digest"
+            ],
+            "properties": {
+              "reference": {
+                "type": "string",
+                "minLength": 1
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instance",
+        "cluster",
+        "namespace",
+        "release",
+        "package"
+      ],
+      "properties": {
+        "instance": {
+          "$ref": "#/definitions/identifier"
+        },
+        "cluster": {
+          "$ref": "#/definitions/identifier"
+        },
+        "namespace": {
+          "type": "string",
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+          "maxLength": 63
+        },
+        "release": {
+          "type": "string",
+          "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+          "maxLength": 53
+        },
+        "package": {
+          "$ref": "#/definitions/identifier"
+        }
+      }
+    },
+    "deploymentOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hostname": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ingressEnabled": {
+          "type": "boolean"
+        },
+        "maintenance": {
+          "type": "boolean"
+        },
+        "backupSuspend": {
+          "type": "boolean"
+        }
+      }
+    },
+    "recoveryPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deployment",
+        "snapshot"
+      ],
+      "properties": {
+        "deployment": {
+          "$ref": "#/definitions/identifier"
+        },
+        "snapshot": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "dnsRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "address",
+        "ttl"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "A",
+            "AAAA",
+            "CNAME",
+            "TXT"
+          ]
+        },
+        "address": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ttl": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "provider": {
+          "$ref": "#/definitions/identifier"
+        },
+        "ownership": {
+          "enum": [
+            "managed",
+            "external"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -66,7 +66,7 @@ The installation administrator coordinates applications, infrastructure, endpoin
 
 ## Installation inputs
 
-Each customer installation has exactly one authoritative `installation.yaml`. It holds installation and application identities, effective configuration, selected releases, application-to-cluster and cluster-to-provider mappings, protected-input references and the resource identities needed for operation. Operators must not reconcile directory names, shell variables and separate inventories to determine what belongs to an installation. A Git repository and a particular secret-store implementation are not prerequisites for standalone package operation.
+Each customer installation has exactly one authoritative `installation.yaml`. It holds installation and application identities, effective configuration, selected releases, resource relationships, protected-input references and the resource identities needed for operation. An installation may contain standalone VMs, self-managed or provider-managed Kubernetes clusters and networks; it is not a mandatory installation-to-cluster-to-VM hierarchy. Operators must not reconcile directory names, shell variables and separate inventories to determine what belongs to an installation. A Git repository and a particular secret-store implementation are not prerequisites for standalone package operation.
 
 Keep these installation-specific inputs and results available:
 
@@ -82,11 +82,70 @@ Keep these installation-specific inputs and results available:
 
 Keep stable application settings under `services.<instance>`. Placement and package version do not define application identity: moving an application to another cluster must not create a new identity or rename its retained secrets. Each `deployments.<deployment>` entry selects an `instance`, `cluster`, actual Kubernetes `namespace`, Helm `release` and `package` reference. The selected `packages` entry identifies the release artifacts. Multiple deployment targets may refer to one logical instance during replacement; this does not authorize concurrent production writers.
 
-The operator selects a deployment; the procedure reads its application identity, target and package from the record. Cluster entries select their provider and retained Kubernetes context. Existing recorded choices are authoritative; defaults initialize missing choices, not overwrite them. Keep desired cluster settings under `clusters.<cluster>.configuration` and actual resource identities under `clusters.<cluster>.observed`. Store target-specific lifecycle intent under `operations.deployments.<deployment>` when a replacement needs different source and target settings. Commands derive any necessary Helm overrides from that intent rather than maintaining another values file.
+The operator selects a deployment; the procedure reads its application identity, target and package from the record. Existing recorded choices are authoritative; defaults initialize missing choices, not overwrite them. Store target-specific lifecycle intent under `operations.deployments.<deployment>` when a replacement needs different source and target settings. Commands derive any necessary Helm overrides from that intent rather than maintaining another values file.
 
 Provisioning extracts only required resource identities and addresses from provider responses and records each resource immediately in `installation.yaml`, preserving unrelated entries. Operations use those retained identifiers and check current provider state and ownership before destructive changes. If creation succeeds but recording fails, stop and reconcile the created resource before retrying. Recorded state identifies resources; it does not prove their current existence or authorize deletion.
 
 Secret values remain in the selected protected store. Put references beside their consumers in `installation.yaml`; retain only genuinely protected content there, not ordinary infrastructure inventory. Independently preserve required credentials and keys before relying on them. A successor must be able to retrieve and use them without the original workstation or cluster.
+
+### Versioned resource contract
+
+The authoritative shared structure is [installation.schema.json](https://github.com/bartlapp/bartl-app/blob/main/schemas/installation.schema.json), a JSON Schema Draft 7 document. `schemaVersion: 1` identifies this resource model, independently of package versions. `customer` identifies the customer; `installation` identifies the operational unit within that customer. Select a schema from the same retained source revision as the installation's procedures rather than validating against a moving branch.
+
+Version 1 separates VMs from clusters. Each VM selects a named provider configuration and records its machine settings under `configuration`. A self-managed cluster references VM IDs under `nodes`; a provider-managed cluster selects its provider directly. Provider configurations identify both the API type and administrative scope with a protected access reference. A token or profile must actually grant access to that scope; declaring a project or account in YAML is not verification.
+
+A desired-only Base record, before any provider resources have been created:
+
+```yaml
+schemaVersion: 1
+customer: acme
+installation: production
+dns:
+  root: acme.fke.systems
+providers:
+  primary:
+    type: hetzner
+    scope:
+      project: acme-production
+    credentials:
+      environment: HCLOUD_TOKEN
+vms:
+  blue-server:
+    provider: primary
+    ownership: managed
+    configuration:
+      name: acme-production-blue
+      location: hel1
+      serverType: cpx32
+      image: debian-13
+clusters:
+  blue:
+    management: self-managed
+    ownership: managed
+    configuration:
+      distribution: k3s
+    nodes:
+      blue-server:
+        role: server
+    kubeconfig:
+      context: acme-production-blue
+```
+
+The project scope above is a retained administrative designation, not an API selector. `HCLOUD_TOKEN` names the environment variable containing the credential, not its value. No provider type is repeated on a VM or network; its provider reference selects the appropriate configuration profile. Context and provider-visible resource names are retained operational identifiers.
+
+Networks are independent resources with their own provider and named subnets. VM attachments reference a network and subnet instead of copying their configuration. A managed cluster can select its provider networks directly. Network membership does not establish firewall policy, Kubernetes NetworkPolicy enforcement or cross-provider reachability. Provider networks and Kubernetes pod/service networks have separate address spaces and operating requirements.
+
+Keep desired settings under each resource's `configuration` and provider results under that resource's `observed`. VM IDs and IP allocations belong to the VM, not its cluster. Cluster access belongs to the cluster. Partial observations are valid: a recorded firewall without a server is a legitimate interrupted provisioning state. Structural validity does not mean provisioning has completed.
+
+Every resource declares `ownership` as `managed` or `external`. Managed resources are administered as part of this installation; external resources are referenced, not adopted. Neither designation is permission to destroy data. A cluster-to-VM or VM-to-network reference grants no deletion authority over its target. Before removing a managed resource, establish authorization, live identity and ownership, remaining consumers and data disposition. Removing a cluster does not implicitly delete a shared network or external VM. Retain observations until absence is verified; an unreachable API is not evidence of deletion.
+
+Common fields are closed against unknown keys. Package-owned service settings and resolved connection inputs remain package-owned; the shared schema does not duplicate their configuration definitions. Validate those inputs against the selected immutable package's interface as well. A shared-schema pass is not application qualification.
+
+The repository's [validation command](https://github.com/bartlapp/bartl-app#validate-an-installation-record) checks structure and references without contacting providers or clusters. Provider, VM, network, subnet, deployment, package and instance references must resolve. A VM belongs to at most one self-managed cluster; attachments must remain within the selected provider binding. Subnet ranges must fit their network and not overlap each other. Deployment IDs may share an instance during replacement, but cannot claim the same cluster/namespace/Helm-release target. Operation and recovery references must address the matching deployment and instance.
+
+Operational checks still establish accessible credentials, usable capacity, current ownership and the prerequisites of the requested operation. The validator does not check application dependency cycles or package-owned connection semantics; the selected package procedures remain responsible for those checks. Schema defaults do not populate configuration, and validation does not derive or rewrite values.
+
+**Adoption boundary:** the existing Base and package recipes and customer template still use the unversioned, cluster-owned single-VM record. They have not been migrated by defining version 1. Do not add `schemaVersion: 1` to those records without migrating their structure and all consuming procedures together. Their existing qualification evidence does not establish version-1 operation.
 
 ### Working files and protected storage
 
