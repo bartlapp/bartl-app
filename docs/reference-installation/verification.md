@@ -111,7 +111,7 @@ Exit the SSH session and continue with [Lifecycle and recovery](recovery.md). Re
 
 ## Verify the same data after recovery
 
-After the controlled hostname takeover, open a new session with `ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1`. The checks use fresh working copies: old client data cannot prove recovery.
+At the recovery chapter's restricted-acceptance checkpoint, after controlled hostname takeover but **before** either package's open/activate step, open a new session with `ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1`. Keep A and the administrator allowed through both HTTPS and Git SSH restrictions. The checks use fresh working copies: old client data cannot prove recovery.
 
 ```bash
 cd /root/bartl-reference/forgejo
@@ -151,12 +151,18 @@ printf 'New write on recovered C\n' > recovered.txt
 git add recovered.txt
 git commit -m 'Verify recovered write authority'
 git push origin main
+git rev-parse HEAD > ../recovered-head
+cd ..
+cd recovered-http
+git fetch origin main
+git merge-base --is-ancestor "$(cat ../recovered-head)" origin/main
+git show origin/main:recovered.txt
 cd ..
 code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
   "$FORGEJO_URL/api/v1/repos/reference-admin/reference")
 test "$code" = 403
 ```
 
-Clear old Forgejo and Keycloak browser cookies and sign in through “Sign in with keycloak”. Confirm that `reference-user` still reads the private repository without administration rights. Compare the realm/user/client IDs with the retained source record through native Keycloak administration. Open access beyond the restricted candidate only after all checks pass. After the new write on C, switching back to B is no longer a lossless rollback.
+Clear old Forgejo and Keycloak browser cookies and sign in through “Sign in with keycloak”. Confirm that `reference-user` still reads the private repository without administration rights. Compare the realm/user/client IDs with the retained source record through native Keycloak administration. Keep ordinary access restricted until these checks and each package's new-work/subsequent-backup acceptance pass. Only then may the recovery coordinator execute the package activation steps. After the new write on C, switching back to B is no longer a lossless rollback.
 
 Exit the SSH session and resume [Lifecycle and recovery](recovery.md) on the workstation.

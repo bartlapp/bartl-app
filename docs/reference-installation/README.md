@@ -53,7 +53,7 @@ cat .envrc
 direnv allow
 ```
 
-For a prepared installation, use only `cd "$WORK_DIR"` instead. At the next prompt, continue at **Define the new cluster**: choose `NEW_CLUSTER_ID=cluster-1` and `NEW_VM_ID=vm-1`, followed by `cluster-2`/`vm-2` and `cluster-3`/`vm-3` for the next passes, and continue through handover. These are creation inputs, separate from active cluster selection. Preserve the existing provider binding after the first pass. Existing clusters use **Work with an existing cluster**.
+For a prepared installation, use only `cd "$WORK_DIR"` instead. At the next prompt, the first pass for a fresh record starts at **Register the Hetzner project** before **Define the new cluster**; preserve that provider binding on subsequent passes. Choose `NEW_CLUSTER_ID=cluster-1` and `NEW_VM_ID=vm-1`, followed by `cluster-2`/`vm-2` and `cluster-3`/`vm-3` for the next passes, and continue through handover. Subsequent new-cluster passes start at **Define the new cluster**. These are creation inputs, separate from active cluster selection. Existing clusters use **Work with an existing cluster**.
 
 Each server must be independent, not joined to another cluster. Base records machine identities and IP allocations under the referenced `vms` entry, and API access and typed firewall observations under the cluster. Do not repeat uncertain creation: reconcile the retained intent and live provider inventory first.
 
@@ -69,36 +69,31 @@ direnv exec "$WORK_DIR/clusters/cluster-3" kubectl get namespaces,pvc --all-name
 
 Require three distinct `kube-system` UIDs, one Ready node per cluster, usable CoreDNS/local-path/Traefik/cert-manager, enforced NetworkPolicy and empty application state on C. Restrict SSH/API to the administrator; allow required HTTPS and Git SSH paths deliberately.
 
-## Retain packages and deployment mappings
+## Package handoffs
 
-These current shared-interface packages replace the historical flat-interface versions. The change of operating interface is not a qualified upgrade path from the old walkthrough. Use empty application targets for this exercise; existing production installations need their package's supported migration procedure.
+Create each deployment only in its package's new-installation procedure, in the order Restic on A, Keycloak on B, then Forgejo on B. Do not pre-create package, service or replacement records: creation blocks require unused keys and may initialize the selected service entry.
 
-```bash
-yq -i '
-  .packages.restic = ({"version":"0.3.0","chart":"oci://ghcr.io/bartlapp/bartl-restic","chartSha256":"57feb5b39b325e3972fe9a9c870cd6c0c5fe54f2f91faba8b4b1652fb4918253"} * (.packages.restic // {})) |
-  .packages.keycloak = ({"version":"0.6.1","chart":"oci://ghcr.io/bartlapp/bartl-keycloak","chartSha256":"7abb55bcefbcde70dc8f29309d508d314a48783547067b529d48617d23c9225a"} * (.packages.keycloak // {})) |
-  .packages.forgejo = ({"version":"0.2.2","chart":"oci://ghcr.io/bartlapp/bartl-forgejo","chartSha256":"16405a6d485138d16ebe4afca0c7a3d9a68705194a39ed430311ea16d9bf0664"} * (.packages.forgejo // {})) |
-  .deployments.restic = ({"instance":"restic","cluster":"cluster-1","namespace":"backup","release":"backup","package":"restic"} * (.deployments.restic // {})) |
-  .deployments.keycloak = ({"instance":"keycloak","cluster":"cluster-2","namespace":"keycloak","release":"keycloak","package":"keycloak"} * (.deployments.keycloak // {})) |
-  .deployments.forgejo = ({"instance":"forgejo","cluster":"cluster-2","namespace":"forgejo","release":"forgejo","package":"forgejo"} * (.deployments.forgejo // {})) |
-  .deployments."keycloak-replacement" = ({"instance":"keycloak","cluster":"cluster-3","namespace":"keycloak","release":"keycloak","package":"keycloak"} * (.deployments."keycloak-replacement" // {})) |
-  .deployments."forgejo-replacement" = ({"instance":"forgejo","cluster":"cluster-3","namespace":"forgejo","release":"forgejo","package":"forgejo"} * (.deployments."forgejo-replacement" // {})) |
-  .services[.deployments.restic.instance] = (.services[.deployments.restic.instance] // {}) |
-  .services[.deployments.keycloak.instance] = (.services[.deployments.keycloak.instance] // {}) |
-  .services[.deployments.forgejo.instance] = (.services[.deployments.forgejo.instance] // {})
-' "$VALUES"
-```
+| Package | Deployment / instance / package key | Cluster | Namespace | Helm release |
+| --- | --- | --- | --- | --- |
+| Restic | `restic` | `cluster-1` | `backup` | `backup` |
+| Keycloak | `keycloak` | `cluster-2` | `keycloak` | `keycloak` |
+| Forgejo | `forgejo` | `cluster-2` | `forgejo` | `forgejo` |
 
-Retain archives under `$WORK_DIR/packages`, acquire and checksum them through each package's README. Preserve any different retained package choice; do not silently substitute the defaults above. Several deployments refer to one stable instance, not separate customer configurations.
+Use the current Keycloak README's latest-stable acquisition and normalized chart cache; its deployment selector loads the recorded package. This documents the current delivery interface, which still awaits stable publication and live qualification. Do not substitute historical 0.6.1 commands if the registry does not yet provide that interface: stop before Keycloak installation until the matching stable artifacts are available.
+
+Restic 0.3.0 and Forgejo 0.2.2 retain their README-owned verified archives and explicit recorded-deployment resumption. They do not gain deployment selectors merely because Base provides a loader. Their package procedures own instance selection and operation-intent precedence; this walkthrough does not reproduce that mapping.
+
+Use empty application targets. These interface changes are not a qualified upgrade from the historical walkthrough. For an existing deployment, use its package's resume/recovery procedure, never rerun new-installation blocks. Choose `keycloak-replacement` and `forgejo-replacement` only when the recovery chapter reaches the respective package's replacement setup on C.
+
+Local verification on 2026-11-23 checked shell syntax and cross-package handoff links, the relocated ingress configuration merge, and native subsequent-backup content checks against a synthetic capture. Git readback, manifest hashes, SQLite integrity/issue content and package bytes passed; missing issue content and corrupt package bytes were refused. No cloud, cluster, real backup restoration or browser acceptance was executed. The coordinated three-cluster path remains unqualified until those live procedures run against the selected artifacts.
 
 ## Prepare workstation commands
 
-Retain the walkthrough's workstation helper under `operations/` alongside its operating records. On resume source it after selecting `WORK_DIR` and `VALUES`. Package setup blocks may define similarly named shell variables: reselect the target before every cross-cluster command. Endpoint exports become available after the next chapter renders the selected charts' connection declarations.
+Retain the walkthrough's workstation helper under `operations/` alongside its operating records. On resume source it after selecting `WORK_DIR` and `VALUES`. It reads cross-service endpoints and test facts only; it neither selects a package nor renders Helm inputs. Package commands may replace shell variables, so resume the intended package before each package operation. Endpoint exports appear as their package procedures create declarations.
 
 ```bash
 cat > "$WORK_DIR/operations/workstation.env" <<'ENV'
 : "${WORK_DIR:?}" "${VALUES:?}"
-cd "$WORK_DIR"
 export KA="$WORK_DIR/clusters/cluster-1/base/kubeconfig"
 export KB="$WORK_DIR/clusters/cluster-2/base/kubeconfig"
 export KC="$WORK_DIR/clusters/cluster-3/base/kubeconfig"
@@ -110,18 +105,21 @@ A_IP=$(yq -er '.vms[strenv(A_VM)].observed.primaryIPv4.address' "$VALUES")
 B_IP=$(yq -er '.vms[strenv(B_VM)].observed.primaryIPv4.address' "$VALUES")
 C_IP=$(yq -er '.vms[strenv(C_VM)].observed.primaryIPv4.address' "$VALUES")
 DNS_ZONE=$(yq -er '.providers[.dns.provider].scope.zone // .dns.root' "$VALUES")
-for DEPLOYMENT in restic keycloak forgejo; do
-  INSTANCE=$(DEPLOYMENT="$DEPLOYMENT" yq -er '.deployments[strenv(DEPLOYMENT)].instance' "$VALUES")
-  CLUSTER_ID=$(DEPLOYMENT="$DEPLOYMENT" yq -er '.deployments[strenv(DEPLOYMENT)].cluster' "$VALUES")
-  DIRECTORY="$WORK_DIR/clusters/$CLUSTER_ID/applications/$INSTANCE"
-  if [ "$DEPLOYMENT" != "$INSTANCE" ]; then DIRECTORY="$DIRECTORY/deployments/$DEPLOYMENT"; fi
-  case "$INSTANCE" in keycloak) DECLARATION="$DIRECTORY/connections.yaml" ;;
-    *) DECLARATION="$DIRECTORY/$INSTANCE-connections.yaml" ;; esac
-  if [ -s "$DECLARATION" ]; then
-    HOST=$(INSTANCE="$INSTANCE" yq -er '.services[strenv(INSTANCE)].endpoints.https.hostname' "$DECLARATION")
-    case "$INSTANCE" in restic) BACKUP_HOST="$HOST" ;; keycloak) KC_HOST="$HOST" ;; forgejo) FORGEJO_HOST="$HOST" ;; esac
-  fi
-done
+export RESTIC_CONNECTIONS="$WORK_DIR/clusters/cluster-1/applications/restic/restic-connections.yaml"
+export KC_CONNECTIONS="$WORK_DIR/clusters/cluster-2/applications/keycloak/connections.yaml"
+export FORGEJO_CONNECTIONS="$WORK_DIR/clusters/cluster-2/applications/forgejo/forgejo-connections.yaml"
+if [ -s "$RESTIC_CONNECTIONS" ]; then
+  BACKUP_HOST=$(yq -er '.services.restic.endpoints.https.hostname' "$RESTIC_CONNECTIONS")
+  export BACKUP_HOST
+fi
+if [ -s "$KC_CONNECTIONS" ]; then
+  KC_HOST=$(yq -er '.services.keycloak.endpoints.https.hostname' "$KC_CONNECTIONS")
+  export KC_HOST
+fi
+if [ -s "$FORGEJO_CONNECTIONS" ]; then
+  FORGEJO_HOST=$(yq -er '.services.forgejo.endpoints.https.hostname' "$FORGEJO_CONNECTIONS")
+  export FORGEJO_HOST
+fi
 ADMIN_IP=$(curl --ipv4 --fail --silent --show-error https://api.ipify.org)
 DNS_API="https://desec.io/api/v1/domains/$DNS_ZONE"
 desec() {

@@ -2,18 +2,54 @@
 
 Complete [Restic and Keycloak installation](applications.md). Use native OAuth2/OpenID Connect; no login proxy or automatic account linking by email.
 
+Enter B's cluster directory and wait for the next prompt. This selects Base access, not a Forgejo deployment:
+
 ```bash
-source "${WORK_DIR:?}/operations/workstation.env"
-export DEPLOYMENT=forgejo
-export KUBECONFIG="$KB"
-yq -i '.operations.deployments.forgejo = (
-  {"version":"16.0.7","replicas":1,"ingressEnabled":true} *
-  (.operations.deployments.forgejo // {}))' "$VALUES"
+cd "$WORK_DIR/clusters/cluster-2"
 ```
 
-Execute the [Forgejo operating recipe](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md), using the retained mapping B/namespace `forgejo`/release `forgejo`/instance `forgejo`, the verified 0.2.2 archive and the same `VALUES`. Follow declaration rendering, storage, TLS/SSH, retained identity/configuration and optional Keycloak/Restic composition. Its deployment-intent arguments apply the recorded native 16.0.7 source version during both rendering and installation. Give the state and staging claims separate storage; 20Gi each is only a synthetic sizing choice.
+At that next prompt, start a child Bash without direnv's prompt hook:
 
-For composition, select `services.forgejo.identityProvider: keycloak` and `backup.endpoint: restic`, already retained in the previous chapter. Use the package's three-declaration binding block and native Keycloak-client provisioning block. The provider realm follows Keycloak's declaration; do not hardcode another issuer. Retain the issued client secret unchanged, and rerender the Forgejo configuration after preparing bindings. Preserve all native identity keys. Run ordinary install, register the native authentication source, and verify authenticated HTTP/SSH. Keep local administration usable independently of Keycloak.
+```bash
+bash --noprofile --norc
+source "$WORK_DIR/operations/workstation.env"
+```
+
+Run this chapter in that child shell. Base's watched-record reload clears deployment fields at cluster scope, whereas Forgejo's recorded/manual interface retains the variables set by its own procedure. The additional Restic handoff shell below is nested inside this Forgejo shell; its `exit` returns here, not to the parent direnv shell.
+
+Follow the [Forgejo README](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#supported-profile-and-release) through acquisition of its verified 0.2.2 archive. Preserve the existing `WORK_DIR` and `VALUES`, not its sample paths. In **Configure a new deployment**, choose `DEPLOYMENT=forgejo`, `INSTANCE=forgejo`, `CLUSTER_ID=cluster-2`, `NS=forgejo`, `RELEASE=forgejo` and `PACKAGE=forgejo`. Run the creation block once.
+
+Before the next declaration-rendering block, record the source native version and composition choices:
+
+```bash
+yq -i '.operations.deployments.forgejo.version = "16.0.7" |
+  .services.forgejo.identityProvider = "keycloak" |
+  .services.forgejo.backup.endpoint = "restic" |
+  .services.forgejo.backup.schedule = "0 2 * * *" |
+  .services.forgejo.backup.timeZone = "Europe/Berlin" |
+  .services.forgejo.ssh.exposure = "NodePort" |
+  .services.forgejo.ssh.nodePort = 30222' "$VALUES"
+```
+
+The package's recorded-deployment logic applies this native version during rendering and installation. Do not reproduce its Helm argument mapping or assume a deployment directory selector exists for Forgejo. Continue declaration rendering and independent state/staging claim creation; 20Gi each is a synthetic sizing choice.
+
+At **DNS, TLS and SSH exposure**, use the [DNS checkpoint](applications.md#dns-checkpoint) with `HOST="$FORGEJO_HOST"` and `IP="$B_IP"` after sourcing the workstation helper. Continue the package's managed/external TLS path. The SSH firewall checkpoint below supplies the actual NodePort route.
+
+At **Optional composition with Keycloak and Restic**, use these provider selections in its binding blocks instead of its sample locations:
+
+```bash
+export KC_DEPLOYMENT=keycloak
+export KC_CONNECTIONS="$WORK_DIR/clusters/cluster-2/applications/keycloak/connections.yaml"
+export RESTIC_DEPLOYMENT=restic
+export RESTIC_CONNECTIONS="$WORK_DIR/clusters/cluster-1/applications/restic/restic-connections.yaml"
+export REPOSITORY_NAME=forgejo
+```
+
+Before executing the composed-backup block that creates runtime Secrets, supply its repository files: open a child Bash with `bash --noprofile --norc`, follow Restic's **Resume an existing deployment** for `DEPLOYMENT=restic` using the same `WORK_DIR` and `VALUES`, then **Connect an application** with `REPOSITORY=forgejo` and `CONSUMER_DIR="$WORK_DIR/clusters/cluster-2/applications/forgejo"`. Run `exit` to return to the Forgejo shell. Keep the composed binding, not an additional direct `backup.repository` override.
+
+Run Forgejo's provider-declaration binding and **Provision the native Keycloak client** procedure. Supply the current Keycloak administrator in `"$INSTALL_DIR/protected/keycloak-admin/username"` and `password`; for this exercise copy the retained current files from `"$WORK_DIR/clusters/cluster-2/applications/keycloak/recovery-admin/"` into that new directory. These credentials are preparation-only. The package reads the advertised realm, creates an absent authorized realm/client and retains the actual client secret. Do not hardcode another issuer or rotate a retained secret.
+
+Continue **Prepare native identity and configuration**. In its fresh-bootstrap block choose `ADMIN_USER=reference-admin` and `ADMIN_EMAIL=reference-admin@example.invalid` before generating the account. Preserve all native identity keys. Complete **Install and observe** and **Register Forgejo's native authentication source**, then the SSH and browser checks below. Keep local administration usable independently of Keycloak.
 
 ## Provide actual SSH reachability
 
@@ -44,7 +80,7 @@ If a matching rule exists, verify it rather than adding another. Trust the SSH k
 On the workstation, stream the source's retained bootstrap files to A, not payload data back to the workstation. Bootstrap credentials were supplied/generated once in the package preparation; for this exercise choose username `reference-admin` and email `reference-admin@example.invalid` before initial initialization. Do not change the account merely to fit a probe after creation.
 
 ```bash
-ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 'apt-get update && apt-get install -y jq git git-lfs bzip2'
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 'apt-get update && apt-get install -y jq git git-lfs bzip2 sqlite3'
 SOURCE_DIR="$WORK_DIR/clusters/cluster-2/applications/forgejo"
 ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
   'umask 077; mkdir -p /root/bartl-reference/forgejo/bootstrap'
@@ -56,8 +92,31 @@ ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
   'cat > /root/bartl-reference/forgejo/host-key.pub' < "$WORK_DIR/evidence/forgejo-host-key.pub"
 ```
 
+Once all three source declarations exist, publish nonsecret test-client endpoint exports from the workstation:
+
+```bash
+source "$WORK_DIR/operations/workstation.env"
+{
+  printf 'BACKUP_HOST=%q\n' "$BACKUP_HOST"
+  printf 'KC_HOST=%q\n' "$KC_HOST"
+  printf 'FORGEJO_HOST=%q\n' "$FORGEJO_HOST"
+} | ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
+  'umask 077; mkdir -p /root/bartl-reference; cat > /root/bartl-reference/installation.env'
+```
+
+This remote file is derived test input only. Configuration, placement, package selection and teardown always read workstation `VALUES`.
+
 ## Verify browser access
 
 In the provider realm selected by Keycloak's declaration, create a synthetic enabled user `reference-user` with verified email `reference-user@example.invalid`, a retained password and no pending required action. Use native Keycloak administration, not Forgejo-side email linking. Record the realm, user UUID and Forgejo client UUID in the nonsecret operating record; these identities must survive recovery.
 
 Open `https://$FORGEJO_HOST`, choose “Sign in with keycloak”, authenticate as that user and verify a distinct Forgejo `reference-user` account. Check logout and new login through the real HTTPS endpoint. Do not grant this user administration. Verify local `reference-admin` login separately. Retain provider/user/client IDs and acceptance results under `operations` or `evidence`, without passwords or tokens. Continue with [service data and access checks](verification.md).
+
+After these checks, leave the Forgejo child shell and restore the parent shell's Keycloak selection:
+
+```bash
+exit
+cd "$WORK_DIR/clusters/cluster-2/applications/keycloak"
+```
+
+Wait for the next prompt before continuing. Keycloak again uses its deployment selector; Forgejo operations in the recovery chapter use their explicitly separated manual shell.
