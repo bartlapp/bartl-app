@@ -49,6 +49,32 @@ Base uses direnv to select its cluster-local access definition; application pack
 
 Use your own GPG identity and explicitly select its keyring. Each authorized operator needs the recipient public keys and their own usable private key; never share private keys. On macOS, a terminal-independent prompt can be selected with `pinentry-program /usr/local/bin/pinentry-mac` in the relevant keyring's `gpg-agent.conf` (use the actual installed path, commonly `/opt/homebrew/bin/pinentry-mac` on Apple Silicon). Reload that dedicated agent after configuration changes. An execution environment with a sandbox needs access to its own keyring and agent sockets, not another operator's personal keyring.
 
+### Verify recipient identities
+
+Use the selected `GNUPGHOME` and the approved `RECIPIENT_FILE`; for an existing password store, use its `.gpg-id`. Select your own certification key:
+
+```bash
+gpg --list-secret-keys --keyid-format long
+read -r -p 'Your certification-key fingerprint: ' SIGNING_FINGERPRINT
+RECIPIENTS=($(cat "$RECIPIENT_FILE"))
+for fingerprint in "${RECIPIENTS[@]}"; do
+  gpg --fingerprint "$fingerprint"
+done
+```
+
+Compare the full recipient fingerprints with independently verified identities. Locally certify the verified keys:
+
+```bash
+for fingerprint in "${RECIPIENTS[@]}"; do
+  if [ "$fingerprint" != "$SIGNING_FINGERPRINT" ]; then
+    gpg --local-user "$SIGNING_FINGERPRINT" --quick-lsign-key "$fingerprint"
+  fi
+done
+```
+
+These certifications stay in the operator's keyring and are non-exportable. They establish recipient identity without assigning recipients ownertrust. Use ordinary `pass` encryption and verify decryption through the installation procedure; no `--trust-model always` override is needed.
+
+
 ## Check the workstation
 
 Run before commissioning; do not print credential values:
