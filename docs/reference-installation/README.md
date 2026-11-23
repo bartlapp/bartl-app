@@ -44,7 +44,16 @@ For a real run, review the retained installation identity and DNS root before pr
 
 ## Build three independent K3s bases
 
-Use the [base-k3s recipe](https://github.com/bartlapp/base-k3s/blob/main/README.md) with the existing `WORK_DIR` and authorized `HETZNER_PROJECT`. Skip **New installation only**; enter through **Prepare the installation environment**, copying Base's maintained `installation.envrc` only if the root `.envrc` is absent. For each of the three passes, choose `NEW_CLUSTER_ID=cluster-1` and `NEW_VM_ID=vm-1`, followed by `cluster-2`/`vm-2` and `cluster-3`/`vm-3` in **Define the new cluster**, and continue through handover. These are creation inputs, separate from active cluster selection. Preserve the existing provider binding after the first pass. Existing clusters use **Work with an existing cluster**.
+Use the [base-k3s recipe](https://github.com/bartlapp/base-k3s/blob/main/README.md) with its checkout selected as `BASE_REPO`, the existing `WORK_DIR` and authorized `HETZNER_PROJECT`. Do not recreate `installation.yaml`. Before the first pass, if the supplied record has no root `.envrc` yet:
+
+```bash
+cp "$BASE_REPO/installation.envrc" "$WORK_DIR/.envrc"
+cd "$WORK_DIR"
+cat .envrc
+direnv allow
+```
+
+For a prepared installation, use only `cd "$WORK_DIR"` instead. At the next prompt, continue at **Define the new cluster**: choose `NEW_CLUSTER_ID=cluster-1` and `NEW_VM_ID=vm-1`, followed by `cluster-2`/`vm-2` and `cluster-3`/`vm-3` for the next passes, and continue through handover. These are creation inputs, separate from active cluster selection. Preserve the existing provider binding after the first pass. Existing clusters use **Work with an existing cluster**.
 
 Each server must be independent, not joined to another cluster. Base records machine identities and IP allocations under the referenced `vms` entry, and API access and typed firewall observations under the cluster. Do not repeat uncertain creation: reconcile the retained intent and live provider inventory first.
 
