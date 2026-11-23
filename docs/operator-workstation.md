@@ -8,6 +8,7 @@ Prepare this workstation before using an installation checkout or the [reference
 | --- | --- | --- |
 | Git and OpenSSH | Clone and synchronize configuration and encrypted stores; access hosts | Authorized SSH identity |
 | Bash and standard Unix utilities | Run explicit access preparation and commissioning commands | Bash, including when the interactive shell is Zsh |
+| direnv | Select Base's cluster-local working context | Required for the Base recipe; [hook into Bash](https://direnv.net/docs/hook.html) |
 | pass | Read, generate and update encrypted credentials | GnuPG-backed password store |
 | GnuPG, gpg-agent and pinentry | Encrypt/decrypt entries and unlock the operator key | Working local passphrase prompt |
 | [Mike Farah yq](https://github.com/mikefarah/yq#install) | Read YAML inventory as JSON | Go-based yq v4, not the Python tool of the same name |
@@ -29,12 +30,12 @@ Agree new or replacement workstation dependencies with the affected operators be
 Use the platform package manager or the tools' official distributions. On macOS with Homebrew, install missing tools rather than upgrading an existing qualified toolchain blindly:
 
 ```bash
-brew install git bash pass gnupg pinentry-mac yq jq kubernetes-cli hcloud openssl@3
+brew install git bash direnv pass gnupg pinentry-mac yq jq kubernetes-cli hcloud openssl@3
 ```
 
 This command does not pin versions. Select [Helm 4.3.2](https://github.com/helm/helm/releases/tag/v4.3.2) and a [kubectl version compatible with the target cluster](https://kubernetes.io/docs/tasks/tools/) explicitly. macOS supplies SSH, curl and dig. Put the installed OpenSSL 3 binary on `PATH`; Homebrew's `openssl@3` is keg-only. On Linux, use distribution packages where their versions meet the requirements, otherwise use official release binaries. `pass`'s package supplies its platform dependencies.
 
-No directory hook or shell-management wrapper is required. Use a dedicated shell without inherited provider tokens, Helm target overrides or personal Kubernetes configuration. Explicitly select the customer's password store, provider credentials and kubeconfig/context before operating. Until selection succeeds, disable implicit access (for example `PASSWORD_STORE_DIR=/dev/null`, `HCLOUD_CONFIG=/dev/null` and `KUBECONFIG=/dev/null` in a clean environment). A missing store or failed decryption must stop the operation, not select a personal default. When retiring old direnv activation, leave that session first: unloading it may restore personal credentials.
+Base uses direnv to select its cluster-local access definition; application packages also accept explicitly supplied external cluster access without a directory hook. Use a dedicated shell without inherited provider tokens, Helm target overrides or personal Kubernetes configuration. Explicitly select the customer's password store, provider credentials and cluster context before operating. Until selection succeeds, disable implicit access (for example `PASSWORD_STORE_DIR=/dev/null`, `HCLOUD_CONFIG=/dev/null` and `KUBECONFIG=/dev/null` in a clean environment). A missing store or failed decryption must stop the operation, not select a personal default. Leaving a direnv scope restores the previous environment, not necessarily an empty one.
 
 Use your own GPG identity and explicitly select its keyring. Each authorized operator needs the recipient public keys and their own usable private key; never share private keys. On macOS, a terminal-independent prompt can be selected with `pinentry-program /usr/local/bin/pinentry-mac` in the relevant keyring's `gpg-agent.conf` (use the actual installed path, commonly `/opt/homebrew/bin/pinentry-mac` on Apple Silicon). Reload that dedicated agent after configuration changes. An execution environment with a sandbox needs access to its own keyring and agent sockets, not another operator's personal keyring.
 
@@ -43,7 +44,7 @@ Use your own GPG identity and explicitly select its keyring. Each authorized ope
 Run before commissioning; do not print credential values:
 
 ```bash
-for tool in git ssh bash pass gpg gpg-agent jq yq kubectl helm openssl hcloud curl dig; do
+for tool in git ssh bash direnv pass gpg gpg-agent jq yq kubectl helm openssl hcloud curl dig; do
   command -v "$tool" || exit 1
 done
 yq --version
