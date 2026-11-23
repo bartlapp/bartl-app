@@ -170,14 +170,18 @@ acme-installation/
   installation.yaml
   README.md
   .gitignore
-  .envrc                            # Installation context and shared cluster loader
-  packages/                         # Downloaded charts and checksums; ignored
+  .envrc                            # Installation context and shared context loaders
+  packages/                         # Explicitly downloaded chart cache; ignored
   clusters/
     cluster-1/
       .envrc                        # Two-line cluster selector
       base/                         # kubeconfig and SSH working files
       applications/
-        keycloak/                   # Derived connections and required access files
+        keycloak/
+          .envrc                    # Deployment selector; tracked
+          deployments/
+            keycloak-recovery/
+              .envrc                # Replacement selector; tracked
         paperless/
     cluster-2/
       .envrc
@@ -191,9 +195,15 @@ acme-secrets/                       # Independently retained encrypted store
   applications/                     # Stable instance-specific secrets
 ```
 
-The actual namespace is recorded in the deployment mapping, not introduced as a local directory category. A deployment whose ID equals its instance uses `clusters/<cluster>/applications/<instance>/`; other deployments use its `deployments/<deployment>/` subdirectory. This keeps source and candidate files separate without changing existing paths when a target is added. Chart archives remain under `packages/` while procedures download and verify them before use; this local directory alone does not establish independent artifact retention.
+The actual namespace is recorded in the deployment mapping, not introduced as a local directory category. A deployment whose ID equals its instance uses `clusters/<cluster>/applications/<instance>/`; other deployments use its `deployments/<deployment>/` subdirectory. Source and replacement directories select their own namespace and package without changing application identity.
 
-Base defines installation context and a shared `load_cluster` function in the root `.envrc`. Each cluster's two-line `.envrc` sources that definition and selects its own key. Retain root and cluster files independently, and track them in Git-backed installations while ignoring runtime files. Installation scope has no active cluster; returning there clears cluster selection, while leaving the installation restores the previous environment. Credential restoration writes to the selected `KUBECONFIG`; consumers such as Keycloak verify supplied access rather than reconstructing paths. External cluster administrators may supply equivalent access without direnv. Directory entry neither retrieves credentials nor grants access.
+Base's root `.envrc` defines `load_cluster` and `load_deployment`. A cluster selector sources the root and selects its cluster key. A deployment selector sources its cluster selector and calls `load_deployment` with the recorded deployment key. The loader checks cluster membership and directory identity, then exports `DEPLOYMENT`, `INSTANCE`, `NS`, `RELEASE`, `PACKAGE`, `PACKAGE_VERSION`, `CHART_REF`, `INSTALL_DIR` and `CHART`. It reads `installation.yaml`; selectors contain only keys, not copied configuration.
+
+At the next shell prompt, entering a deployment selects its context; returning to cluster scope clears deployment fields, and returning to installation scope clears cluster selection too. Leaving the installation restores the previous environment. Activation reads context only: it neither creates working files, downloads charts, contacts Kubernetes nor retrieves credentials. Credential restoration still writes to the selected `KUBECONFIG`.
+
+`CHART` identifies the normalized unpacked chart cache at `packages/<package>/<version>`. Package procedures acquire it explicitly when absent and expose it only after a complete download. Reuse package entries for the same recorded chart/version; selecting a different artifact requires a new package entry. Cache files are disposable, not independently retained recovery inputs. Fresh installation and replacement select a release once; routine operation uses the recorded release.
+
+Retain root, cluster and deployment `.envrc` files, tracking them in Git-backed installations while ignoring runtime files. For an existing installation, update the shared root through [Base's procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md) before using deployment selectors. Package READMEs own selector creation and entry paths; the customer workflow owns retrieval and approval on another workstation.
 
 In this arrangement, each installation has its own sibling store named by `credentials.passStore`; `passEntry` names an entry within that store. Select the store explicitly; never fall back to the operator's personal store. Its recipients identify authorized GPG keys; private keys remain outside both repositories. Cluster and application secret paths need no additional installation prefix within this store, and application references remain independent of cluster placement. Existing store and entry references remain authoritative. Restrict local plaintext access, keep it out of Git and remove it when no longer needed. Application data and backups live on their designated volumes and backup targets, not in these working directories.
 
