@@ -44,19 +44,18 @@ For a real run, review the retained installation identity and DNS root before pr
 
 ## Build three independent K3s bases
 
-Follow the [base-k3s recipe](https://github.com/bartlapp/base-k3s/blob/main/README.md) three times in fresh shells, starting with the read block in **B. Use an existing installation** and continuing through handover. Supply the same absolute `WORK_DIR` and authorized `HETZNER_PROJECT`; its installation record already exists and Base derives `VALUES` from that directory. In Base's **Define the new cluster** block, choose `CLUSTER_ID=cluster-1` and `VM_ID=vm-1`, then `cluster-2` and `vm-2`, then `cluster-3` and `vm-3`. These are explicit assignments in that block, not environment overrides. The recipe initializes the provider binding, desired VM configuration, cluster node reference and derived kubeconfig context. Do not precreate partial cluster entries or run **A. Create a new installation** again. Existing clusters use the read-only resumption path.
+Use the [base-k3s recipe](https://github.com/bartlapp/base-k3s/blob/main/README.md) with the existing `WORK_DIR` and authorized `HETZNER_PROJECT`. Run **Prepare installation context** once if the root `.envrc` is absent; do not recreate `installation.yaml`. For each of the three passes, enter through **B. Add a cluster to an existing installation**, then choose `NEW_CLUSTER_ID=cluster-1` and `NEW_VM_ID=vm-1`, followed by `cluster-2`/`vm-2` and `cluster-3`/`vm-3` in **Define the new cluster**, and continue through handover. These are creation inputs, separate from active cluster selection. Preserve the existing provider binding after the first pass. Existing clusters use **Work with an existing cluster**.
 
 Each server must be independent, not joined to another cluster. Base records machine identities and IP allocations under the referenced `vms` entry, and API access and typed firewall observations under the cluster. Do not repeat uncertain creation: reconcile the retained intent and live provider inventory first.
 
-Base access is under `$WORK_DIR/clusters/<id>/base/{kubeconfig,ssh.config,known_hosts}`. Derive addresses from the retained observations. After the three passes:
+The root `.envrc` defines access paths; cluster selectors choose the target. After the three passes, use those definitions for verification:
 
 ```bash
-for CLUSTER_ID in cluster-1 cluster-2 cluster-3; do
-  config="$WORK_DIR/clusters/$CLUSTER_ID/base/kubeconfig"
-  kubectl --kubeconfig "$config" get nodes,storageclass
-  kubectl --kubeconfig "$config" get namespace kube-system -o jsonpath='{.metadata.uid}{"\n"}'
+for cluster in cluster-1 cluster-2 cluster-3; do
+  direnv exec "$WORK_DIR/clusters/$cluster" kubectl get nodes,storageclass
+  direnv exec "$WORK_DIR/clusters/$cluster" kubectl get namespace kube-system -o jsonpath='{.metadata.uid}{"\n"}'
 done
-kubectl --kubeconfig "$WORK_DIR/clusters/cluster-3/base/kubeconfig" get namespaces,pvc --all-namespaces
+direnv exec "$WORK_DIR/clusters/cluster-3" kubectl get namespaces,pvc --all-namespaces
 ```
 
 Require three distinct `kube-system` UIDs, one Ready node per cluster, usable CoreDNS/local-path/Traefik/cert-manager, enforced NetworkPolicy and empty application state on C. Restrict SSH/API to the administrator; allow required HTTPS and Git SSH paths deliberately.

@@ -170,10 +170,11 @@ acme-installation/
   installation.yaml
   README.md
   .gitignore
+  .envrc                            # Installation context and shared cluster loader
   packages/                         # Downloaded charts and checksums; ignored
   clusters/
     cluster-1/
-      .envrc                        # Retained nonsecret local access definition
+      .envrc                        # Two-line cluster selector
       base/                         # kubeconfig and SSH working files
       applications/
         keycloak/                   # Derived connections and required access files
@@ -192,7 +193,7 @@ acme-secrets/                       # Independently retained encrypted store
 
 The actual namespace is recorded in the deployment mapping, not introduced as a local directory category. A deployment whose ID equals its instance uses `clusters/<cluster>/applications/<instance>/`; other deployments use its `deployments/<deployment>/` subdirectory. This keeps source and candidate files separate without changing existing paths when a target is added. Chart archives remain under `packages/` while procedures download and verify them before use; this local directory alone does not establish independent artifact retention.
 
-Base defines local access paths in each cluster's `.envrc`; creation and later access use that definition. Retain it independently, and in Git-backed installations track it while ignoring the other cluster working files. Credential restoration writes to the selected `KUBECONFIG`; consumers such as Keycloak verify supplied access against the installation record rather than reconstructing its path. External cluster administrators may supply equivalent access without direnv. Directory entry selects context but neither retrieves credentials nor grants access.
+Base defines installation context and a shared `load_cluster` function in the root `.envrc`. Each cluster's two-line `.envrc` sources that definition and selects its own key. Retain root and cluster files independently, and track them in Git-backed installations while ignoring runtime files. Installation scope has no active cluster; returning there clears cluster selection, while leaving the installation restores the previous environment. Credential restoration writes to the selected `KUBECONFIG`; consumers such as Keycloak verify supplied access rather than reconstructing paths. External cluster administrators may supply equivalent access without direnv. Directory entry neither retrieves credentials nor grants access.
 
 In this arrangement, each installation has its own sibling store named by `credentials.passStore`; `passEntry` names an entry within that store. Select the store explicitly; never fall back to the operator's personal store. Its recipients identify authorized GPG keys; private keys remain outside both repositories. Cluster and application secret paths need no additional installation prefix within this store, and application references remain independent of cluster placement. Existing store and entry references remain authoritative. Restrict local plaintext access, keep it out of Git and remove it when no longer needed. Application data and backups live on their designated volumes and backup targets, not in these working directories.
 
