@@ -70,7 +70,7 @@ Each customer installation has exactly one authoritative `installation.yaml`. It
 
 Normally, one installation covers one customer's environment and operational credentials; its ID defaults to the customer ID. Separate installations where administrative access must be kept separate, not merely because another cluster, application or upgrade slot is needed. Each installation's protected store and access grants follow that boundary. Separate stores do not isolate installations if their provider credentials grant access across the intended boundary.
 
-Keep these installation-specific inputs and results available:
+The installation repository is the operational customer instance, not an execution log or qualification report. Keep the following inputs and bindings available:
 
 | Record | Required installation content |
 | --- | --- |
@@ -78,7 +78,9 @@ Keep these installation-specific inputs and results available:
 | Releases and configuration | Exact chart/image references, supported transitions, complete effective Helm values and resource/storage requirements. Retain independently obtainable artifacts; a source commit or mutable tag is insufficient. |
 | Protected inputs | Customer-controlled credentials, identity secrets, keys, certificates and recovery access, with a documented retrieval procedure. Recovery must not require the lost cluster, its Keycloak or the author. Keep plaintext secrets and live kubeconfigs out of shared source and evidence. |
 | Operating decisions | Permitted interruption and data loss, source-retirement method, backup/replication schedules, retention policy, capacity and alerting responsibilities, useful acceptance checks and required handling of restored identities or records. |
-| Procedure and results | Dependency order, links to package commands, installation-specific deviations, active target/resource identities, selected recovery points, acceptance results and unresolved failures. Keep desired values separate from observed outcomes. |
+| Operating procedures and state | Links to the applicable package procedures, active resource identities, selected recovery points and state needed to resume interrupted operations. Keep desired configuration separate from actual resource bindings. |
+
+Verification remains part of execution; it does not require commissioning checklists, success narratives or debugging histories in the customer repository. Resolve a failed step in its responsible procedure or package and repeat the run. Preserve partial resource identities until reconciliation or disposal is complete. Reusable defects and product qualification belong with the package and release. A customer README supplies only necessary installation-specific information not already expressed by the configuration or linked procedures.
 
 ### One installation record
 
@@ -90,7 +92,7 @@ After recording newly selected settings, a procedure can keep using those shell 
 
 Provisioning extracts only required resource identities and addresses from provider responses and records each resource immediately in `installation.yaml`, preserving unrelated entries. Operations use those retained identifiers and check current provider state and ownership before destructive changes. If creation succeeds but recording fails, stop and reconcile the created resource before retrying. Recorded state identifies resources; it does not prove their current existence or authorize deletion.
 
-Secret values remain in the selected protected store. Put references beside their consumers in `installation.yaml`; retain only genuinely protected content there, not ordinary infrastructure inventory. Independently preserve required credentials and keys before relying on them. A successor must be able to retrieve and use them without the original workstation or cluster.
+Secret values remain in the selected protected store. Retain independently selected references beside their consumers where the schema provides them, or derive conventional entry paths unambiguously from the installation and deployment identities. Keep only protected content in the store, not ordinary infrastructure inventory. Independently preserve required credentials and keys before relying on them. A successor must be able to retrieve and use them without the original workstation or cluster.
 
 ### Versioned resource contract
 
