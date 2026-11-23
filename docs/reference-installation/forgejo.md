@@ -44,15 +44,15 @@ If a matching rule exists, verify it rather than adding another. Trust the SSH k
 On the workstation, stream the source's retained bootstrap files to A, not payload data back to the workstation. Bootstrap credentials were supplied/generated once in the package preparation; for this exercise choose username `reference-admin` and email `reference-admin@example.invalid` before initial initialization. Do not change the account merely to fit a probe after creation.
 
 ```bash
-ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" k3s 'apt-get update && apt-get install -y jq git git-lfs bzip2'
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 'apt-get update && apt-get install -y jq git git-lfs bzip2'
 SOURCE_DIR="$WORK_DIR/clusters/cluster-2/applications/forgejo"
-ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" k3s \
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
   'umask 077; mkdir -p /root/bartl-reference/forgejo/bootstrap'
 for key in username email password; do
-  ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" k3s \
+  ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
     "cat > /root/bartl-reference/forgejo/bootstrap/$key" < "$SOURCE_DIR/protected/bootstrap/$key"
 done
-ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" k3s \
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
   'cat > /root/bartl-reference/forgejo/host-key.pub' < "$WORK_DIR/evidence/forgejo-host-key.pub"
 ```
 

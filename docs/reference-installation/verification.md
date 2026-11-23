@@ -13,7 +13,7 @@ Keep all working copies, attachments and packages on A under `/root/bartl-refere
 Open an SSH session from the workstation:
 
 ```bash
-ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" k3s
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1
 ```
 
 Run the following on A:
@@ -111,7 +111,7 @@ Exit the SSH session and continue with [Lifecycle and recovery](recovery.md). Re
 
 ## Verify the same data after recovery
 
-After the controlled hostname takeover, open a new session with `ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" k3s`. The checks use fresh working copies: old client data cannot prove recovery.
+After the controlled hostname takeover, open a new session with `ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1`. The checks use fresh working copies: old client data cannot prove recovery.
 
 ```bash
 cd /root/bartl-reference/forgejo

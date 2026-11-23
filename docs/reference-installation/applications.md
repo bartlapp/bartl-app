@@ -154,7 +154,7 @@ Require current-generation application Ready and a Ready certificate, then sign 
 Keep protected inputs outside B/C and their Keycloak. For this exercise A may additionally hold test-client material, but it must not be the only copy of customer recovery keys. Base SSH access is selected explicitly:
 
 ```bash
-ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" k3s
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1
 ```
 
 On the workstation, prepare the nonsecret remote client exports from the actual shared values, without creating another `installation.yaml`:
@@ -164,7 +164,7 @@ On the workstation, prepare the nonsecret remote client exports from the actual 
   printf 'BACKUP_HOST=%q\n' "$BACKUP_HOST"
   printf 'KC_HOST=%q\n' "$KC_HOST"
   printf 'FORGEJO_HOST=%q\n' "$FORGEJO_HOST"
-} | ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" k3s \
+} | ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
   'umask 077; mkdir -p /root/bartl-reference; cat > /root/bartl-reference/installation.env'
 ```
 
