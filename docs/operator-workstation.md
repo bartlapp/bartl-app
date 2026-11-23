@@ -7,6 +7,7 @@ Prepare this workstation before using an installation checkout or the [reference
 | Tool | Purpose | Requirement |
 | --- | --- | --- |
 | Git and OpenSSH | Clone and synchronize configuration and encrypted stores; access hosts | Authorized SSH identity |
+| GitHub CLI (`gh`) | Create private repositories and inspect access and repository rules | Required for GitHub; authenticated as the authorized operator |
 | Bash and standard Unix utilities | Run explicit access preparation and commissioning commands | Bash, including when the interactive shell is Zsh |
 | direnv | Select Base's cluster-local working context | Required for the Base recipe; [hook into Bash](https://direnv.net/docs/hook.html) |
 | pass | Read, generate and update encrypted credentials | GnuPG-backed password store |
@@ -34,6 +35,8 @@ brew install git bash direnv pass gnupg pinentry-mac yq jq kubernetes-cli hcloud
 ```
 
 This command does not pin versions. Select [Helm 4.3.2](https://github.com/helm/helm/releases/tag/v4.3.2) and a [kubectl version compatible with the target cluster](https://kubernetes.io/docs/tasks/tools/) explicitly. macOS supplies SSH, curl, dig and LibreSSL. On Linux, use distribution packages where they meet the requirements, otherwise use official release binaries. `pass`'s package supplies its platform dependencies.
+
+For GitHub, install `gh` if missing (`brew install gh` on macOS). Supply `GH_TOKEN`/`GITHUB_TOKEN`, or authenticate with `gh auth login --hostname github.com`.
 
 On macOS, if the supplied `openssl` fails the capability checks below, install and select Homebrew's OpenSSL:
 
@@ -65,6 +68,13 @@ printf 'synthetic-check\n' | openssl passwd -apr1 -stdin >/dev/null
 ```
 
 Verify the displayed yq implementation and major version, Helm version and kubectl compatibility against the table. These checks establish executable availability and parser/hash behavior, not provider authentication. A global Ruby installation or its gems have no role in the checks.
+
+For GitHub:
+
+```bash
+gh --version
+gh api user --jq .login
+```
 
 Clone the installation and its encrypted store, follow its explicit access-selection procedure, then use its documented read-only provider and cluster checks. Access requires repository permissions, an authorized GPG key with verified decryption, existing provider tokens and reachable endpoints. Cluster access cannot exist before the cluster credentials have been issued. With multiple clusters, select the target explicitly; never merge with personal kubeconfigs.
 
