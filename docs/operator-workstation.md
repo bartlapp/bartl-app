@@ -15,7 +15,7 @@ Prepare this workstation before using an installation checkout or the [reference
 | jq | Query JSON and check operation results | jq 1.6 or later |
 | kubectl | Prepare access files and operate Kubernetes | Within one minor version of the target API server |
 | Helm | Install and operate application packages | Helm 4.x, minimum supported version 4.3.0; select 4.3.2 for new workstation installations |
-| OpenSSL | Prepare backup endpoint password hashes | OpenSSL 3 with `passwd -apr1` support |
+| OpenSSL / LibreSSL | Generate credentials and backup endpoint password hashes | `rand -hex` and `passwd -apr1 -stdin` |
 | hcloud | Hetzner project operations | Required for the Hetzner profile |
 | curl and dig | DNS API requests and authoritative/public DNS checks | Required for the deSEC profile |
 
@@ -30,10 +30,17 @@ Agree new or replacement workstation dependencies with the affected operators be
 Use the platform package manager or the tools' official distributions. On macOS with Homebrew, install missing tools rather than upgrading an existing qualified toolchain blindly:
 
 ```bash
-brew install git bash direnv pass gnupg pinentry-mac yq jq kubernetes-cli hcloud openssl@3
+brew install git bash direnv pass gnupg pinentry-mac yq jq kubernetes-cli hcloud
 ```
 
-This command does not pin versions. Select [Helm 4.3.2](https://github.com/helm/helm/releases/tag/v4.3.2) and a [kubectl version compatible with the target cluster](https://kubernetes.io/docs/tasks/tools/) explicitly. macOS supplies SSH, curl and dig. Put the installed OpenSSL 3 binary on `PATH`; Homebrew's `openssl@3` is keg-only. On Linux, use distribution packages where their versions meet the requirements, otherwise use official release binaries. `pass`'s package supplies its platform dependencies.
+This command does not pin versions. Select [Helm 4.3.2](https://github.com/helm/helm/releases/tag/v4.3.2) and a [kubectl version compatible with the target cluster](https://kubernetes.io/docs/tasks/tools/) explicitly. macOS supplies SSH, curl, dig and LibreSSL. On Linux, use distribution packages where they meet the requirements, otherwise use official release binaries. `pass`'s package supplies its platform dependencies.
+
+On macOS, if the supplied `openssl` fails the capability checks below, install and select Homebrew's OpenSSL:
+
+```bash
+brew install openssl@3
+export PATH="$(brew --prefix openssl@3)/bin:$PATH"
+```
 
 Base uses direnv to select its cluster-local access definition; application packages also accept explicitly supplied external cluster access without a directory hook. Use a dedicated shell without inherited provider tokens, Helm target overrides or personal Kubernetes configuration. Explicitly select the customer's password store, provider credentials and cluster context before operating. Until selection succeeds, disable implicit access (for example `PASSWORD_STORE_DIR=/dev/null`, `HCLOUD_CONFIG=/dev/null` and `KUBECONFIG=/dev/null` in a clean environment). A missing store or failed decryption must stop the operation, not select a personal default. Leaving a direnv scope restores the previous environment, not necessarily an empty one.
 
@@ -52,6 +59,7 @@ jq --version
 helm version --short
 kubectl version --client
 openssl version
+openssl rand -hex 32 >/dev/null
 printf 'name: workstation-check\n' | yq -o=json '.' | jq -e '.name == "workstation-check"'
 printf 'synthetic-check\n' | openssl passwd -apr1 -stdin >/dev/null
 ```
