@@ -162,14 +162,14 @@ In the Keycloak shell execute [RECOVERY step 1](https://github.com/bartlapp/bart
 
 In the still-selected Forgejo and Paperless source terminals, execute only their replacement-chart acquisition blocks now, with the table's new package keys. Keep their `TARGET_STAGE` and resolved target package versions in those shells. Acquisition must succeed before interruption; target creation and native-version changes wait for retirement.
 
-The runbook's single administrator CIDR is insufficient for this composition. After its allowlist selection, replace the list with the actual administrator/browser, A test client and C consumer outbound IPv4 sources:
+The runbook's single administrator CIDR is insufficient for this composition. Initially allow the actual administrator/browser and C consumer outbound IPv4 sources. Keep A excluded for the independent denial check, then admit it at the acceptance checkpoint below:
 
 ```bash
 source "$WORK_DIR/operations/workstation.env"
 export ADMIN_IP A_IP C_IP
 # This profile uses these public IPv4 egress addresses; verify them below.
 yq -i '.services.keycloak.ingress.administratorSourceRanges =
-  [strenv(ADMIN_IP) + "/32", strenv(A_IP) + "/32", strenv(C_IP) + "/32"]' "$VALUES"
+  [strenv(ADMIN_IP) + "/32", strenv(C_IP) + "/32"]' "$VALUES"
 ```
 
 Before restored startup, follow [Base source-address preservation](https://github.com/bartlapp/base-k3s/blob/main/README.md#preserve-client-addresses-for-restricted-access) on C. Verify actual public egress and the client address seen by ingress. Forgejo and Paperless server-side OIDC requests must work while ordinary Keycloak access remains denied. If SNAT, IPv6, a proxy or another browser egress changes an address, stop and select its verified authorized CIDR; do not broaden the list to all sources.
@@ -277,6 +277,39 @@ On resumption, inspect/verify an already matching rule rather than adding duplic
 In the original Keycloak shell, continue at [RECOVERY step 3](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#3-prepare-independent-target-access-storage-and-credentials), then step 4 and [restricted acceptance step 5](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#5-accept-under-restricted-access). For a fresh shell, restore the retained source/target variables from step 1 and the recorded target package/version; skip creation and all source API calls. `SOURCE_DIR` is `$KC_SOURCE_DIR`, `TARGET_DIR` is `$KC_TARGET_DIR`, and the expected final point comes from `evidence/keycloak-final-backup.json`. Restore that unchanged receipt to the source directory only if the retained copy is missing; never replace it with a newer target receipt.
 
 The package owns Keycloak DNS read/update and authoritative/public checks. Use this installation's `DNS_ZONE`; move only its inspected Keycloak record from B to C. Do not update it again with a generic hostname loop. Complete DNS convergence **before** certificate-dependent installation waits. Require automatic reconstruction of the exact final point, current-generation Ready, independent PVC UIDs/backing volumes, retained issuer/realm/client/user identity, trusted TLS and the package's restricted browser/write/read checks. Preserve new target database passwords independently; retain native recovery administrator and repository keys, not new bootstrap identity.
+
+After the package's DNS checks, record the verified address for later owned-record disposal; this does not issue another DNS update:
+
+```bash
+HOST="$KC_HOST" IP="$C_IP" yq -i '.operations.dns[strenv(HOST)].address = strenv(IP)' "$VALUES"
+```
+
+At step 5's restricted-route checkpoint, A is admitted by C's provider firewall but excluded by Keycloak's application allowlist. From the infrastructure terminal, test both login and administration, including a forged forwarding header:
+
+```bash
+test "$A_IP" != "$ADMIN_IP"
+ssh -F "$CLIENT_SSH" cluster-1-node1 bash -s -- "$KC_HOST" "$ADMIN_IP" <<'CHECK'
+set -euo pipefail
+host=$1; administrator=$2
+for path in /realms/acme/account/ /admin/master/console/; do
+  code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' "https://$host$path")
+  test "$code" = 403
+  code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
+    -H "X-Forwarded-For: $administrator" "https://$host$path")
+  test "$code" = 403
+done
+CHECK
+```
+
+After those denials pass, add A for subsequent acceptance:
+
+```bash
+export ADMIN_IP A_IP C_IP
+yq -i '.services.keycloak.ingress.administratorSourceRanges =
+  [strenv(ADMIN_IP) + "/32", strenv(A_IP) + "/32", strenv(C_IP) + "/32"]' "$VALUES"
+```
+
+In the selected Keycloak target terminal, run **Apply changes to a running deployment** without clearing maintenance or backup suspension. From A, require trusted HTTPS discovery at `https://$KC_HOST/realms/acme/.well-known/openid-configuration` with the unchanged issuer. Continue the package's administrator login, identity, new-work and subsequent-capture checks.
 
 **Stop before [step 6, Open service](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#6-open-service).** Maintenance must remain true and scheduled capture suspended. Complete step 5's subsequent backup and successful readback; keep `recovered-backup-result.json` distinct from the final source receipt. Keycloak's allowlist must still include the verified administrator, A and C addresses recorded above.
 
