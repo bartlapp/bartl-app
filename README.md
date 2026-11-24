@@ -8,8 +8,8 @@ Source of [bartl.app](https://bartl.app), the bilingual website for Bartl. Devel
 - [Application contract](docs/application-contract.md): required application behavior, complete-service recovery and the additional automation goal.
 - [How to bartlize and operate](docs/how-to-bartlize.md): native procedures, the selected Kubernetes package architecture, installation inputs, qualification and handover.
 - [Installation schema](schemas/installation.schema.json): versioned shared resource structure; [resource and ownership rules](docs/how-to-bartlize.md#versioned-resource-contract) define its operating boundary.
-- [Operator workstation setup](docs/operator-workstation.md): ordinary tools, explicit customer access selection and independently usable operator identities; no directory hook is required.
-- [Reference installation walkthrough](docs/reference-installation/README.md): build three independent bases, install Restic, Keycloak and Forgejo, exercise replacement/recovery and remove the lab using your own inputs.
+- [Operator workstation setup](docs/operator-workstation.md): ordinary tools, directory context, explicit customer access selection and independently usable operator identities.
+- [Reference installation walkthrough](docs/reference-installation/README.md): build three independent bases, install Restic, Keycloak, Paperless and Forgejo, exercise replacement/recovery and remove the lab using your own inputs.
 
 Application repositories own their supported configurations, operator instructions, design and release evidence. Historical experiments do not govern current implementation.
 

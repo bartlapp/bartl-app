@@ -1,4 +1,4 @@
-# Install Restic on A and Keycloak on B
+# Install Restic on A and Keycloak and Paperless on B
 
 Complete the [three-base setup](README.md). Keep C empty. Every package uses the existing absolute `WORK_DIR` and `VALUES`; replace sample installation paths in package recipes with these retained paths. Run package creation blocks once, with the choices below, rather than pre-creating records and then running creation again.
 
@@ -10,24 +10,15 @@ Enter A's cluster directory and wait for the next prompt so Base selects its acc
 cd "$WORK_DIR/clusters/cluster-1"
 ```
 
-At that next prompt, start a child Bash without direnv's prompt hook and load the cross-service facts:
-
-```bash
-bash --noprofile --norc
-source "$WORK_DIR/operations/workstation.env"
-```
-
-Run the entire Restic setup below in this child shell. Base clears deployment fields when the watched installation record changes in a cluster-scoped interactive shell; Restic's manual interface instead retains the variables supplied by its own recipe.
-
-Follow the [Restic README](https://github.com/bartlapp/bartl-restic/blob/main/README.md#prerequisites-and-release) from archive acquisition through **Configure a new endpoint**. Keep its verified 0.3.0 archive. In the creation block select `DEPLOYMENT=restic`, `INSTANCE=restic`, `CLUSTER_ID=cluster-1`, `NS=backup`, `RELEASE=backup`, `PACKAGE=restic`, `REPOSITORY=keycloak` and `CAPACITY=25Gi`. The capacity is a synthetic exercise choice, not production sizing.
+At the next prompt follow the [Restic README](https://github.com/bartlapp/bartl-restic/blob/main/README.md#prerequisites-and-release) from latest-stable acquisition through **Configure a new endpoint**, keeping this selected cluster. In its creation block choose `DEPLOYMENT=restic`, `INSTANCE=restic`, `NS=backup`, `RELEASE=backup`, `PACKAGE=restic`, `REPOSITORY=keycloak` and `CAPACITY=25Gi`. Capacity is a synthetic exercise choice: verify that the selected histories fit before provisioning. The grouped block enters Restic's deployment directory; wait for its next prompt before rendering.
 
 Continue through declaration rendering and storage creation. At **Prepare DNS, TLS and repository credentials**, use the [DNS checkpoint](#dns-checkpoint) below with `HOST="$RESTIC_HOST"` and `IP="$A_IP"`, then resume the package's TLS and credential preparation. Retain its repository encryption key, distinct reader/writer/admin transport passwords, `htpasswd` and validating CA independently. Use managed TLS or explicitly retained external TLS, never competing certificate owners.
 
-Complete **Install and verify**, including the native writer/reader round-trip for `keycloak`. Then follow [Add a repository](https://github.com/bartlapp/bartl-restic/blob/main/README.md#add-a-repository) with `REPOSITORY=forgejo`, not its sample `paperless`, and repeat the package round-trip for that repository. Do not replace the repository list or generate any credential twice. Native package admission initializes genuinely new repositories; never run `restic init` separately.
+Complete **Install and verify**, including the native writer/reader round-trip for `keycloak`. Follow [Add a repository](https://github.com/bartlapp/bartl-restic/blob/main/README.md#add-a-repository) separately for `REPOSITORY=forgejo` and `REPOSITORY=paperless`, verifying the round-trip for each. Preserve the existing repository list and credentials. Native package admission initializes genuinely new repositories; never run `restic init` separately.
 
 ```bash
 source "$WORK_DIR/operations/workstation.env"
-for repository in keycloak forgejo; do
+for repository in keycloak forgejo paperless; do
   code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' "https://$BACKUP_HOST/$repository/config")
   test "$code" = 401
 done
@@ -36,11 +27,6 @@ current_condition "$KA" backup resticapplication/backup-restic Ready
 
 Require trusted public HTTPS and authenticated reader access through the package's procedure. Readers may manage native locks but not mutate backup content; writers are append-only; maintenance authority stays separate. A survives this exercise but is not an independent secondary backup: its loss is outside the claim.
 
-After Restic acceptance, leave this child shell before selecting B:
-
-```bash
-exit
-```
 
 ## Create Keycloak's deployment on B
 
@@ -50,13 +36,13 @@ Enter B and wait for the next prompt:
 cd "$WORK_DIR/clusters/cluster-2"
 ```
 
-Follow the current [Keycloak new-deployment procedure](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#install-a-new-deployment), starting at **Obtain the release**. Use its latest-stable acquisition and cache procedure, subject to the [publication limitation](README.md#package-handoffs). In **Configure the installation**, choose `DEPLOYMENT=keycloak`, `INSTANCE=keycloak`, `NS=keycloak`, `RELEASE=keycloak` and `PACKAGE=keycloak`; Base has selected `CLUSTER_ID=cluster-2`.
+Follow the [Keycloak new-deployment procedure](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#install-a-new-deployment), starting at **Obtain the release**. In **Configure the installation**, choose `DEPLOYMENT=keycloak`, `INSTANCE=keycloak`, `NS=keycloak`, `RELEASE=keycloak` and `PACKAGE=keycloak`; Base has selected `CLUSTER_ID=cluster-2`.
 
 Run the complete Configure creation block and wait for the next prompt in its deployment directory. It creates an empty `services.keycloak` entry. Only **after that block**, and before its declaration rendering or installation, supply the composition choices:
 
 ```bash
 yq -i '.services.keycloak.backup.endpoint = "restic" |
-  .services.keycloak.backup.schedule = "0 2 * * *" |
+  .services.keycloak.backup.schedule = "*/5 * * * *" |
   .services.keycloak.backup.timeZone = "Europe/Berlin"' "$VALUES"
 RESTIC_CONNECTIONS="$WORK_DIR/clusters/cluster-1/applications/restic/restic-connections.yaml"
 REPOSITORY=$(yq -er '.backup.providers.restic.repositories.keycloak.repository' "$RESTIC_CONNECTIONS")
@@ -79,27 +65,62 @@ Use the [DNS checkpoint](#dns-checkpoint) instead of performing a second DNS cre
 
 ## Transfer Keycloak's scoped backup inputs
 
-At Keycloak's **External backup inputs**, leave its selected deployment directory and `INSTALL_DIR` unchanged. Restic must already be Ready with the `keycloak` repository admitted. Start a child Bash to keep Restic's package variables separate:
+At Keycloak's **External backup inputs**, keep its terminal paused in the deployment directory. In a second direnv-hooked Bash terminal, enter Restic:
 
 ```bash
-bash --noprofile --norc
+cd "$WORK_DIR/clusters/cluster-1/applications/restic"
+```
+
+At the next prompt run Restic's **Resume an existing deployment**, keeping this directory instead of its sample path. Then run **Connect an application**, choosing:
+
+```bash
 export REPOSITORY=keycloak
 export CONSUMER_DIR="$WORK_DIR/clusters/cluster-2/applications/keycloak"
 ```
 
-In that child shell, run Restic's [Resume an existing deployment](https://github.com/bartlapp/bartl-restic/blob/main/README.md#resume-an-existing-deployment) for `DEPLOYMENT=restic`, preserving the existing `WORK_DIR` and `VALUES`. Then run **Connect an application**, using the `REPOSITORY` and `CONSUMER_DIR` assignments above instead of its Paperless examples. When the handoff completes, return to the Keycloak shell:
-
-```bash
-exit
-```
+Return to the paused Keycloak terminal when the handoff is complete; no nested no-hook shell is required.
 
 The handoff copies the retained encryption key, scoped reader/writer usernames and transport passwords, and validating CA into Keycloak's `repository/reader/` and `repository/writer/`. It does not hand off repository-admin authority. On resumption, retain these files rather than recopying or regenerating them. The composed URL already comes from Restic's declaration; do not execute the handoff prose's alternative direct-URL assignment.
 
-Return to Keycloak's **Install and inspect** in the still-selected deployment. Refresh declarations, create namespace `keycloak`, native credential Secrets and backup reader/writer Secrets, then perform the ordinary install and TLS/current-generation readiness checks exactly as documented. Complete **Verify Keycloak** and **Retain operating and recovery inputs**, including the current backed-up master-realm administrator at `INSTALL_DIR/recovery-admin/`. Verify fresh administration through `https://$KC_HOST/admin/` before [integrating Forgejo](forgejo.md).
+Return to Keycloak's **Install and inspect** in the still-selected deployment. Refresh declarations, create namespace `keycloak`, native credential Secrets and backup reader/writer Secrets, then perform the ordinary install and TLS/current-generation readiness checks. Complete **Verify Keycloak** and **Retain operating and recovery inputs**, including the current backed-up master-realm administrator at `INSTALL_DIR/recovery-admin/`. Verify fresh administration through `https://$KC_HOST/admin/`, then install Paperless below.
+
+## Install Paperless on B
+
+In its own direnv-hooked terminal, enter B's cluster directory:
+
+```bash
+cd "$WORK_DIR/clusters/cluster-2"
+```
+
+At the next prompt follow the [Paperless README](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#select-cluster-access-and-obtain-the-release) from chart acquisition. In **Configure a new deployment**, choose `DEPLOYMENT=paperless`, `INSTANCE=paperless`, `NS=paperless`, `RELEASE=paperless` and `PACKAGE=paperless`. After the grouped creation block and next prompt, select the source native version and capture schedule before declaration rendering:
+
+```bash
+yq -i '.services.paperless.version = "3.3.0" |
+  .services.paperless.backup.schedule = "*/5 * * * *" |
+  .services.paperless.backup.timeZone = "Europe/Berlin"' "$VALUES"
+```
+
+This deliberately exercises the supported 3.3.0 → 3.3.1 replacement later. Continue declaration rendering and four-claim creation, using the approved capacities. At **DNS and external TLS**, source `operations/workstation.env` and use the [DNS checkpoint](#dns-checkpoint) with `HOST="$PAPERLESS_HOST"` and `IP="$B_IP"`, then resume Paperless's TLS procedure.
+
+At **Compose with an existing Keycloak**, choose `KC_DEPLOYMENT=keycloak` and `KC_CONNECTIONS="$WORK_DIR/clusters/cluster-2/applications/keycloak/connections.yaml"`. Supply the retained current recovery-admin username/password from that Keycloak directory as Paperless's `protected/keycloak-admin/{username,password}`. Complete the package-owned realm/client preparation; do not create a second identity provider or select a direct issuer as well.
+
+At **External backup inputs**, pause the Paperless terminal. In the separate Restic terminal, resume its selected deployment and use **Connect an application** with `REPOSITORY=paperless` and `CONSUMER_DIR="$WORK_DIR/clusters/cluster-2/applications/paperless"`. Its output is the scoped reader/writer directories, not administrative access.
+
+Back in the Paperless terminal, read the actual URL for its direct-repository input:
+
+```bash
+export REPOSITORY_URL
+REPOSITORY_URL=$(yq -er '.backup.providers.restic.repositories.paperless.repository' \
+  "$WORK_DIR/clusters/cluster-1/applications/restic/restic-connections.yaml")
+```
+
+Run the remainder of **External backup inputs** with that value instead of its example URL. Complete **Prepare application credentials and configuration** and **Install and verify**. Preserve the independent Paperless key and OIDC client secret. Require current-generation Ready, native 3.3.0, trusted HTTPS and fresh native administrator login. Keep ordinary capture/ingestion semantics unchanged; the cross-service document and permission fixtures are in [service acceptance](verification.md#paperless-source-acceptance).
+
+Continue with [Forgejo integration](forgejo.md), then exercise all source applications before retirement.
 
 ## DNS checkpoint
 
-Run this workstation checkpoint separately when each package has rendered its hostname and before it requires the public route. The package supplies `HOST`; select A's address for Restic and B's address for the initial Keycloak/Forgejo placements. This coordinates DNS only, not package configuration.
+Run this workstation checkpoint separately when each package has rendered its hostname and before it requires the public route. The package supplies `HOST`; select A's address for Restic and B's for initial Keycloak, Forgejo and Paperless placements. This coordinates DNS only, not package configuration.
 
 ```bash
 source "$WORK_DIR/operations/workstation.env"
@@ -136,4 +157,4 @@ Require authoritative `aa` answers and the intended address everywhere before ce
 
 ## Retain source and replacement access
 
-Keep protected inputs independently usable outside B/C and their Keycloak. A may additionally hold synthetic test-client material but must not be the only copy of recovery keys. Continue with [Forgejo integration](forgejo.md); that chapter exports the three actual service endpoints to A once all declarations exist.
+Keep protected inputs independently usable outside B/C and their Keycloak. A may additionally hold synthetic test-client material but must not be the only copy of recovery keys. The [Forgejo integration](forgejo.md) chapter exports all four service endpoints to A once their declarations exist.

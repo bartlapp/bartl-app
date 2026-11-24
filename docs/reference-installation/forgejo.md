@@ -1,6 +1,6 @@
 # Integrate Forgejo with Keycloak
 
-Complete [Restic and Keycloak installation](applications.md). Use native OAuth2/OpenID Connect; no login proxy or automatic account linking by email.
+Complete [Restic, Keycloak and Paperless installation](applications.md). Use native OAuth2/OpenID Connect; no login proxy or automatic account linking by email.
 
 Enter B's cluster directory and wait for the next prompt. This selects Base access, not a Forgejo deployment:
 
@@ -8,16 +8,7 @@ Enter B's cluster directory and wait for the next prompt. This selects Base acce
 cd "$WORK_DIR/clusters/cluster-2"
 ```
 
-At that next prompt, start a child Bash without direnv's prompt hook:
-
-```bash
-bash --noprofile --norc
-source "$WORK_DIR/operations/workstation.env"
-```
-
-Run this chapter in that child shell. Base's watched-record reload clears deployment fields at cluster scope, whereas Forgejo's recorded/manual interface retains the variables set by its own procedure. The additional Restic handoff shell below is nested inside this Forgejo shell; its `exit` returns here, not to the parent direnv shell.
-
-Follow the [Forgejo README](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#supported-profile-and-release) through acquisition of its verified 0.2.2 archive. Preserve the existing `WORK_DIR` and `VALUES`, not its sample paths. In **Configure a new deployment**, choose `DEPLOYMENT=forgejo`, `INSTANCE=forgejo`, `CLUSTER_ID=cluster-2`, `NS=forgejo`, `RELEASE=forgejo` and `PACKAGE=forgejo`. Run the creation block once.
+At the next prompt follow the [Forgejo README](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#supported-profile-and-release) from latest-stable acquisition. Keep the existing `WORK_DIR` and `VALUES`, not its sample paths. In **Configure a new deployment**, choose `DEPLOYMENT=forgejo`, `INSTANCE=forgejo`, `NS=forgejo`, `RELEASE=forgejo` and `PACKAGE=forgejo`. After the grouped creation block enters its directory, wait for the next prompt.
 
 Before the next declaration-rendering block, record the source native version and composition choices:
 
@@ -25,13 +16,13 @@ Before the next declaration-rendering block, record the source native version an
 yq -i '.operations.deployments.forgejo.version = "16.0.7" |
   .services.forgejo.identityProvider = "keycloak" |
   .services.forgejo.backup.endpoint = "restic" |
-  .services.forgejo.backup.schedule = "0 2 * * *" |
+  .services.forgejo.backup.schedule = "*/5 * * * *" |
   .services.forgejo.backup.timeZone = "Europe/Berlin" |
   .services.forgejo.ssh.exposure = "NodePort" |
   .services.forgejo.ssh.nodePort = 30222' "$VALUES"
 ```
 
-The package's recorded-deployment logic applies this native version during rendering and installation. Do not reproduce its Helm argument mapping or assume a deployment directory selector exists for Forgejo. Continue declaration rendering and independent state/staging claim creation; 20Gi each is a synthetic sizing choice.
+The package's selected-deployment procedure applies this native version during rendering and installation. Do not reproduce its Helm argument mapping here. Continue declaration rendering and independent state/staging claim creation; 20Gi each is a synthetic sizing choice subject to the approved capacity.
 
 At **DNS, TLS and SSH exposure**, use the [DNS checkpoint](applications.md#dns-checkpoint) with `HOST="$FORGEJO_HOST"` and `IP="$B_IP"` after sourcing the workstation helper. Continue the package's managed/external TLS path. The SSH firewall checkpoint below supplies the actual NodePort route.
 
@@ -45,7 +36,7 @@ export RESTIC_CONNECTIONS="$WORK_DIR/clusters/cluster-1/applications/restic/rest
 export REPOSITORY_NAME=forgejo
 ```
 
-Before executing the composed-backup block that creates runtime Secrets, supply its repository files: open a child Bash with `bash --noprofile --norc`, follow Restic's **Resume an existing deployment** for `DEPLOYMENT=restic` using the same `WORK_DIR` and `VALUES`, then **Connect an application** with `REPOSITORY=forgejo` and `CONSUMER_DIR="$WORK_DIR/clusters/cluster-2/applications/forgejo"`. Run `exit` to return to the Forgejo shell. Keep the composed binding, not an additional direct `backup.repository` override.
+Before the composed-backup block creates runtime Secrets, supply its repository files. In the separate direnv-hooked Restic terminal, resume `"$WORK_DIR/clusters/cluster-1/applications/restic"` and run **Connect an application** with `REPOSITORY=forgejo` and `CONSUMER_DIR="$WORK_DIR/clusters/cluster-2/applications/forgejo"`. Return to the paused Forgejo terminal. Keep the composed binding, not an additional direct `backup.repository` override.
 
 Run Forgejo's provider-declaration binding and **Provision the native Keycloak client** procedure. Supply the current Keycloak administrator in `"$INSTALL_DIR/protected/keycloak-admin/username"` and `password`; for this exercise copy the retained current files from `"$WORK_DIR/clusters/cluster-2/applications/keycloak/recovery-admin/"` into that new directory. These credentials are preparation-only. The package reads the advertised realm, creates an absent authorized realm/client and retains the actual client secret. Do not hardcode another issuer or rotate a retained secret.
 
@@ -92,7 +83,24 @@ ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
   'cat > /root/bartl-reference/forgejo/host-key.pub' < "$WORK_DIR/evidence/forgejo-host-key.pub"
 ```
 
-Once all three source declarations exist, publish nonsecret test-client endpoint exports from the workstation:
+Install the pinned native Restic client on A for the later independent backup-readback checks. For a fresh client directory:
+
+```bash
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 bash -s <<'REMOTE'
+set -euo pipefail
+cd /root/bartl-reference
+test ! -e restic
+curl -fL -o restic.bz2 https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_linux_amd64.bz2
+printf 'f415415624dcc452f2a02b8c33641791a8c6d6d3b65bbb3543fcf9a25151585c  restic.bz2\n' | sha256sum --check
+bzip2 -d restic.bz2
+chmod 700 restic
+./restic version
+REMOTE
+```
+
+For a resumed test client, retain the existing verified binary and check its version rather than downloading over it.
+
+Once all four source declarations exist, publish nonsecret test-client endpoint exports from the workstation:
 
 ```bash
 source "$WORK_DIR/operations/workstation.env"
@@ -100,6 +108,8 @@ source "$WORK_DIR/operations/workstation.env"
   printf 'BACKUP_HOST=%q\n' "$BACKUP_HOST"
   printf 'KC_HOST=%q\n' "$KC_HOST"
   printf 'FORGEJO_HOST=%q\n' "$FORGEJO_HOST"
+  printf 'PAPERLESS_HOST=%q\n' "$PAPERLESS_HOST"
+  printf 'INSTALLATION_ID=%q\n' "$(yq -er '.installation' "$VALUES")"
 } | ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
   'umask 077; mkdir -p /root/bartl-reference; cat > /root/bartl-reference/installation.env'
 ```
@@ -108,15 +118,8 @@ This remote file is derived test input only. Configuration, placement, package s
 
 ## Verify browser access
 
-In the provider realm selected by Keycloak's declaration, create a synthetic enabled user `reference-user` with verified email `reference-user@example.invalid`, a retained password and no pending required action. Use native Keycloak administration, not Forgejo-side email linking. Record the realm, user UUID and Forgejo client UUID in the nonsecret operating record; these identities must survive recovery.
+In the provider realm selected by Keycloak's declaration, create a synthetic enabled user `reference-user` with verified email `reference-user@example.invalid`, a retained password and no pending required action. Use native Keycloak administration, not consumer-side email linking. Retain the realm/user/client IDs as temporary comparison inputs; they must survive recovery.
 
-Open `https://$FORGEJO_HOST`, choose “Sign in with keycloak”, authenticate as that user and verify a distinct Forgejo `reference-user` account. Check logout and new login through the real HTTPS endpoint. Do not grant this user administration. Verify local `reference-admin` login separately. Retain provider/user/client IDs and acceptance results under `operations` or `evidence`, without passwords or tokens. Continue with [service data and access checks](verification.md).
+Open `https://$FORGEJO_HOST`, choose “Sign in with keycloak”, authenticate as that user and verify a distinct Forgejo `reference-user` account. Check logout and new login through the real HTTPS endpoint. Do not grant this user administration. Verify local `reference-admin` login separately. Keep comparison IDs under the exercise's ignored `evidence/` directory, without passwords or tokens.
 
-After these checks, leave the Forgejo child shell and restore the parent shell's Keycloak selection:
-
-```bash
-exit
-cd "$WORK_DIR/clusters/cluster-2/applications/keycloak"
-```
-
-Wait for the next prompt before continuing. Keycloak again uses its deployment selector; Forgejo operations in the recovery chapter use their explicitly separated manual shell.
+Keep this Forgejo terminal for its package operations. Other packages use their own direnv-hooked terminals and resumption procedures. Continue with [service data and access checks](verification.md), including Paperless's source acceptance.

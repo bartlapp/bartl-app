@@ -1,18 +1,21 @@
 # Recover a Bartl installation on a separate cluster
 
-Run one customer installation across three independent single-node K3s clusters: A (`cluster-1`) holds Restic and the synthetic test client; B (`cluster-2`) runs Keycloak and Forgejo; C (`cluster-3`) starts empty and replaces B. A remains available. A/B/C are shorthand for these fixed IDs throughout the walkthrough. This exercises planned source retirement and recovery, not loss of the backup provider or source-independent fencing.
+Run one customer installation across three independent single-node K3s clusters: A (`cluster-1`) holds Restic and the synthetic test client; B (`cluster-2`) runs Keycloak, Forgejo and Paperless; C (`cluster-3`) starts empty and replaces B. A remains available. A/B/C are shorthand for these fixed IDs throughout the walkthrough. This exercises planned source retirement and recovery, not loss of the backup provider or source-independent fencing.
 
-Follow [application installation](applications.md), [Forgejo integration](forgejo.md), [service acceptance](verification.md), [lifecycle and recovery](recovery.md), then [cleanup](#cleanup). Run workstation blocks in Bash with tracing off. Package READMEs own application preparation and lifecycle commands; this walkthrough supplies composition, retained targets and acceptance order. No company tooling or password store is required when the operator supplies protected credentials.
+Follow [application installation](applications.md), [Forgejo integration](forgejo.md), [service acceptance](verification.md), [lifecycle and recovery](recovery.md), then [cleanup](#cleanup). Use separate direnv-hooked Bash terminals for the packages and infrastructure, with tracing off. Package READMEs own application preparation and lifecycle commands; this walkthrough supplies composition, retained targets and acceptance order. No company tooling or password store is required when the operator supplies protected credentials.
 
 ## Prerequisites and cost
 
-Use the [operator workstation](../operator-workstation.md), compatible kubectl, Helm 4, Mike Farah yq v4, jq, OpenSSL, curl and shasum. You need an authorized dedicated Hetzner project, a registered SSH identity, a delegated deSEC zone and usable credentials for both providers. Check capacity and approved spending/lifetime for three Debian 13 amd64 CPX32 servers in `hel1` (or the retained cluster locations), including IPv4 and traffic. Powered-off servers still cost money. No volumes, load balancers, snapshots or paid backups are required by this exercise.
+Use the [operator workstation](../operator-workstation.md), compatible kubectl, Helm 4, Mike Farah yq v4, jq, OpenSSL, curl, shasum and native Restic 0.19.1. You need an authorized dedicated Hetzner project, a registered SSH identity, a delegated deSEC zone and usable credentials for both providers. Select and approve three Debian 13 amd64 servers in `hel1` or the retained locations. CPX32 is the previous three-service exercise size, not verified sizing for the added Paperless workload: check the selected charts' requests/limits, all claims, export/restore staging and node headroom before choosing B/C sizes. Include IPv4 and traffic; powered-off servers still cost money. No additional volumes, load balancers, snapshots or paid backups are required by this node-local exercise.
+
+Have two independently reachable client source addresses available: the allowed administrator and a denied ordinary client. A is the additional allowed synthetic client. Shared NAT addresses do not prove restriction. During Paperless review the denied client must reach C's ingress and receive its HTTP 403, not merely time out at the firewall. Confirm released artifacts, protected input custody, capacity and the agreed spending/lifetime/teardown scope before provisioning; no local source candidate substitutes for a selected public release.
 
 ```bash
 set -euo pipefail
 set +x
 set +o history
 umask 077
+eval "$(direnv hook bash)"
 : "${HCLOUD_TOKEN:?Supply the authorized project credential}"
 : "${DESEC_TOKEN:?Supply the authorized zone credential}"
 export HCLOUD_TOKEN DESEC_TOKEN
@@ -37,7 +40,9 @@ cd "$WORK_DIR"
 hcloud server list
 hcloud primary-ip list
 hcloud server-type describe cpx32
-hcloud api /pricing | jq '.pricing | {currency,vat_rate,server_types,primary_ips}'
+printf 'header = "Authorization: Bearer %s"\n' "$HCLOUD_TOKEN" |
+  curl --config - --fail-with-body --silent --show-error https://api.hetzner.cloud/v1/pricing |
+  jq '.pricing | {currency,vat_rate,server_types,primary_ips}'
 ```
 
 For a real run, review the retained installation identity and DNS root before provisioning. Existing values are authoritative. Do not regenerate identity or start another installation file when resuming an interrupted run.
@@ -71,25 +76,26 @@ Require three distinct `kube-system` UIDs, one Ready node per cluster, usable Co
 
 ## Package handoffs
 
-Create each deployment only in its package's new-installation procedure, in the order Restic on A, Keycloak on B, then Forgejo on B. Do not pre-create package, service or replacement records: creation blocks require unused keys and may initialize the selected service entry.
+Create deployments only through their package's new-installation procedure: Restic on A, Keycloak and Paperless on B, then Forgejo on B. Do not pre-create service, package or replacement records: the package creation blocks initialize those entries.
 
 | Package | Deployment / instance / package key | Cluster | Namespace | Helm release |
 | --- | --- | --- | --- | --- |
 | Restic | `restic` | `cluster-1` | `backup` | `backup` |
 | Keycloak | `keycloak` | `cluster-2` | `keycloak` | `keycloak` |
 | Forgejo | `forgejo` | `cluster-2` | `forgejo` | `forgejo` |
+| Paperless | `paperless` | `cluster-2` | `paperless` | `paperless` |
 
-Use the current Keycloak README's latest-stable acquisition and normalized chart cache; its deployment selector loads the recorded package. This documents the current delivery interface, which still awaits stable publication and live qualification. Do not substitute historical 0.6.1 commands if the registry does not yet provide that interface: stop before Keycloak installation until the matching stable artifacts are available.
+The current procedures use directory selectors and normalized disposable chart caches. Fresh installation and replacement resolve a stable public package; resumption reacquires its recorded version. Native application versions remain separate choices. The package procedures own Helm projections and operation-intent precedence; a shell selector does not imply that every chart accepts Keycloak's `deployment` flag.
 
-Restic 0.3.0 and Forgejo 0.2.2 retain their README-owned verified archives and explicit recorded-deployment resumption. They do not gain deployment selectors merely because Base provides a loader. Their package procedures own instance selection and operation-intent precedence; this walkthrough does not reproduce that mapping.
+Keycloak 0.7.0 is published and its clean no-backup installation/stop-start path is recorded in its [release evidence](https://github.com/bartlapp/bartl-keycloak/releases/tag/v0.7.0). Restic 0.3.0, Paperless 0.2.0 and Forgejo 0.2.2 are the published artifacts used for the current offline procedure checks. None of that qualifies this four-service recovery sequence. Use the corrected package procedures with their matching artifacts; historical release-tagged instructions may predate those corrections.
 
-Use empty application targets. These interface changes are not a qualified upgrade from the historical walkthrough. For an existing deployment, use its package's resume/recovery procedure, never rerun new-installation blocks. Choose `keycloak-replacement` and `forgejo-replacement` only when the recovery chapter reaches the respective package's replacement setup on C.
+Use empty application targets. This composition is not a qualified upgrade from the historical walkthrough. Choose `keycloak-replacement`, `forgejo-replacement` and `paperless-replacement` only at their package replacement steps. A package or handoff mismatch stops the affected path: correct its owner, then exercise the corrected procedure rather than improvising past it.
 
-Local verification on 2026-11-23 checked shell syntax and cross-package handoff links, the relocated ingress configuration merge, and native subsequent-backup content checks against a synthetic capture. Git readback, manifest hashes, SQLite integrity/issue content and package bytes passed; missing issue content and corrupt package bytes were refused. No cloud, cluster, real backup restoration or browser acceptance was executed. The coordinated three-cluster path remains unqualified until those live procedures run against the selected artifacts.
+The synthetic five-minute capture schedules make actual scheduled runs observable during the exercise; they are not production defaults. Suspend them at the package's documented interruption boundaries, retain their original values and restore them only after acceptance. Keep capacity and the approved lifetime sufficient for the selected runs.
 
 ## Prepare workstation commands
 
-Retain the walkthrough's workstation helper under `operations/` alongside its operating records. On resume source it after selecting `WORK_DIR` and `VALUES`. It reads cross-service endpoints and test facts only; it neither selects a package nor renders Helm inputs. Package commands may replace shell variables, so resume the intended package before each package operation. Endpoint exports appear as their package procedures create declarations.
+Retain the walkthrough's workstation helper under `operations/` as a derived local working file. On resume source it after selecting `WORK_DIR` and `VALUES`. It reads cross-service endpoints and test inputs only; it neither selects a package nor renders Helm inputs. Resume the intended deployment before each package operation. Test fixtures and receipts under `evidence/` are temporary comparison inputs for this exercise, not a customer qualification diary; reusable results belong in the release/integration record.
 
 ```bash
 cat > "$WORK_DIR/operations/workstation.env" <<'ENV'
@@ -108,6 +114,7 @@ DNS_ZONE=$(yq -er '.providers[.dns.provider].scope.zone // .dns.root' "$VALUES")
 export RESTIC_CONNECTIONS="$WORK_DIR/clusters/cluster-1/applications/restic/restic-connections.yaml"
 export KC_CONNECTIONS="$WORK_DIR/clusters/cluster-2/applications/keycloak/connections.yaml"
 export FORGEJO_CONNECTIONS="$WORK_DIR/clusters/cluster-2/applications/forgejo/forgejo-connections.yaml"
+export PAPERLESS_CONNECTIONS="$WORK_DIR/clusters/cluster-2/applications/paperless/paperless-connections.yaml"
 if [ -s "$RESTIC_CONNECTIONS" ]; then
   BACKUP_HOST=$(yq -er '.services.restic.endpoints.https.hostname' "$RESTIC_CONNECTIONS")
   export BACKUP_HOST
@@ -119,6 +126,10 @@ fi
 if [ -s "$FORGEJO_CONNECTIONS" ]; then
   FORGEJO_HOST=$(yq -er '.services.forgejo.endpoints.https.hostname' "$FORGEJO_CONNECTIONS")
   export FORGEJO_HOST
+fi
+if [ -s "$PAPERLESS_CONNECTIONS" ]; then
+  PAPERLESS_HOST=$(yq -er '.services.paperless.endpoints.https.hostname' "$PAPERLESS_CONNECTIONS")
+  export PAPERLESS_HOST
 fi
 ADMIN_IP=$(curl --ipv4 --fail --silent --show-error https://api.ipify.org)
 DNS_API="https://desec.io/api/v1/domains/$DNS_ZONE"
@@ -136,22 +147,38 @@ ENV
 source "$WORK_DIR/operations/workstation.env"
 ```
 
-Protected inputs remain independently usable outside B/C and their Keycloak. The test client and synthetic payloads may live on A under `/root/bartl-reference/forgejo`. Configuration is only `VALUES`; a derived remote `installation.env` may export endpoint variables for that client but must never be used as authoritative installation configuration.
+For each additional workstation terminal, start Bash with its direnv hook, enter the **same retained installation root**, and wait for the next prompt. The default example is:
+
+```bash
+eval "$(direnv hook bash)"
+cd "${WORK_DIR_ROOT:-$HOME/bartl}/acme/acme-installation"
+```
+
+Then source `"$WORK_DIR/operations/workstation.env"` before entering the package's named deployment directory. Use the actual selected root when it differs. A new terminal does not inherit another terminal's exports: supply provider/DNS credentials from the same authorized source for terminals executing those operations. Do not carry generic package variables across terminals or recreate the installation.
+
+Protected inputs remain independently usable outside B/C and their Keycloak. Synthetic payloads live on A under `/root/bartl-reference/{forgejo,paperless}`. Configuration is only `VALUES`; derived remote `installation.env` exports test-client endpoints and identity but is never authoritative installation configuration.
 
 ## Cleanup
+
+After authorized data disposition, remove reachable Paperless and Forgejo targets through their package finalization/uninstall steps, not the subsequent reinstall blocks. Remove Paperless's operator-owned review Ingress/Middleware if still present. Remove Keycloak next and Restic last. Keep backup access and DNS usable until required publication and package finalization finish. Preserve independently required history and keys; do not restart retired B for cosmetic uninstall.
 
 Retain `VALUES` and access files until all cloud deletions finish. Remove only this run's retained DNS records after reading live identity/address and checking against `operations.dns`; never delete the zone or unrelated names. For each recorded A record:
 
 ```bash
-for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST"; do
+for host in "$BACKUP_HOST" "$KC_HOST" "$FORGEJO_HOST" "$PAPERLESS_HOST"; do
   subname=${host%.$DNS_ZONE}
   desec "$DNS_API/rrsets/$subname/A/" | jq .
   # Compare the result with operations.dns and the currently active cluster first.
   desec --request DELETE "$DNS_API/rrsets/$subname/A/"
+  for resolver in ns1.desec.io ns2.desec.org; do
+    dig @"$resolver" "$host" A +norecurse +noall +comments +answer
+  done
 done
 ```
 
-Complete package removal on reachable targets; B's confirmed source retirement must not be undone merely to uninstall it. After confirming data disposition, enter the directories for `cluster-2`, `cluster-3`, then `cluster-1` and follow Base's [Remove the selected cluster](https://github.com/bartlapp/base-k3s/blob/main/README.md#remove-the-selected-cluster). Inspect remaining consumers and compare the live resources with the retained observations before authorizing deletion; Base relies on operator inspection, not an automated resource-graph guard. It removes the selected cluster/VM and retired deployment/operation/recovery records only after verifying resource absence. For interrupted provisioning or deletion, reconcile the provider inventory and remove only the remaining owned resources instead of replaying the normal recipe. Deleting A destroys this exercise's synthetic backup history and credentials. Confirm the provider inventory contains no remaining resources from the run. Local deletion is a separate explicit retention decision, not an automatic command in this recipe.
+Require authoritative replies with no A answer for every deleted name; a timeout/SERVFAIL is not proof of deletion.
+
+Then select each cluster's separate Hetzner machine context for `cluster-2`, `cluster-3`, and finally `cluster-1`, and follow Base's [Remove the selected cluster](https://github.com/bartlapp/base-k3s/blob/main/README.md#remove-the-selected-cluster). Inspect remaining consumers and compare live resources with retained observations before authorizing deletion. Base removes cluster/VM and retired deployment records only after resource absence is verified. For interrupted provisioning/deletion, reconcile the provider inventory and remove only remaining owned resources instead of replaying the normal recipe. Deleting A destroys the synthetic backup history. Confirm no run-owned provider allocations remain. Local deletion is a separate authorized retention decision.
 
 ## Historical version evidence
 

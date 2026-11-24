@@ -1,14 +1,14 @@
 # Recover on C and return the service to use
 
-Complete [source acceptance](verification.md). A (`cluster-1`) keeps Restic and the test client; B (`cluster-2`) is the reachable source; C (`cluster-3`) supplies independent empty target storage. This is an authorized **planned interruption**, not provider-loss recovery. Keep B accessible until both packages have completed final capture and retirement, then enforce its poweroff before reconstruction. A remains available throughout replacement, apart from the separately authorized Restic lifecycle exercises below.
+Complete [source acceptance](verification.md). A (`cluster-1`) keeps Restic and the test client; B (`cluster-2`) is the reachable source; C (`cluster-3`) supplies independent empty target storage. This is an authorized **planned interruption**, not provider-loss recovery. Keep B accessible until Forgejo, Paperless and Keycloak complete final capture and retirement, then enforce its poweroff before reconstruction. A remains available apart from the separately authorized Restic lifecycle exercises below.
 
-This chapter coordinates the [Keycloak recovery runbook](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md), [Forgejo lifecycle](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#replacement-upgrade-and-promotion) and [Restic lifecycle](https://github.com/bartlapp/bartl-restic/blob/main/README.md#stop-and-start). Those procedures own capture, stop, restore, migration, scheduling and package activation commands. Do not substitute the historical flat-interface commands or copy their Helm projections here. Keycloak uses deployment selectors and its current unpacked chart cache; Forgejo 0.2.2 and Restic 0.3.0 still use their recorded archives and manual resumption interfaces.
+This chapter coordinates the [Keycloak recovery runbook](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md), [Forgejo replacement](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#replacement-upgrade-and-promotion), [Paperless recovery](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#recovery-and-replacement-upgrade) and [Restic lifecycle](https://github.com/bartlapp/bartl-restic/blob/main/README.md#stop-and-start). Package procedures own capture, stop, restore, migration, scheduling and activation. All now select deployment context and recorded disposable chart caches; their Helm interfaces remain package-specific.
 
-The current Keycloak release/interface is the documentation delivery target, pending stable publication and live qualification. Confirm that the stable artifact obtained by the runbook actually supplies this interface before interrupting B. Historical evidence is unchanged and does not qualify this coordinated sequence. Governing local sources read for this rewrite: `docs/application-contract.md` and `docs/how-to-bartlize.md` at bartl-app revision `924a952a045eb8158304aa8ecd8a0d18ea04edf9`.
+The selected stable artifacts must supply those documented interfaces. Keycloak 0.7.0 is published, but its fresh no-backup acceptance does not qualify recovery or this composition. No historical evidence qualifies this coordinated sequence; qualify the actual selected artifacts and procedure revisions through the full run.
 
 ## Retain the coordination inputs
 
-In workstation Bash:
+Run this coordination-input block in each package terminal and the infrastructure terminal after entering the retained installation. It supplies cross-service paths without changing the selected deployment:
 
 ```bash
 source "${WORK_DIR:?}/operations/workstation.env"
@@ -17,9 +17,11 @@ umask 077
 export VALUES="$WORK_DIR/installation.yaml"
 export KC_SOURCE_DIR="$WORK_DIR/clusters/cluster-2/applications/keycloak"
 export FJ_SOURCE_DIR="$WORK_DIR/clusters/cluster-2/applications/forgejo"
+export PL_SOURCE_DIR="$WORK_DIR/clusters/cluster-2/applications/paperless"
 export RESTIC_DIR="$WORK_DIR/clusters/cluster-1/applications/restic"
 export KC_TARGET_DIR="$WORK_DIR/clusters/cluster-3/applications/keycloak/deployments/keycloak-replacement"
 export FJ_TARGET_DIR="$WORK_DIR/clusters/cluster-3/applications/forgejo/deployments/forgejo-replacement"
+export PL_TARGET_DIR="$WORK_DIR/clusters/cluster-3/applications/paperless/deployments/paperless-replacement"
 CLIENT_SSH="$WORK_DIR/clusters/cluster-1/base/ssh.config"
 mkdir -p "$WORK_DIR/evidence"
 ```
@@ -29,12 +31,13 @@ Keep the same installation root and `VALUES` when a package example selects its 
 | Package procedure | Source | Replacement choices |
 | --- | --- | --- |
 | Keycloak RECOVERY, step 1 | `SOURCE_DEPLOYMENT=keycloak`, `SOURCE_DIR=$KC_SOURCE_DIR` | `TARGET_DEPLOYMENT=keycloak-replacement`, `TARGET_PACKAGE=keycloak-replacement`, `TARGET_CLUSTER=cluster-3`, `TARGET_NAMESPACE=keycloak-green` |
-| Forgejo, Prepare the replacement | `SOURCE_DEPLOYMENT=forgejo`, `SOURCE_DIR=$FJ_SOURCE_DIR` | `DEPLOYMENT=forgejo-replacement`, `TARGET_CLUSTER=cluster-3`, `TARGET_NAMESPACE=forgejo-green`, `TARGET_VERSION=17.0.1` |
-| Restic, Resume an existing deployment | `DEPLOYMENT=restic`, placement on A | No replacement; retain the recorded package, claim, repository names and credentials |
+| Forgejo, replacement acquisition / Prepare the replacement | `SOURCE_DEPLOYMENT=forgejo`, `SOURCE_DIR=$FJ_SOURCE_DIR` | `TARGET_PACKAGE=forgejo-replacement`, `DEPLOYMENT=forgejo-replacement`, `TARGET_CLUSTER=cluster-3`, `TARGET_NAMESPACE=forgejo-green`, native `TARGET_VERSION=17.0.1` |
+| Paperless, replacement acquisition / Prepare the independent target | `SOURCE_DEPLOYMENT=paperless`, `SOURCE_DIR=$PL_SOURCE_DIR` | `TARGET_PACKAGE=paperless-replacement`, `DEPLOYMENT=paperless-replacement`, `TARGET_CLUSTER=cluster-3`, `TARGET_NAMESPACE=paperless-green`; select native 3.3.1 only after source retirement |
+| Restic, Resume an existing deployment | Enter `$RESTIC_DIR`, then resume | No replacement; retain the recorded package, claim, repositories and credentials |
 
 Choose/check unused target keys **at the package's creation step**. Do not precreate deployment/package entries and then rerun that creation block. On resumption after successful preparation, use recorded entries and resume at the next unfinished step; namespace/Secret/claim creation is not a retry interface.
 
-Use separate terminals and preserve each package's shell through its pauses. Keycloak needs a normal **direnv-hooked Bash** session: enter the source/target directory and wait for the next prompt at the package's directory boundaries. Forgejo and Restic need **no-hook child Bash** sessions: select the appropriate cluster in the parent, wait for its prompt, then run `bash --noprofile --norc` and source `"$WORK_DIR/operations/workstation.env"` inside the child. Run their documented manual resumption there. Otherwise a Base direnv reload after writing `VALUES` can clear their manually selected package variables. Keep Forgejo's `SOURCE_*`/`BACKUP_SCHEDULE` and Keycloak's `SOURCE_*`/`TARGET_*` in their respective paused shells.
+Use separate direnv-hooked Bash terminals for Keycloak, Forgejo, Paperless, Restic and infrastructure. Enter each recorded deployment directory and wait for the next prompt before running its resumption procedure. Do not use no-hook child shells or manually export a deployment key. Preserve source/target pointers through package pauses; Forgejo/Paperless retain their original schedules in source-directory operation files, which must remain available until activation.
 
 A package changes generic names such as `SOURCE_DIR`, `CHART`, `NS` and `KUBECONFIG`; never carry these from one package to another. Use a separate infrastructure shell with `workstation.env` and explicit `KA`, `KB`, `KC` paths. The fixed per-service directories above and separately named receipts remain the handoff across sessions. Preserve independent credentials and the installation record before powering B off; no later target operation may depend on B's API.
 
@@ -54,7 +57,13 @@ Every package condition must belong to the current resource generation. Follow i
    cp "$FJ_SOURCE_DIR/backup-result.json" "$WORK_DIR/evidence/forgejo-source-backup.json"
    ```
 
-Keycloak's receipt has top-level `.snapshotID`. Forgejo retains the full application object and its successful `.status.backup.snapshot` and `.status.backup.request`. Do not parse both as the same JSON format or overwrite a final receipt with a later point.
+3. In the Paperless shell, [resume](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#resume-an-existing-deployment) its source deployment and run [Capture, publication and retry](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#capture-publication-and-retry). Require complete publication of a point containing the baseline PDF and permission changes, then preserve:
+
+   ```bash
+   cp "$PL_SOURCE_DIR/backup-result.json" "$WORK_DIR/evidence/paperless-source-backup.json"
+   ```
+
+Keycloak's receipt has top-level `.snapshotID`. Forgejo retains `.status.backup.snapshot`; Paperless retains `.status.backup.snapshotID`, repository identity and capture operation. Keep each full native receipt and never parse them as a shared format or replace final source receipts with later points.
 
 ### Restart without backup access
 
@@ -67,23 +76,27 @@ kubectl --kubeconfig "$KB" -n forgejo rollout restart deployment/forgejo
 kubectl --kubeconfig "$KB" -n forgejo rollout status deployment/forgejo --timeout=10m
 ```
 
+In the selected Paperless source shell, execute only the native restart commands in [Stop, start and restart](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#stop-start-and-restart), not its persistent stop/start blocks. Verify the existing library and [Paperless retained-data checks](verification.md#paperless-retained-data-checks) while Restic is unavailable.
+
 Require retained realm/user/client identities, native Keycloak login, Forgejo native login and useful HTTP/SSH reads from A while Restic is stopped. Neither service may initialize or restore. The Forgejo README describes ordinary restart semantics but does not supply a dedicated restart command; the commands above are Kubernetes' native Deployment restart, not a recovery workflow.
 
-In the Restic shell, complete its start half and require current-generation Ready, trusted HTTPS and authenticated access to both retained histories. Restore the approved capture schedules. This checks existing-state startup without backup access, not recovery without independent inputs.
+In the Restic shell, complete its start half and require current-generation Ready, trusted HTTPS and authenticated access to all three histories. Restore the approved capture schedules. This checks existing-state startup without backup access, not recovery without independent inputs.
 
 ### Stop/start and retained Restic reinstall
 
-Exercise the package stop/start interfaces with persistent intent: stop Forgejo, then Keycloak; start Keycloak, then Forgejo. Use [Forgejo Stop and start](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#stop-and-start) and [Keycloak persistent stop/start](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#persistently-stop-and-start-keycloak), each in its own resumed context. Require current-generation Stopped/Ready, drained work and unchanged useful data/identity. Do not scale generated workloads to implement persistent stop.
+Exercise persistent stop/start: stop Forgejo and Paperless before Keycloak; start Keycloak before its consumers. Use [Forgejo Stop and start](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#stop-and-start), [Paperless Stop, start and restart](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#stop-start-and-restart) and [Keycloak persistent stop/start](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#persistently-stop-and-start-keycloak), each in its own resumed context. Require current-generation Stopped/Ready, drained work and unchanged useful data/identity. Do not scale generated workloads to implement persistent stop.
 
 Before retiring B, exercise Restic's [Supported uninstall](https://github.com/bartlapp/bartl-restic/blob/main/README.md#supported-uninstall) followed immediately by [Reinstall retained state](https://github.com/bartlapp/bartl-restic/blob/main/README.md#reinstall-retained-state). Pause conflicting captures/copies/maintenance and record the claim UID first. Keep the controller alive through CR finalization. Retain the same PVC, TLS, supplied Secrets, credentials and repository keys; do not rerun endpoint creation.
 
-Require current-generation Ready, unchanged claim/repository identities, authenticated reader access to **both** histories and restore of each saved source point. Use native Restic with the corresponding repository's reader/key/CA, never a shared decryption key. Complete the package's writer/reader round-trip for each repository to prove new backup/readback after reinstall. Keep these synthetic points distinct from application recovery points. Resume consumers only after the endpoint is usable.
+Require current-generation Ready, unchanged claim/repository identities, authenticated reader access to all three histories and restore of each saved source point. Use native Restic with the corresponding repository's reader/key/CA, never a shared decryption key. Complete the package's writer/reader round-trip for each repository. Keep synthetic endpoint-check points distinct from application recovery points. Resume consumers only after the endpoint is usable.
 
 ## Prepare the Keycloak target without changing the source
 
 In the Keycloak shell execute [RECOVERY step 1](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#1-retain-source-inputs-and-choose-the-target), using the mapping above. This retains source inputs and acquires the current target package before interruption; it prepares the selector but does not enter C or install the application. Leave B selected for final capture. Retain its recovered-realm administrator and repository credentials independently.
 
-The runbook's single administrator CIDR is insufficient for this composition. After its allowlist selection, replace the list with the actual administrator/browser, A test client and C Forgejo outbound IPv4 sources:
+In the still-selected Forgejo and Paperless source terminals, execute only their replacement-chart acquisition blocks now, with the table's new package keys. Keep their `TARGET_STAGE` and resolved target package versions in those shells. Acquisition must succeed before interruption; target creation and native-version changes wait for retirement.
+
+The runbook's single administrator CIDR is insufficient for this composition. After its allowlist selection, replace the list with the actual administrator/browser, A test client and C consumer outbound IPv4 sources:
 
 ```bash
 source "$WORK_DIR/operations/workstation.env"
@@ -93,7 +106,7 @@ yq -i '.services.keycloak.ingress.administratorSourceRanges =
   [strenv(ADMIN_IP) + "/32", strenv(A_IP) + "/32", strenv(C_IP) + "/32"]' "$VALUES"
 ```
 
-Before restored startup, follow [Base source-address preservation](https://github.com/bartlapp/base-k3s/blob/main/README.md#preserve-client-addresses-for-restricted-access) on C. Verify the actual public egress from A and C and the client address seen by ingress, not merely the desired firewall configuration. In this single-node profile C's outbound address must be `C_IP`. If SNAT, IPv6, a proxy or another browser egress changes an address, stop and record its verified authorized CIDR before applying the list; do not widen it to all sources. Forgejo's server-side discovery/token/userinfo requests must work while ordinary Keycloak access remains denied. Preserve production-outbound-effect isolation from the package runbook.
+Before restored startup, follow [Base source-address preservation](https://github.com/bartlapp/base-k3s/blob/main/README.md#preserve-client-addresses-for-restricted-access) on C. Verify actual public egress and the client address seen by ingress. Forgejo and Paperless server-side OIDC requests must work while ordinary Keycloak access remains denied. If SNAT, IPv6, a proxy or another browser egress changes an address, stop and select its verified authorized CIDR; do not broaden the list to all sources.
 
 In the infrastructure shell, check this profile's native node egress before using those addresses:
 
@@ -136,18 +149,24 @@ If an inspected rule differs or is already absent, reconcile that exact rule ins
    ```bash
    cp "$FJ_SOURCE_DIR/backup-result.json" "$WORK_DIR/evidence/forgejo-final-backup.json"
    cp "$FJ_SOURCE_DIR/source-pvc.json" "$WORK_DIR/evidence/forgejo-source-pvc.json"
-   printf '%s\n' "$BACKUP_SCHEDULE" > "$WORK_DIR/evidence/forgejo-source-backup-schedule"
    printf '%s\n' "$SOURCE_HOST" > "$WORK_DIR/evidence/forgejo-source-host"
    ```
 
-2. Only after Forgejo retirement, return to the still-selected Keycloak source shell and execute **all** of [RECOVERY step 2](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#2-capture-final-writes-and-retire-a-reachable-source). The package stops Keycloak, leaves PostgreSQL available for final capture, then retires controller/database after verified publication. Do not stop PostgreSQL before its final capture. Preserve:
+2. In the Paperless shell, execute **Final capture and source retirement** through confirmed Stopped/drain and retained source PVC inspection. Keep writers running until its fresh-final-capture check has passed; a retry of an old export is not the final capture. Retain `"$PL_SOURCE_DIR/backup-schedule-before-operation"` and preserve:
+
+   ```bash
+   cp "$PL_SOURCE_DIR/backup-result.json" "$WORK_DIR/evidence/paperless-final-backup.json"
+   cp "$PL_SOURCE_DIR/source-pvc.json" "$WORK_DIR/evidence/paperless-source-pvc.json"
+   ```
+
+3. Only after both consumers are retired, execute **all** of [Keycloak RECOVERY step 2](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#2-capture-final-writes-and-retire-a-reachable-source) in its source terminal. Keycloak stops while PostgreSQL remains available for final capture; retire controller/database only after verified publication. Preserve:
 
    ```bash
    cp "$KC_SOURCE_DIR/backup-result.json" "$WORK_DIR/evidence/keycloak-final-backup.json"
    cp "$KC_SOURCE_DIR/source-pvc.json" "$WORK_DIR/evidence/keycloak-source-pvc.json"
    ```
 
-These are coordinated application points, not an atomic stack snapshot. Preserve their full identities and capture boundaries separately. Keep both source directories, protected inputs, exact source/target artifacts and C access usable without B. Require no pending capture/publication before enforcing host retirement.
+These are coordinated application points, not an atomic stack snapshot. Preserve all three source directories, receipts, protected inputs, temporary schedule files and C access outside B. A disposable chart cache is not the only source of package artifacts; the selected immutable releases remain retrievable. Require no pending capture/publication before host retirement.
 
 Inspect B again, match the retained identity and confirm authorization to power it off:
 
@@ -163,7 +182,7 @@ hcloud server describe "$SOURCE_SERVER" --output json |
 
 Keep B off and disable unauthorized restart for the rest of the run. Retained stop intent, removed Forgejo routing, retired Keycloak controller/database and withdrawn firewall admission prevent an accidental return from reclaiming production authority. Unreachability alone is not retirement. Do not automatically return to B after any consequential candidate write/effect.
 
-## Restrict C before moving either hostname
+## Restrict C before moving application hostnames
 
 C needs public port 80 for HTTP-01, but HTTPS and direct SSH must admit only acceptance sources. In the infrastructure shell inspect the dedicated firewall and live attachments:
 
@@ -195,37 +214,100 @@ The package owns Keycloak DNS read/update and authoritative/public checks. Use t
 
 **Stop before [step 6, Open service](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#6-open-service).** Maintenance must remain true and scheduled capture suspended. Complete step 5's subsequent backup and successful readback; keep `recovered-backup-result.json` distinct from the final source receipt. Keycloak's allowlist must still include the verified administrator, A and C addresses recorded above.
 
-## Recover Forgejo while both services remain restricted
+## Recover Paperless before Forgejo
 
-In the Forgejo shell reload its independent source pointers and preserved schedule before [Prepare the replacement](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#prepare-the-replacement):
+In the Paperless terminal, keep `SOURCE_DEPLOYMENT=paperless`, `SOURCE_DIR=$PL_SOURCE_DIR` and the package acquisition variables. After B is confirmed off, select the supported native target:
+
+```bash
+yq -i '.services.paperless.version = "3.3.1"' "$VALUES"
+```
+
+Run **Prepare the independent target** using the table's C choices. Restore the original Paperless key and OIDC client input; supply the existing A repository's reader/writer files, not newly generated keys. At its DNS boundary, follow [Move a consumer hostname](#move-a-consumer-hostname) with `HOST="$PAPERLESS_HOST"`. Then execute **Reconstruct, review and activate** only through creation of the restricted review route, stopping before new-work capture and ordinary activation.
+
+Require the final source receipt's repository/full `.status.backup.snapshotID`, native 3.3.1, independent claims and current-generation Ready. In the Paperless target shell, set the package's `REVIEW_CIDR` to `"$ADMIN_IP/32"`. After the package creates its review Middleware, include A as the additional acceptance client:
+
+```bash
+kubectl --kubeconfig "$KC" -n paperless-green patch middleware paperless-review --type=merge \
+  -p "$(jq -nc --arg admin "$ADMIN_IP/32" --arg client "$A_IP/32" \
+    '{spec:{ipAllowList:{sourceRange:[$admin,$client]}}}')"
+```
+
+Forgejo must not yet exist on C. To exercise the Paperless application allowlist rather than merely the provider firewall, select the independent denied client's actual public IPv4 in the infrastructure terminal:
+
+```bash
+read -r -p 'Independent denied client IPv4: ' DENIED_IP
+test "$DENIED_IP" != "$ADMIN_IP"
+test "$DENIED_IP" != "$A_IP"
+test "$DENIED_IP" != "$C_IP"
+printf '%s\n' "$DENIED_IP" > "$WORK_DIR/operations/denied-client-ip"
+hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
+  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
+hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
+  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32,$DENIED_IP/32"
+```
+
+On that client, set `PAPERLESS_URL` to the retained Paperless URL and `ADMIN_IP` to the actual administrator address. Require HTTP 403 both normally and with a forged forwarded header:
+
+```bash
+test "$(curl --silent --show-error -o /dev/null -w '%{http_code}' "$PAPERLESS_URL")" = 403
+test "$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
+  -H "X-Forwarded-For: $ADMIN_IP" "$PAPERLESS_URL")" = 403
+```
+
+In the infrastructure terminal remove that temporary exception before Forgejo is installed:
+
+```bash
+DENIED_IP=$(cat "$WORK_DIR/operations/denied-client-ip")
+hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
+  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32,$DENIED_IP/32"
+hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
+  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
+hcloud firewall describe "$C_FIREWALL" --output json
+```
+
+On interrupted execution inspect and remove any remaining exception first; the normal C rule still admits only the administrator, A and C. A source mismatch or inability to establish allowed/denied behavior stops activation.
+
+Reissue native Paperless tokens against C because import excludes them. On the workstation:
+
+```bash
+source "$WORK_DIR/operations/paperless-users.env"
+CLIENT_SSH="$WORK_DIR/clusters/cluster-1/base/ssh.config"
+for actor in admin reader denied; do
+  case "$actor" in
+    admin) username=$PAPERLESS_ADMIN ;;
+    reader) username=$PAPERLESS_READER ;;
+    denied) username=$PAPERLESS_DENIED ;;
+  esac
+  kubectl --kubeconfig "$KC" -n paperless-green exec deployment/paperless -c paperless -- \
+    uv run --no-project python manage.py drf_create_token "$username" |
+    jq -Rer 'select(startswith("Generated token ")) |
+      capture("^Generated token (?<token>[0-9a-f]+) for user ").token' |
+    ssh -F "$CLIENT_SSH" cluster-1-node1 "umask 077; cat > /root/bartl-reference/paperless/tokens/$actor"
+done
+```
+
+Run [Paperless retained-data checks](verification.md#paperless-retained-data-checks) from A and fresh OIDC login from the administrator browser. Verify the same user IDs, grants, content, search and original bytes. Complete the package's records review; this synthetic run has no unrecorded later business decisions, and that assumption must be checked, not applied to real customer records.
+
+Run [Paperless new work after recovery](verification.md#paperless-new-work-after-recovery), then execute the package's subsequent capture block. Preserve its receipt:
+
+```bash
+cp "$PL_TARGET_DIR/backup-result.json" "$WORK_DIR/evidence/paperless-recovered-backup.json"
+```
+
+Complete [Paperless subsequent-backup readback](#read-paperless-new-work-from-the-subsequent-backup) before activation. Leave ordinary Paperless ingress disabled, its review route restricted and its capture schedule suspended. Do not execute its ordinary-access activation block yet.
+
+## Recover Forgejo while all applications remain restricted
+
+In the Forgejo terminal reload independent source pointers before **Prepare the replacement**. Keep the target package/version and acquisition staging from the pre-interruption step; do not download and silently select a different package halfway through the operation:
 
 ```bash
 export SOURCE_DEPLOYMENT=forgejo SOURCE_DIR="$FJ_SOURCE_DIR"
 export SOURCE_HOST="$(cat "$WORK_DIR/evidence/forgejo-source-host")"
-export BACKUP_SCHEDULE="$(cat "$WORK_DIR/evidence/forgejo-source-backup-schedule")"
 ```
 
-Use the replacement choices in the input table **inside** that package block. It creates the target record once, reads its exact 0.2.2 archive and applies the documented operation-over-service input precedence; do not use Keycloak's deployment Helm flag or chart cache layout. Keep backup schedule empty through acceptance. The package prepares independent claims, retained identity/configuration, repository Secrets and ordinary install. Do not regenerate keys, bootstrap users or native OIDC auth records.
+Use the table's replacement choices **inside** the package creation block. It records a new package entry and target selector and projects native version/hostname intent explicitly; the chart still does not accept Keycloak's deployment flag. The saved original schedule remains in `"$FJ_SOURCE_DIR/backup-schedule-before-operation"`. Prepare independent claims, retained identity/configuration and repository Secrets; never regenerate keys, bootstrap users or native OIDC records.
 
-The Forgejo package requires moving hostnames but supplies inspection rather than a deSEC mutation. At its DNS boundary, after target preparation and before Reconstruct and accept, the infrastructure shell updates only the inspected Forgejo record:
-
-```bash
-source "$WORK_DIR/operations/workstation.env"
-subname=${FORGEJO_HOST%."$DNS_ZONE"}
-test "$subname.$DNS_ZONE" = "$FORGEJO_HOST"
-desec "$DNS_API/rrsets/$subname/A/" |
-  jq -e --arg ip "$B_IP" '.records == [$ip]'
-desec --request PATCH "$DNS_API/rrsets/$subname/A/" \
-  --json "$(jq -nc --arg ip "$C_IP" '{records:[$ip]}')"
-HOST="$FORGEJO_HOST" IP="$C_IP" yq -i '.operations.dns[strenv(HOST)].address = strenv(IP)' "$VALUES"
-for resolver in ns1.desec.io ns2.desec.org; do
-  dig @"$resolver" "$FORGEJO_HOST" A +norecurse +noall +comments +answer
-done
-dig @1.1.1.1 +short "$FORGEJO_HOST" A
-dig @8.8.8.8 +short "$FORGEJO_HOST" A
-```
-
-Require authoritative `aa` and public answers for C, allowing the existing TTL to expire. If the record already points to C during resumption, verify it instead of requiring B and patching again. Any other address/ownership conflict stops the move. Handle a separately selected SSH hostname as its own inspected authorized record; the reference defaults use the same hostname. Do not alter Restic's A record.
+At Forgejo's DNS boundary, before **Reconstruct and accept**, follow [Move a consumer hostname](#move-a-consumer-hostname) in the infrastructure terminal with `HOST="$FORGEJO_HOST"`. Handle a separately selected SSH hostname as its own authorized record; this reference uses the same hostname. Keep Restic on A.
 
 Back in the Forgejo shell execute [Reconstruct and accept](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#reconstruct-and-accept). Require the exact `.status.backup.snapshot` from `evidence/forgejo-final-backup.json`, native 17.0.1, independent claims/backing storage, current-generation Ready, TLS and preserved SSH host key. **Stop before [Activate the replacement](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#activate-the-replacement).** Do not restore its schedule or remove firewall restrictions yet.
 
@@ -263,27 +345,9 @@ cp "$FJ_TARGET_DIR/backup-result.json" "$WORK_DIR/evidence/forgejo-recovered-bac
 cp "$KC_TARGET_DIR/recovered-backup-result.json" "$WORK_DIR/evidence/keycloak-recovered-backup.json"
 ```
 
-## Open the dependency before its consumer
-
-Only after all restricted acceptance and subsequent-backup checks pass:
-
-1. In the selected Keycloak target shell, execute [RECOVERY step 6, Open service](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#6-open-service). This removes application maintenance and resumes its approved backup schedule. Keep C's firewall restriction until the step is successful.
-2. In the infrastructure shell replace only C's temporary restricted HTTPS rule with the intended public rule:
-
-   ```bash
-   hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
-     --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
-   hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 --source-ips 0.0.0.0/0,::/0
-   ```
-
-   HTTPS is shared by both services: this also exposes the accepted Forgejo HTTP route. Therefore all consumer acceptance must have passed before this mutation, even though its schedule and SSH activation still follow. Verify ordinary Keycloak login before continuing.
-3. In the Forgejo shell restore the preserved `BACKUP_SCHEDULE` and execute [Activate the replacement](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#activate-the-replacement). Its environment restriction removal means the HTTPS mutation above plus the intended SSH rule. This reference retains administrator/A-only direct SSH; do not broaden it to public SSH without an explicit operating decision.
-
-Require current-generation Ready and normal client access. Verify both capture schedules and an actual successful scheduled run; manual publication does not prove scheduling. Leave source intent stopped and B powered off. Retain active deployment/resource identities, selected points, final-write boundaries, actual interruption, acceptance and schedule outcomes in the installation's existing operating record.
-
 ## Reinstall Forgejo with retained state
 
-Authorize this separate application interruption after takeover and completed publication. In the Forgejo shell [resume](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#resume-an-existing-deployment) `forgejo-replacement`, not the retired source. Save the current PVC inventory, then execute [Removal and retained-state reinstall](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#removal-and-retained-state-reinstall) in full:
+Exercise retained-state reinstall on C while ordinary access remains restricted and the source remains off. In the Forgejo terminal resume its target directory, save the current PVC inventory and execute [Removal and retained-state reinstall](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#removal-and-retained-state-reinstall) in full. This is a separate authorized application interruption after completed publication:
 
 ```bash
 kubectl --kubeconfig "$KC" -n forgejo-green get pvc -o json > "$WORK_DIR/evidence/forgejo-before-reinstall-pvc.json"
@@ -320,10 +384,6 @@ On A, use the independently checksummed native Restic client and its verified HT
 cd /root/bartl-reference
 umask 077
 SNAPSHOT=$(jq -er '.status.backup | select(.success == true) | .snapshot | select(test("^[a-f0-9]{64}$"))' forgejo-reinstalled-backup.json)
-curl -fL -o restic.bz2 https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_linux_amd64.bz2
-printf 'f415415624dcc452f2a02b8c33641791a8c6d6d3b65bbb3543fcf9a25151585c  restic.bz2\n' | sha256sum --check
-bzip2 -d restic.bz2
-chmod 700 restic
 source installation.env
 export RESTIC_REPOSITORY="rest:https://$BACKUP_HOST/forgejo/"
 export RESTIC_PASSWORD_FILE=/root/bartl-reference/repositories/forgejo/reader/password
@@ -356,4 +416,120 @@ exit
 
 Require every file-checksum check, native SQLite integrity check, unique post-recovery issue body, exact package blob bytes and Git readback to pass. The database export inspects captured native SQLite content without guessing Forgejo SQL table names; the manifest identifies the package blob by its unique fixture bytes rather than a guessed storage path. These checks prove captured content, not relational schema or application recovery; the earlier restored-service acceptance establishes useful semantics. Keep the native capture metadata, point identity and acceptance results. Remove the plaintext database export and restored tree under the lab's authorized data-disposition procedure.
 
-Preserve verified point identities and results, remove plaintext reader inputs when no longer needed, then continue with [cleanup](README.md#cleanup). Do not use this planned-retirement exercise as evidence of provider-loss activation or live qualification of the current Keycloak interface.
+Preserve selected point identities and remove plaintext reader inputs when no longer needed. After the readback passes, continue with **Open the dependency before its consumer** below. This planned-retirement exercise does not establish provider-loss activation.
+
+## Open the dependency before its consumer
+
+Only after all restricted acceptance and subsequent-backup checks pass:
+
+1. In the selected Keycloak target shell, execute [RECOVERY step 6, Open service](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#6-open-service). This removes application maintenance and resumes its approved backup schedule. Keep C's firewall restriction until the step is successful.
+2. In the infrastructure shell replace only C's temporary restricted HTTPS rule with the intended public rule:
+
+   ```bash
+   hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
+     --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
+   hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 --source-ips 0.0.0.0/0,::/0
+   ```
+
+   HTTPS is shared by all three applications. This also exposes accepted Forgejo HTTP, while Paperless's review route still restricts it. Every consumer's restricted acceptance and subsequent-backup readback must pass before this mutation. Verify ordinary Keycloak login.
+3. In the Forgejo terminal execute **Activate the replacement** with `SOURCE_DIR=$FJ_SOURCE_DIR`; its procedure reloads the saved schedule. This reference retains administrator/A-only direct SSH; do not broaden it without an explicit decision.
+4. In the Paperless terminal execute only its final activation block with `SOURCE_DIR=$PL_SOURCE_DIR`: remove the operator-owned review route, enable ordinary ingress and restore the saved schedule. Verify native/OIDC login and repeat the retained-data checks over ordinary access.
+
+Require current-generation Ready and useful client access for all applications. Verify all three capture schedules and an actual successful scheduled run; manual publication does not prove scheduling. Leave source intent stopped and B powered off. Keep active resource identities and selected recovery points in the installation record. Qualification results belong in the release/integration record, not a customer execution diary.
+
+After all application and scheduled-run checks pass, continue with [cleanup](README.md#cleanup).
+
+
+## Move a consumer hostname
+
+Use this checkpoint only at the Paperless or Forgejo package's DNS boundary, after source retirement and target preparation, before its certificate-dependent install waits. In the infrastructure terminal set `HOST` to that package's declared hostname. Keycloak uses its own DNS procedure; Restic stays on A.
+
+```bash
+source "$WORK_DIR/operations/workstation.env"
+: "${HOST:?Select the consumer hostname}"
+subname=${HOST%."$DNS_ZONE"}
+test "$subname.$DNS_ZONE" = "$HOST"
+desec "$DNS_API/rrsets/$subname/A/" > "$WORK_DIR/operations/moving-rrset.json"
+jq . "$WORK_DIR/operations/moving-rrset.json"
+```
+
+Confirm this is the installation-owned record. If it already points to C, skip the patch and verify resolution. If it points to B, run:
+
+```bash
+jq -e --arg ip "$B_IP" '.records == [$ip]' "$WORK_DIR/operations/moving-rrset.json"
+desec --request PATCH "$DNS_API/rrsets/$subname/A/" \
+  --json "$(jq -nc --arg ip "$C_IP" '{records:[$ip]}')"
+```
+
+Any other address or ownership conflict stops the move. After live confirmation of C:
+
+```bash
+desec "$DNS_API/rrsets/$subname/A/" | jq -e --arg ip "$C_IP" '.records == [$ip]'
+HOST="$HOST" IP="$C_IP" yq -i '.operations.dns[strenv(HOST)].address = strenv(IP)' "$VALUES"
+for resolver in ns1.desec.io ns2.desec.org; do
+  dig @"$resolver" "$HOST" A +norecurse +noall +comments +answer
+done
+dig @1.1.1.1 "$HOST" A +noall +comments +answer
+dig @8.8.8.8 "$HOST" A +noall +comments +answer
+```
+
+Require authoritative `aa` and public C answers, allowing the existing TTL to expire. Inspect conflicting AAAA records and alternate routes. Return to the calling package procedure; do not apply a generic loop over unrelated service names.
+
+## Read Paperless new work from the subsequent backup
+
+After Paperless's post-recovery capture and before ordinary activation, transfer only the native receipt and scoped reader inputs from the workstation to A:
+
+```bash
+CLIENT_SSH="$WORK_DIR/clusters/cluster-1/base/ssh.config"
+REPOSITORY_INPUTS="$RESTIC_DIR/protected/repositories/paperless"
+ssh -F "$CLIENT_SSH" cluster-1-node1 'umask 077; mkdir -p /root/bartl-reference/repositories/paperless/reader'
+ssh -F "$CLIENT_SSH" cluster-1-node1 \
+  'cat > /root/bartl-reference/repositories/paperless/reader/password' < "$REPOSITORY_INPUTS/password"
+ssh -F "$CLIENT_SSH" cluster-1-node1 \
+  'cat > /root/bartl-reference/repositories/paperless/reader/restPassword' < "$REPOSITORY_INPUTS/reader.restPassword"
+ssh -F "$CLIENT_SSH" cluster-1-node1 \
+  'cat > /root/bartl-reference/paperless-recovered-backup.json' < "$WORK_DIR/evidence/paperless-recovered-backup.json"
+ssh -F "$CLIENT_SSH" cluster-1-node1
+```
+
+On A, use the selected native point, not the live application volume:
+
+```bash
+cd /root/bartl-reference
+source installation.env
+umask 077
+export RESTIC_REPOSITORY="rest:https://$BACKUP_HOST/paperless/"
+export RESTIC_PASSWORD_FILE=/root/bartl-reference/repositories/paperless/reader/password
+export RESTIC_REST_USERNAME=reader
+export RESTIC_REST_PASSWORD="$(cat repositories/paperless/reader/restPassword)"
+SNAPSHOT=$(jq -er '.status.backup | select(.phase=="Published") |
+  .snapshotID | select(test("^[a-f0-9]{64}$"))' paperless-recovered-backup.json)
+test "$(./restic cat config | jq -er .id)" = \
+  "$(jq -er '.status.backup.repositoryID' paperless-recovered-backup.json)"
+./restic cat snapshot "$SNAPSHOT" > paperless-snapshot.json
+CAPTURE_PATH=$(jq -er '.paths | select(length==1) | .[0] |
+  select(test("^/staging/captures/[a-zA-Z0-9-]{1,100}$"))' paperless-snapshot.json)
+test ! -e paperless-readback
+./restic restore "$SNAPSHOT" --target /root/bartl-reference/paperless-readback --verify
+cd "/root/bartl-reference/paperless-readback$CAPTURE_PATH"
+jq -e --arg installation "$INSTALLATION_ID" '.format==1 and .version=="3.3.1" and
+  .identity.installation==$installation and .identity.instance=="paperless" and
+  (.files | has("export/manifest.json"))' bartl-manifest.json
+jq -r '.files | to_entries[] | "\(.value.sha256)  \(.key)"' bartl-manifest.json \
+  > /root/bartl-reference/paperless-members.sha256
+sha256sum --check /root/bartl-reference/paperless-members.sha256
+for name in baseline recovered; do
+  expected=$(sha256sum "/root/bartl-reference/paperless/$name.pdf" | cut -d ' ' -f 1)
+  jq -r --arg hash "$expected" '.files | to_entries[] |
+    select(.value.sha256==$hash) | .key' bartl-manifest.json \
+    > /root/bartl-reference/paperless-matching-members
+  test -s /root/bartl-reference/paperless-matching-members
+  while IFS= read -r member; do
+    cmp "/root/bartl-reference/paperless/$name.pdf" "$member"
+  done < /root/bartl-reference/paperless-matching-members
+done
+jq -e '[.. | objects | .title? // empty] | index("Synthetic Recovered") != null' export/manifest.json
+exit
+```
+
+The layout is owned by Paperless's [native capture/reconstruction procedure](https://github.com/bartlapp/bartl-paperless/blob/main/runtime/native.py), not a common Bartl backup format. Require manifest hashes, both original PDFs and the new document's exported title to pass. This proves content in the subsequent point; the earlier restored-service checks prove application behavior. Remove plaintext restore outputs when the run's data-disposition decision permits it, and return to the Paperless checkpoint in this chapter.
