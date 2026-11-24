@@ -278,13 +278,12 @@ A successor receives administrative control, effective installation configuratio
 
 ## Worked example: Keycloak
 
-The 0.5.0 operating package pairs Keycloak 26.6.2 with PostgreSQL 17.6 and supports the forward transition from Keycloak 26.6.1. Its reconstruction path illustrates the method:
+The Keycloak operating package pairs native Keycloak with PostgreSQL and declares its supported release transitions. Its reconstruction path illustrates the method:
 
 | Native procedure | Missing coordination supplied by the package |
 | --- | --- |
 | PostgreSQL starts and exposes the owned database. | Determine whether application state exists. Existing state goes to native Keycloak startup; only absence selects backup lookup. |
 | PostgreSQL reconstructs a native dump transactionally. | Select and verify the latest matching backup, keep conflicting writers stopped and bind exclusion to the restore transaction. One finite Job performs the work. |
 | `kc.sh start` initializes or performs native migration. | Start after required reconstruction succeeds; withhold ordinary access until native readiness, without independent schema certification. |
-| Native realm administration revokes restored sessions. | Perform this after recovery, not ordinary restart, before admitting traffic. |
 
-Failed or uncertain mutation leaves the target unavailable with diagnostics. Preserved recovery inputs permit reconstruction on another empty target instead of automatic repair. The controller connects native procedures; its Kubernetes layout and recovery-only session policy are package choices, not additional Bartl requirements.
+Failed or uncertain mutation leaves the target unavailable with diagnostics. Preserved recovery inputs permit reconstruction on another empty target instead of automatic repair. Recovery retains native session semantics; it does not add privileged realm administration as a startup dependency. Authentication and authorization changes after the selected backup may be lost. Source retirement, private startup and verified reconstruction remain required.
