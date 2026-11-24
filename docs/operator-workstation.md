@@ -19,6 +19,7 @@ Prepare this workstation before using an installation checkout or the [reference
 | OpenSSL / LibreSSL | Generate credentials and backup endpoint password hashes | `rand -hex` and `passwd -apr1 -stdin` |
 | hcloud | Hetzner project operations | Required for the Hetzner profile |
 | curl and dig | DNS API requests and authoritative/public DNS checks | Required for the deSEC profile |
+| Restic | Native repository acceptance and independent backup readback | 0.19.1 when following the Restic/reference installation procedures |
 
 Ruby and MessagePack are not required. Installing these tools does not install customer workloads on the workstation.
 
@@ -44,6 +45,28 @@ On macOS, if the supplied `openssl` fails the capability checks below, install a
 brew install openssl@3
 export PATH="$(brew --prefix openssl@3)/bin:$PATH"
 ```
+
+### Native Restic for backup exercises
+
+If `restic version` already reports 0.19.1, keep that installation. Otherwise obtain the matching binary from the [official release](https://github.com/restic/restic/releases/tag/v0.19.1). On macOS arm64, install it in a versioned user directory without changing the shell profile:
+
+```bash
+export RESTIC_TOOL_DIR="$HOME/.local/share/bartl/restic-0.19.1"
+mkdir -p "$RESTIC_TOOL_DIR"
+test ! -e "$RESTIC_TOOL_DIR/restic"
+curl --fail --location --show-error --output "$RESTIC_TOOL_DIR/restic.bz2" \
+  https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_darwin_arm64.bz2
+printf '7be0a144ccc377880f294204aa271d76e4b79554b42a751151d425ce6ebac143  %s\n' \
+  "$RESTIC_TOOL_DIR/restic.bz2" | shasum -a 256 --check -
+bzip2 -d "$RESTIC_TOOL_DIR/restic.bz2"
+chmod 700 "$RESTIC_TOOL_DIR/restic"
+export PATH="$RESTIC_TOOL_DIR:$PATH"
+restic version
+```
+
+Select that existing directory on `PATH` in each operating shell; do not redownload on resumption. Other platforms use their corresponding official binary or a package-manager installation providing the selected version. The reference walkthrough separately prepares its Linux test-client binary on A.
+
+### Select the operating identity
 
 Base uses direnv to select its cluster-local access definition; application packages also accept explicitly supplied external cluster access without a directory hook. Use a dedicated shell without inherited provider tokens, Helm target overrides or personal Kubernetes configuration. Explicitly select the customer's password store, provider credentials and cluster context before operating. Until selection succeeds, disable implicit access (for example `PASSWORD_STORE_DIR=/dev/null`, `HCLOUD_CONFIG=/dev/null` and `KUBECONFIG=/dev/null` in a clean environment). A missing store or failed decryption must stop the operation, not select a personal default. Leaving a direnv scope restores the previous environment, not necessarily an empty one.
 
