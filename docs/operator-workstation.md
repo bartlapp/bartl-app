@@ -19,7 +19,6 @@ Prepare this workstation before using an installation checkout or the [reference
 | OpenSSL / LibreSSL | Generate credentials and backup endpoint password hashes | `rand -hex` and `passwd -apr1 -stdin` |
 | hcloud | Hetzner project operations | Required for the Hetzner profile |
 | curl and dig | DNS API requests and authoritative/public DNS checks | Required for the deSEC profile |
-| Restic | Native repository acceptance and independent backup readback | 0.19.1 when following the Restic/reference installation procedures |
 
 Ruby and MessagePack are not required. Installing these tools does not install customer workloads on the workstation.
 
@@ -46,25 +45,11 @@ brew install openssl@3
 export PATH="$(brew --prefix openssl@3)/bin:$PATH"
 ```
 
-### Native Restic for backup exercises
+### Verification and recovery clients
 
-If `restic version` already reports 0.19.1, keep that installation. Otherwise obtain the matching binary from the [official release](https://github.com/restic/restic/releases/tag/v0.19.1). On macOS arm64, install it in a versioned user directory without changing the shell profile:
+The operator workstation does not need a native Restic installation for the reference walkthrough. Its [client preparation](reference-installation/applications.md#prepare-the-verification-client-on-a) installs Restic on A before repository acceptance; later readback checks reuse it. Normal application capture/reconstruction and backend maintenance run in their packages.
 
-```bash
-export RESTIC_TOOL_DIR="$HOME/.local/share/bartl/restic-0.19.1"
-mkdir -p "$RESTIC_TOOL_DIR"
-test ! -e "$RESTIC_TOOL_DIR/restic"
-curl --fail --location --show-error --output "$RESTIC_TOOL_DIR/restic.bz2" \
-  https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_darwin_arm64.bz2
-printf '7be0a144ccc377880f294204aa271d76e4b79554b42a751151d425ce6ebac143  %s\n' \
-  "$RESTIC_TOOL_DIR/restic.bz2" | shasum -a 256 --check -
-bzip2 -d "$RESTIC_TOOL_DIR/restic.bz2"
-chmod 700 "$RESTIC_TOOL_DIR/restic"
-export PATH="$RESTIC_TOOL_DIR:$PATH"
-restic version
-```
-
-Select that existing directory on `PATH` in each operating shell; do not redownload on resumption. Other platforms use their corresponding official binary or a package-manager installation providing the selected version. The reference walkthrough separately prepares its Linux test-client binary on A.
+Manual repository inspection or file recovery requires native Restic on the selected operator-controlled recovery host. A workstation may be selected deliberately for that purpose, but its binary and cache are not general onboarding prerequisites.
 
 ### Select the operating identity
 

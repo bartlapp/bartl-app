@@ -2,6 +2,29 @@
 
 Complete the [three-base setup](README.md). Keep C empty. Every package uses the existing absolute `WORK_DIR` and `VALUES`; replace sample installation paths in package recipes with these retained paths. Run package creation blocks once, with the choices below, rather than pre-creating records and then running creation again.
 
+## Prepare the verification client on A
+
+A is the operator-controlled client for native repository checks as well as the backup host. Prepare it before Restic acceptance, using Base's verified SSH access. From the workstation, for a fresh client directory:
+
+```bash
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 bash -s <<'REMOTE'
+set -euo pipefail
+umask 077
+apt-get update
+apt-get install -y jq git git-lfs bzip2 sqlite3
+mkdir -p /root/bartl-reference
+cd /root/bartl-reference
+test ! -e restic
+curl -fL -o restic.bz2 https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_linux_amd64.bz2
+printf 'f415415624dcc452f2a02b8c33641791a8c6d6d3b65bbb3543fcf9a25151585c  restic.bz2\n' | sha256sum --check
+bzip2 -d restic.bz2
+chmod 700 restic
+./restic version
+REMOTE
+```
+
+On resumption, keep the existing verified binary and check its version instead of downloading over it. Later Forgejo and Paperless readback checks reuse this client. Workstation Restic and its cache are not needed. A's continued availability is part of this B→C exercise, not evidence of backup-host-loss recovery.
+
 ## Install the backup endpoint on A
 
 Enter A's cluster directory and wait for the next prompt so Base selects its access:
@@ -14,7 +37,7 @@ At the next prompt follow the [Restic README](https://github.com/bartlapp/bartl-
 
 Continue through declaration rendering and storage creation. At **Prepare DNS, TLS and repository credentials**, use the [DNS checkpoint](#dns-checkpoint) below with `HOST="$RESTIC_HOST"` and `IP="$A_IP"`, then resume the package's TLS and credential preparation. Retain its repository encryption key, distinct reader/writer/admin transport passwords, `htpasswd` and validating CA independently. Use managed TLS or explicitly retained external TLS, never competing certificate owners.
 
-Complete **Install and verify**, including the native writer/reader round-trip for `keycloak`. Follow [Add a repository](https://github.com/bartlapp/bartl-restic/blob/main/README.md#add-a-repository) separately for `REPOSITORY=forgejo` and `REPOSITORY=paperless`, verifying the round-trip for each. Preserve the existing repository list and credentials. Native package admission initializes genuinely new repositories; never run `restic init` separately.
+Complete the workstation-side **Install and verify** checks, then use [Verify a repository from A](#verify-a-repository-from-a) below for `REPOSITORY=keycloak`. Follow [Add a repository](https://github.com/bartlapp/bartl-restic/blob/main/README.md#add-a-repository) separately for `REPOSITORY=forgejo` and `REPOSITORY=paperless`, repeating that A-client round-trip for each. Preserve the existing repository list and credentials. Native package admission initializes genuinely new repositories; never run `restic init` separately.
 
 ```bash
 source "$WORK_DIR/operations/workstation.env"
@@ -27,6 +50,40 @@ current_condition "$KA" backup resticapplication/backup-restic Ready
 
 Require trusted public HTTPS and authenticated reader access through the package's procedure. Readers may manage native locks but not mutate backup content; writers are append-only; maintenance authority stays separate. A survives this exercise but is not an independent secondary backup: its loss is outside the claim.
 
+
+## Verify a repository from A
+
+Start in the workstation's selected Restic deployment after that repository is admitted. For each newly selected repository, supply only its scoped verification inputs to A. Choose `REPOSITORY` once; subsequent checks derive its URL from Restic's declaration:
+
+```bash
+export REPOSITORY=keycloak
+CLIENT_SSH="$WORK_DIR/clusters/cluster-1/base/ssh.config"
+CLIENT_DIR="/root/bartl-reference/repositories/$REPOSITORY/client"
+REPOSITORY_URL=$(yq -er '.backup.providers[strenv(INSTANCE)].repositories[strenv(REPOSITORY)].repository' \
+  "$INSTALL_DIR/restic-connections.yaml")
+ssh -F "$CLIENT_SSH" cluster-1-node1 "umask 077; mkdir -p '$CLIENT_DIR'"
+for key in password writer.restPassword reader.restPassword; do
+  ssh -F "$CLIENT_SSH" cluster-1-node1 "umask 077; cat > '$CLIENT_DIR/$key'" \
+    < "$INSTALL_DIR/protected/repositories/$REPOSITORY/$key"
+done
+ssh -F "$CLIENT_SSH" cluster-1-node1 "umask 077; cat > '$CLIENT_DIR/ca.crt'" \
+  < "$INSTALL_DIR/protected/ca.crt"
+{
+  printf 'export REPOSITORY_URL=%q\nexport REPOSITORY_INPUTS=%q\n' "$REPOSITORY_URL" "$CLIENT_DIR"
+  printf '%s\n' 'export PATH="/root/bartl-reference:$PATH"'
+} | ssh -F "$CLIENT_SSH" cluster-1-node1 "umask 077; cat > '$CLIENT_DIR/client.env'"
+ssh -F "$CLIENT_SSH" -t cluster-1-node1 "cd '$CLIENT_DIR' && exec bash"
+```
+
+The new prompt is on A in the selected repository's client directory. Load the supplied inputs:
+
+```bash
+source ./client.env
+```
+
+Execute only the round-trip block from Restic's [Verify repository access from a client](https://github.com/bartlapp/bartl-restic/blob/main/README.md#verify-repository-access-from-a-client), keeping these supplied variables instead of its example assignments. Require authenticated write, reader restore and byte equality over the public HTTPS endpoint. Do not read the backend volume or disable certificate verification. Then run `exit` to return to the paused workstation deployment.
+
+For later checks of the same repository, reuse its retained client files rather than re-copying or regenerating credentials. Enter its existing client directory on A and load `client.env`. No admin password or `htpasswd` is sent to this client. The workstation's HTTPS/401 check above remains a separate public reachability check.
 
 ## Create Keycloak's deployment on B
 

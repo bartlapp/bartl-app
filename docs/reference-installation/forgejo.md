@@ -66,12 +66,11 @@ kubectl --kubeconfig "$KB" -n forgejo exec "$POD" -- cat /data/data/ssh/forgejo.
 
 If a matching rule exists, verify it rather than adding another. Trust the SSH key obtained through authenticated cluster access, not an unauthenticated scan.
 
-## Prepare the test client on A
+## Prepare Forgejo test inputs on A
 
-On the workstation, stream the source's retained bootstrap files to A, not payload data back to the workstation. Bootstrap credentials were supplied/generated once in the package preparation; for this exercise choose username `reference-admin` and email `reference-admin@example.invalid` before initial initialization. Do not change the account merely to fit a probe after creation.
+Use the [already prepared test client on A](applications.md#prepare-the-verification-client-on-a). On the workstation, stream Forgejo's retained bootstrap files to A, not payload data back to the workstation. These inputs were supplied/generated once in package preparation; keep username `reference-admin` and email `reference-admin@example.invalid` from that step. Do not change the account merely to fit a probe.
 
 ```bash
-ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 'apt-get update && apt-get install -y jq git git-lfs bzip2 sqlite3'
 SOURCE_DIR="$WORK_DIR/clusters/cluster-2/applications/forgejo"
 ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
   'umask 077; mkdir -p /root/bartl-reference/forgejo/bootstrap'
@@ -82,23 +81,6 @@ done
 ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
   'cat > /root/bartl-reference/forgejo/host-key.pub' < "$WORK_DIR/evidence/forgejo-host-key.pub"
 ```
-
-Install the pinned native Restic client on A for the later independent backup-readback checks. For a fresh client directory:
-
-```bash
-ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 bash -s <<'REMOTE'
-set -euo pipefail
-cd /root/bartl-reference
-test ! -e restic
-curl -fL -o restic.bz2 https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_linux_amd64.bz2
-printf 'f415415624dcc452f2a02b8c33641791a8c6d6d3b65bbb3543fcf9a25151585c  restic.bz2\n' | sha256sum --check
-bzip2 -d restic.bz2
-chmod 700 restic
-./restic version
-REMOTE
-```
-
-For a resumed test client, retain the existing verified binary and check its version rather than downloading over it.
 
 Once all four source declarations exist, publish nonsecret test-client endpoint exports from the workstation:
 

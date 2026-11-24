@@ -88,7 +88,7 @@ Exercise persistent stop/start: stop Forgejo and Paperless before Keycloak; star
 
 Before retiring B, exercise Restic's [Supported uninstall](https://github.com/bartlapp/bartl-restic/blob/main/README.md#supported-uninstall) followed immediately by [Reinstall retained state](https://github.com/bartlapp/bartl-restic/blob/main/README.md#reinstall-retained-state). Pause conflicting captures/copies/maintenance and record the claim UID first. Keep the controller alive through CR finalization. Retain the same PVC, TLS, supplied Secrets, credentials and repository keys; do not rerun endpoint creation.
 
-Require current-generation Ready, unchanged claim/repository identities, authenticated reader access to all three histories and restore of each saved source point. Use native Restic with the corresponding repository's reader/key/CA, never a shared decryption key. Complete the package's writer/reader round-trip for each repository. Keep synthetic endpoint-check points distinct from application recovery points. Resume consumers only after the endpoint is usable.
+Require current-generation Ready, unchanged claim/repository identities, authenticated reader access to all three histories and restore of each saved source point. Run native Restic on A with each repository's own reader/key/CA. Repeat [Verify a repository from A](applications.md#verify-a-repository-from-a) using the retained client inputs for each repository; do not install Restic on the workstation. Keep synthetic endpoint-check points distinct from application recovery points. Resume consumers only after the endpoint is usable.
 
 ## Prepare the Keycloak target without changing the source
 
