@@ -224,48 +224,34 @@ yq -i '.services.paperless.version = "3.3.1"' "$VALUES"
 
 Run **Prepare the independent target** using the table's C choices. Restore the original Paperless key and OIDC client input; supply the existing A repository's reader/writer files, not newly generated keys. At its DNS boundary, follow [Move a consumer hostname](#move-a-consumer-hostname) with `HOST="$PAPERLESS_HOST"`. Then execute **Reconstruct, review and activate** only through creation of the restricted review route, stopping before new-work capture and ordinary activation.
 
-Require the final source receipt's repository/full `.status.backup.snapshotID`, native 3.3.1, independent claims and current-generation Ready. In the Paperless target shell, set the package's `REVIEW_CIDR` to `"$ADMIN_IP/32"`. After the package creates its review Middleware, include A as the additional acceptance client:
+Require the final source receipt's repository/full `.status.backup.snapshotID`, native 3.3.1, independent claims and current-generation Ready. Set the package's `REVIEW_CIDR` to `"$ADMIN_IP/32"` before creating its review Middleware. Initially only the administrator is admitted.
+
+A already reaches C through the restricted provider firewall but is not yet in Paperless's application allowlist. From the infrastructure terminal, verify that A is independently addressed and test its denial, including a forged forwarding header:
+
+```bash
+test "$A_IP" != "$ADMIN_IP"
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
+  bash -s -- "$PAPERLESS_HOST" "$ADMIN_IP" <<'CHECK'
+set -euo pipefail
+PAPERLESS_URL="https://$1"
+ADMIN_IP=$2
+test "$(curl --silent --show-error -o /dev/null -w '%{http_code}' "$PAPERLESS_URL")" = 403
+test "$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
+  -H "X-Forwarded-For: $ADMIN_IP" "$PAPERLESS_URL")" = 403
+CHECK
+```
+
+Only after those denials pass, add A as the acceptance client:
 
 ```bash
 kubectl --kubeconfig "$KC" -n paperless-green patch middleware paperless-review --type=merge \
   -p "$(jq -nc --arg admin "$ADMIN_IP/32" --arg client "$A_IP/32" \
     '{spec:{ipAllowList:{sourceRange:[$admin,$client]}}}')"
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
+  curl --fail --silent --show-error --output /dev/null "https://$PAPERLESS_HOST"
 ```
 
-Forgejo must not yet exist on C. To exercise the Paperless application allowlist rather than merely the provider firewall, select the independent denied client's actual public IPv4 in the infrastructure terminal:
-
-```bash
-read -r -p 'Independent denied client IPv4: ' DENIED_IP
-test "$DENIED_IP" != "$ADMIN_IP"
-test "$DENIED_IP" != "$A_IP"
-test "$DENIED_IP" != "$C_IP"
-printf '%s\n' "$DENIED_IP" > "$WORK_DIR/operations/denied-client-ip"
-hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
-  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
-hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
-  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32,$DENIED_IP/32"
-```
-
-On that client, set `PAPERLESS_URL` to the retained Paperless URL and `ADMIN_IP` to the actual administrator address. Require HTTP 403 both normally and with a forged forwarded header:
-
-```bash
-test "$(curl --silent --show-error -o /dev/null -w '%{http_code}' "$PAPERLESS_URL")" = 403
-test "$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
-  -H "X-Forwarded-For: $ADMIN_IP" "$PAPERLESS_URL")" = 403
-```
-
-In the infrastructure terminal remove that temporary exception before Forgejo is installed:
-
-```bash
-DENIED_IP=$(cat "$WORK_DIR/operations/denied-client-ip")
-hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
-  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32,$DENIED_IP/32"
-hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
-  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
-hcloud firewall describe "$C_FIREWALL" --output json
-```
-
-On interrupted execution inspect and remove any remaining exception first; the normal C rule still admits only the administrator, A and C. A source mismatch or inability to establish allowed/denied behavior stops activation.
+Require the post-change request to succeed. The firewall remains restricted throughout; no temporary ordinary-client exception is introduced. On resumption, inspect whether the deny/admit transition already completed before replaying it. A source mismatch or inability to establish both outcomes stops activation.
 
 Reissue native Paperless tokens against C because import excludes them. On the workstation:
 
