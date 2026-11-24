@@ -41,7 +41,7 @@ Use separate direnv-hooked Bash terminals for Keycloak, Forgejo, Paperless, Rest
 
 A package changes generic names such as `SOURCE_DIR`, `CHART`, `NS` and `KUBECONFIG`; never carry these from one package to another. Use a separate infrastructure shell with `workstation.env` and explicit `KA`, `KB`, `KC` paths. The fixed per-service directories above and separately named receipts remain the handoff across sessions. Preserve independent credentials and the installation record before powering B off; no later target operation may depend on B's API.
 
-Every package condition must belong to the current resource generation. Follow its matching-generation checks, not only `kubectl wait`. Timeout is not server-side cancellation. Stop on failed/ambiguous native work and retain diagnostics; do not clear failure markers, finalizers or native locks.
+Every package condition must belong to the current resource generation. Use its generation-aware native condition wait and result checks; do not freeze an earlier generation into a separate equality wait. Timeout is not server-side cancellation. Stop on failed/ambiguous native work and retain diagnostics; do not clear failure markers, finalizers or native locks.
 
 ## Exercise source operation before interruption
 
@@ -67,7 +67,22 @@ Keycloak's receipt has top-level `.snapshotID`. Forgejo retains `.status.backup.
 
 ### Restart without backup access
 
-Authorize this short backup-endpoint interruption and pause manual/scheduled application captures first. In the Restic shell, [resume](https://github.com/bartlapp/bartl-restic/blob/main/README.md#resume-an-existing-deployment) `restic` and execute only the stop half of [Stop and start](https://github.com/bartlapp/bartl-restic/blob/main/README.md#stop-and-start). Require current-generation Stopped and no serving/lifecycle/copy Pods. Keep A itself and its test client running.
+Authorize this short backup-endpoint interruption and stop submitting manual captures. First let all admitted captures/publications complete successfully. Retain the current scheduling choices and pause new scheduled submissions without stopping the applications:
+
+```bash
+test ! -e "$WORK_DIR/operations/capture-settings-before-interruption.yaml"
+yq '{"keycloak": ((.operations.deployments.keycloak // {}) | pick(["backupSuspend"])),
+     "paperless": .services.paperless.backup.schedule,
+     "forgejo": .services.forgejo.backup.schedule}' "$VALUES" \
+  > "$WORK_DIR/operations/capture-settings-before-interruption.yaml"
+yq -i '.operations.deployments.keycloak.backupSuspend = true |
+  .services.paperless.backup.schedule = "" |
+  .services.forgejo.backup.schedule = ""' "$VALUES"
+```
+
+In each source application terminal, follow its **Apply changes to a running deployment** procedure: [Keycloak](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#apply-changes-to-a-running-deployment), [Paperless](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#apply-changes-to-a-running-deployment), [Forgejo](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#apply-changes-to-a-running-deployment). Confirm the effective pause and no newly admitted or still-running capture before interrupting Restic. Keep these schedules paused through the retained-Restic reinstall below.
+
+In the Restic shell, [resume](https://github.com/bartlapp/bartl-restic/blob/main/README.md#resume-an-existing-deployment) `restic` and execute only the stop half of [Stop and start](https://github.com/bartlapp/bartl-restic/blob/main/README.md#stop-and-start). Require current-generation Stopped and no serving/lifecycle/copy Pods. Keep A itself and its test client running.
 
 In the Keycloak shell, run its [native restart](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#restart-keycloak). Restart the existing Forgejo application Deployment, not its controller or lifecycle intent:
 
@@ -80,15 +95,66 @@ In the selected Paperless source shell, execute only the native restart commands
 
 Require retained realm/user/client identities, native Keycloak login, Forgejo native login and useful HTTP/SSH reads from A while Restic is stopped. Neither service may initialize or restore. The Forgejo README describes ordinary restart semantics but does not supply a dedicated restart command; the commands above are Kubernetes' native Deployment restart, not a recovery workflow.
 
-In the Restic shell, complete its start half and require current-generation Ready, trusted HTTPS and authenticated access to all three histories. Restore the approved capture schedules. This checks existing-state startup without backup access, not recovery without independent inputs.
+In the Restic shell, complete its start half and require current-generation Ready, trusted HTTPS and authenticated access to all three histories. This checks existing-state startup without backup access, not recovery without independent inputs.
 
 ### Stop/start and retained Restic reinstall
 
 Exercise persistent stop/start: stop Forgejo and Paperless before Keycloak; start Keycloak before its consumers. Use [Forgejo Stop and start](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#stop-and-start), [Paperless Stop, start and restart](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#stop-start-and-restart) and [Keycloak persistent stop/start](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#persistently-stop-and-start-keycloak), each in its own resumed context. Require current-generation Stopped/Ready, drained work and unchanged useful data/identity. Do not scale generated workloads to implement persistent stop.
 
+Before uninstalling Restic, retain each repository's native identity. Open A with `ssh -F "$CLIENT_SSH" cluster-1-node1` and run:
+
+```bash
+set -euo pipefail
+umask 077
+mkdir -p /root/bartl-reference/restic-reinstall
+for repository in keycloak paperless forgejo; do (
+  source "/root/bartl-reference/repositories/$repository/client/client.env"
+  export RESTIC_REPOSITORY="$REPOSITORY_URL" RESTIC_PASSWORD_FILE="$REPOSITORY_INPUTS/password" RESTIC_REST_USERNAME=reader
+  export RESTIC_REST_PASSWORD="$(cat "$REPOSITORY_INPUTS/reader.restPassword")"
+  test ! -e "/root/bartl-reference/restic-reinstall/$repository-id"
+  restic --cacert "$REPOSITORY_INPUTS/ca.crt" cat config | jq -er .id \
+    > "/root/bartl-reference/restic-reinstall/$repository-id"
+); done
+exit
+```
+
+Keep these pre-operation identities on resumption; do not overwrite them with post-operation observations.
+
 Before retiring B, exercise Restic's [Supported uninstall](https://github.com/bartlapp/bartl-restic/blob/main/README.md#supported-uninstall) followed immediately by [Reinstall retained state](https://github.com/bartlapp/bartl-restic/blob/main/README.md#reinstall-retained-state). Pause conflicting captures/copies/maintenance and record the claim UID first. Keep the controller alive through CR finalization. Retain the same PVC, TLS, supplied Secrets, credentials and repository keys; do not rerun endpoint creation.
 
 Require current-generation Ready, unchanged claim/repository identities, authenticated reader access to all three histories and restore of each saved source point. Run native Restic on A with each repository's own reader/key/CA. Repeat [Verify a repository from A](applications.md#verify-a-repository-from-a) using the retained client inputs for each repository; do not install Restic on the workstation. Keep synthetic endpoint-check points distinct from application recovery points. Resume consumers only after the endpoint is usable.
+
+After reinstall, open A again and compare native identities before adding new endpoint-check points:
+
+```bash
+set -euo pipefail
+for repository in keycloak paperless forgejo; do (
+  source "/root/bartl-reference/repositories/$repository/client/client.env"
+  export RESTIC_REPOSITORY="$REPOSITORY_URL" RESTIC_PASSWORD_FILE="$REPOSITORY_INPUTS/password" RESTIC_REST_USERNAME=reader
+  export RESTIC_REST_PASSWORD="$(cat "$REPOSITORY_INPUTS/reader.restPassword")"
+  restic --cacert "$REPOSITORY_INPUTS/ca.crt" cat config |
+    jq -e --arg expected "$(cat "/root/bartl-reference/restic-reinstall/$repository-id")" '.id == $expected'
+); done
+exit
+```
+
+After the retained-state checks succeed, restore the saved scheduling choices and apply them through the same three running-configuration procedures:
+
+```bash
+export CAPTURE_SETTINGS="$WORK_DIR/operations/capture-settings-before-interruption.yaml"
+test -s "$CAPTURE_SETTINGS"
+yq -i 'load(strenv(CAPTURE_SETTINGS)) as $saved |
+  (.operations.deployments.keycloak |= del(.backupSuspend)) |
+  .operations.deployments.keycloak += $saved.keycloak |
+  .services.paperless.backup.schedule = $saved.paperless |
+  .services.forgejo.backup.schedule = $saved.forgejo' "$VALUES"
+```
+
+Verify effective scheduling, then remove only this completed operation's temporary file:
+
+```bash
+rm "$CAPTURE_SETTINGS"
+```
 
 ## Prepare the Keycloak target without changing the source
 
