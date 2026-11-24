@@ -54,7 +54,7 @@ forgejo_api --request PUT --json '{"permission":"read"}' \
   "$FORGEJO_URL/api/v1/repos/reference-admin/reference/collaborators/reference-user"
 git clone "$FORGEJO_URL/reference-admin/reference.git" http-client
 cd http-client
-git checkout -b main
+git checkout -b prepare-reference
 git lfs install --local
 git lfs track '*.bin'
 printf 'Reference content before recovery\n' > README.md
@@ -62,7 +62,7 @@ openssl rand 65536 > payload.bin
 sha256sum payload.bin > ../payload.sha256
 git add .gitattributes README.md payload.bin
 git commit -m 'Create reference data'
-git push -u origin main
+git push -u origin HEAD:main
 git checkout -b review
 printf 'Reviewable change before recovery\n' > review.txt
 git add review.txt
@@ -94,10 +94,11 @@ forgejo_api --json '{"tag_name":"v1.0.0","target_commitish":"main","name":"Refer
 GIT_LFS_SKIP_SMUDGE=1 git clone \
   "ssh://git@$FORGEJO_HOST:30222/reference-admin/reference.git" ssh-client
 cd ssh-client
+git checkout -b verify-ssh
 printf 'SSH write before recovery\n' > ssh.txt
 git add ssh.txt
 git commit -m 'Exercise SSH write'
-git push origin main
+git push origin HEAD:main
 git rev-parse HEAD > ../initial-head
 cd ..
 code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
@@ -152,10 +153,11 @@ Use the previously verified SSH host key; do not accept a new one. From the work
 GIT_LFS_SKIP_SMUDGE=1 git clone \
   "ssh://git@$FORGEJO_HOST:30222/reference-admin/reference.git" recovered-ssh
 cd recovered-ssh
+git checkout -b verify-recovered-write
 printf 'New write on recovered C\n' > recovered.txt
 git add recovered.txt
 git commit -m 'Verify recovered write authority'
-git push origin main
+git push origin HEAD:main
 git rev-parse HEAD > ../recovered-head
 cd ..
 cd recovered-http
