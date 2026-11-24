@@ -36,7 +36,11 @@ Review the first complete path before extending it. Existing code and passing te
 
 ## Deliver a usable package
 
-Keep the operator recipe separate from implementation reasoning. It states the supported configuration, choices, commands and expected results. Release, installation identity, effective configuration and protected input references must suffice to invoke the application work through its ordinary interface. A successor needs independently available software, configuration, backup history and keys, not the author's private machinery.
+Write a direct operator walkthrough for a competent administrator, separate from implementation reasoning. State the supported starting conditions, then give visible native commands in execution order and the useful result to check. Keep consequential safeguards; do not turn the recipe into a defensive provisioning program or hide it behind a management wrapper.
+
+Select genuine operator choices once, derive the remaining values and read retained choices when resuming. Separate creation, resumption and changes; creation is not a repair path. Name the shell and working directory, including remote-shell exits and prompt boundaries needed for context activation. Preserve unrelated installation entries.
+
+Each operation has one owning procedure. Link shared prerequisites rather than duplicate them. A handoff names its entry point, required inputs, expected outputs and continuation; the operator must not assemble fragments from unrelated sections. Package recipes remain usable without the company Customer Journey. Release, installation identity, effective configuration and protected-input references must suffice to invoke the ordinary interface.
 
 Define stop and removal alongside installation. If removal retains state for reuse, exercise authorized reinstall without admitting a competing predecessor. Retained data alone does not establish that procedure. Keep the coordination needed to finish removal available until its work is done.
 
@@ -45,6 +49,8 @@ For replacement, translate the [service-authority requirements](https://github.c
 ## Qualify the delivered path
 
 Exercise the actual package and administrator interface against the [contract's evidence cases](https://github.com/bartlapp/bartl-app/blob/main/docs/application-contract.md#supported-configuration-and-catalogue-evidence), not another implementation checklist. Check the limits on our intervention too: restart must not acquire recovery dependencies, failed work must not silently initialize or replay, and completion must not override stop. Qualification accounts and functional probes do not automatically become startup dependencies.
+
+Follow the documented procedure literally, including its handoffs. If a step is missing, fails or contradicts another procedure, stop the affected path and expose the defect before improvising a workaround. Correct the responsible procedure or package, then execute the corrected step and repeat the affected path. Changes to behavior, scope, failure assumptions or authorization require an explicit decision, not an editorial disguise. A successful installation achieved through undocumented intervention does not qualify the recipe.
 
 Qualify the same immutable artifacts operators obtain. Source-tested code does not qualify a published package. Keep repeatable checks in source, raw output outside Git, and exact artifact identities, observed results and consequential limits in the release/integration description. Do not create per-session evidence files or qualification reports. Keep historical limits attached to their exact releases, outside current instructions.
 
@@ -203,7 +209,7 @@ Base's root `.envrc` defines `load_cluster` and `load_deployment`. A cluster sel
 
 At the next shell prompt, entering a deployment selects its context; returning to cluster scope clears deployment fields, and returning to installation scope clears cluster selection too. Leaving the installation restores the previous environment. Activation reads context only: it neither creates working files, downloads charts, contacts Kubernetes nor retrieves credentials. Credential restoration still writes to the selected `KUBECONFIG`.
 
-`CHART` identifies the normalized unpacked chart cache at `packages/<package>/<version>`. Package procedures acquire it explicitly when absent and expose it only after a complete download. Reuse package entries for the same recorded chart/version; selecting a different artifact requires a new package entry. Cache files are disposable, not independently retained recovery inputs. Fresh installation and replacement select a release once; routine operation uses the recorded release.
+`CHART` identifies the normalized unpacked chart cache at `packages/<package>/<version>`. Package procedures acquire it explicitly when absent and expose it only after a complete download. Reuse package entries for the same recorded chart/version; selecting a different artifact requires a new package entry. Cache files are disposable, not independently retained recovery inputs. Fresh installation and replacement acquire the latest stable package and record the resolved version; routine operation reacquires that recorded version when necessary. The selected package must support the native source-to-target transition. Public registry availability is a recovery dependency, not a requirement for every operator to maintain a private chart archive.
 
 Retain root, cluster and deployment `.envrc` files, tracking them in Git-backed installations while ignoring runtime files. For an existing installation, update the shared root through [Base's procedure](https://github.com/bartlapp/base-k3s/blob/main/README.md) before using deployment selectors. Package READMEs own selector creation and entry paths; the customer workflow owns retrieval and approval on another workstation.
 
