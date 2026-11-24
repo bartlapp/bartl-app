@@ -102,8 +102,13 @@ git rev-parse HEAD > ../initial-head
 cd ..
 code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
   "$FORGEJO_URL/api/v1/repos/reference-admin/reference")
-test "$code" = 403
+case "$code" in
+  401|403|404) ;;
+  *) printf 'Expected anonymous access denial, got HTTP %s\n' "$code" >&2; exit 1 ;;
+esac
 ```
+
+The authenticated checks above establish that this private route exists and works. Anonymous access must be denied; Forgejo may conceal the repository with 404 rather than return 403. A server failure is not denial evidence.
 
 If any write fails, inspect its HTTP status and actual state, then resolve the cause with the responsible operator before proceeding. A successful Git push does not prove downstream repository functions are available.
 
@@ -160,7 +165,10 @@ git show origin/main:recovered.txt
 cd ..
 code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' \
   "$FORGEJO_URL/api/v1/repos/reference-admin/reference")
-test "$code" = 403
+case "$code" in
+  401|403|404) ;;
+  *) printf 'Expected anonymous access denial, got HTTP %s\n' "$code" >&2; exit 1 ;;
+esac
 ```
 
 Clear old Forgejo and Keycloak browser cookies and sign in through “Sign in with keycloak”. Confirm that `reference-user` still reads the private repository without administration rights. Compare the realm/user/client IDs with the retained source record through native Keycloak administration. Keep ordinary access restricted until these checks and each package's new-work/subsequent-backup acceptance pass. Only then may the recovery coordinator execute the package activation steps. After the new write on C, switching back to B is no longer a lossless rollback.
