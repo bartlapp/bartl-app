@@ -87,7 +87,9 @@ Create deployments only through their package's new-installation procedure: Rest
 
 The current procedures use directory selectors and normalized disposable chart caches. Fresh installation and replacement resolve a stable public package; resumption reacquires its recorded version. Native application versions remain separate choices. The package procedures own Helm projections and operation-intent precedence; a shell selector does not imply that every chart accepts Keycloak's `deployment` flag.
 
-Keycloak 0.7.0 is published and its clean no-backup installation/stop-start path is recorded in its [release evidence](https://github.com/bartlapp/bartl-keycloak/releases/tag/v0.7.0). Restic 0.3.0, Paperless 0.2.0 and Forgejo 0.2.2 are the published artifacts used for the current offline procedure checks. None of that qualifies this four-service recovery sequence. Use the corrected package procedures with their matching artifacts; historical release-tagged instructions may predate those corrections.
+The live reference run used Restic 0.3.0, Keycloak 0.7.0, Paperless 0.2.0 and Forgejo 0.2.2. Source installation, native/OIDC access, useful data and permission checks, manual and scheduled captures, backup-independent restart, persistent stop/start and retained Restic reinstall passed. Restic verification ran natively on A, including unchanged repository identities and restored source points.
+
+**Coordinated recovery remains blocked.** With B retired, Keycloak 0.7.0 restored the exact final point on independent C storage but failed closed at native session reset: `RecoverySessionResetFailed: native recovery administration transport failed`. TLS issuance succeeded; the internal administration transport cause is not yet isolated. Restricted target acceptance, Paperless/Forgejo reconstruction and final activation were not reached. The later allowlist checkpoints are therefore still unqualified. Retain diagnostics, correct the native blocker and repeat on fresh target storage; do not clear failure markers or reinterpret a restored database as a recovered service. Historical release-tagged instructions may predate the corrected package procedures.
 
 Use empty application targets. This composition is not a qualified upgrade from the historical walkthrough. Choose `keycloak-replacement`, `forgejo-replacement` and `paperless-replacement` only at their package replacement steps. A package or handoff mismatch stops the affected path: correct its owner, then exercise the corrected procedure rather than improvising past it.
 
@@ -162,6 +164,8 @@ Protected inputs remain independently usable outside B/C and their Keycloak. Syn
 
 After authorized data disposition, remove reachable Paperless and Forgejo targets through their package finalization/uninstall steps, not the subsequent reinstall blocks. Remove Paperless's operator-owned review Ingress/Middleware if still present. Remove Keycloak next and Restic last. Keep backup access and DNS usable until required publication and package finalization finish. Preserve independently required history and keys; do not restart retired B for cosmetic uninstall.
 
+If a failed target reports `Stopped` but not `Quiescent`, its normal uninstall precondition has not passed. Do not erase the failure to satisfy it. For explicitly authorized disposal of this entire synthetic lab, retain diagnostics, enforce host retirement and destroy only the inspected, independently owned VM and its local data through Base. This is destructive failed-target disposal, not successful application uninstall or recovery.
+
 Retain `VALUES` and access files until all cloud deletions finish. Remove only this run's retained DNS records after reading live identity/address and checking against `operations.dns`; never delete the zone or unrelated names. For each recorded A record:
 
 ```bash
@@ -177,6 +181,8 @@ done
 ```
 
 Require authoritative replies with no A answer for every deleted name; a timeout/SERVFAIL is not proof of deletion.
+
+After an interrupted DNS loop, inspect the live RRset collection and continue only with remaining owned records; do not replay deletions of already absent names. Respect a rate-limit response's delay before the next request. API acceptance can precede authoritative convergence, so wait for both authoritative servers before releasing the addresses.
 
 Then select each cluster's separate Hetzner machine context for `cluster-2`, `cluster-3`, and finally `cluster-1`, and follow Base's [Remove the selected cluster](https://github.com/bartlapp/base-k3s/blob/main/README.md#remove-the-selected-cluster). Inspect remaining consumers and compare live resources with retained observations before authorizing deletion. Base removes cluster/VM and retired deployment records only after resource absence is verified. For interrupted provisioning/deletion, reconcile the provider inventory and remove only remaining owned resources instead of replaying the normal recipe. Deleting A destroys the synthetic backup history. Confirm no run-owned provider allocations remain. Local deletion is a separate authorized retention decision.
 
