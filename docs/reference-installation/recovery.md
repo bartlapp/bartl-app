@@ -173,7 +173,7 @@ yq -i '.services.keycloak.ingress.administratorSourceRanges =
   [strenv(ADMIN_IP) + "/32", strenv(C_IP) + "/32", strenv(C_POD_CIDR)]' "$VALUES"
 ```
 
-Before restored startup, follow [Base source-address preservation](https://github.com/bartlapp/base-k3s/blob/main/README.md#preserve-client-addresses-for-restricted-access) on C. Verify actual public egress and the client address seen by ingress. Forgejo and Paperless server-side OIDC requests must work while ordinary Keycloak access remains denied. If SNAT, IPv6, a proxy or another browser egress changes an address, stop and select its verified authorized CIDR; do not broaden the list to all sources.
+Base provisioning already configures source-address preservation on C. Verify actual public egress and the client address seen by ingress during acceptance. Forgejo and Paperless server-side OIDC requests must work while ordinary Keycloak access remains denied. If SNAT, IPv6, a proxy or another browser egress changes an address, stop and select its verified authorized CIDR; do not broaden the list to all sources.
 
 In the infrastructure shell, check this profile's native node egress before using those addresses:
 

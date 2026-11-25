@@ -85,6 +85,52 @@ done
 These certifications stay in the operator's keyring and are non-exportable. They establish recipient identity without assigning recipients ownertrust. Use ordinary `pass` encryption and verify decryption through the installation procedure; no `--trust-model always` override is needed.
 
 
+## Use supplied cluster access
+
+Use this path to prepare local access to a compatible existing cluster, without provisioning or adopting its infrastructure. Supply its complete `installation.yaml` and kubeconfig. Obtain the public context loader through [Get the Base recipe](https://github.com/bartlapp/base-k3s/blob/main/README.md#get-the-base-recipe), stopping after the checkout sets `BASE_REPO`.
+
+In direnv-hooked Bash, select the installation, its recorded cluster key and supplied access file:
+
+```bash
+export WORK_DIR="$HOME/bartl/acme/acme-installation"
+export TARGET_CLUSTER=cluster-1
+export SUPPLIED_KUBECONFIG=/protected/supplied-kubeconfig
+```
+
+For an installation not yet prepared on this workstation, copy the loader once. If its retained `.envrc` is already present, keep it instead:
+
+```bash
+cp "$BASE_REPO/installation.envrc" "$WORK_DIR/.envrc"
+```
+
+Review and approve the installation context:
+
+```bash
+cd "$WORK_DIR"
+cat .envrc
+direnv allow
+```
+
+At the next prompt, prepare the new cluster directory and retain its supplied kubeconfig:
+
+```bash
+mkdir -p "$WORK_DIR/clusters/$TARGET_CLUSTER/base"
+printf 'source_env ../../.envrc\nload_cluster "${PWD##*/}"\n' \
+  > "$WORK_DIR/clusters/$TARGET_CLUSTER/.envrc"
+install -m 600 "$SUPPLIED_KUBECONFIG" "$WORK_DIR/clusters/$TARGET_CLUSTER/base/kubeconfig"
+direnv allow "$WORK_DIR/clusters/$TARGET_CLUSTER"
+cd "$WORK_DIR/clusters/$TARGET_CLUSTER"
+```
+
+At the next prompt, check the supplied cluster:
+
+```bash
+kubectl --context "$KUBE_CONTEXT" get --raw=/readyz
+kubectl --context "$KUBE_CONTEXT" get nodes,storageclass
+```
+
+For already prepared access, enter its retained cluster directory and run those checks; do not repeat preparation. Retain the selectors and protected access independently, then continue with the selected package's prerequisites. Its ingress must preserve real client addresses wherever application admission uses source-IP allowlists. The cluster administrator owns provisioning, provider networking and removal. No Hetzner machine selector or provider credentials are needed here.
+
 ## Check the workstation
 
 Run the common check below, then only the additional checks applicable to the operation. Standalone package use with supplied cluster access and credentials needs neither the Hetzner nor encrypted-store check. Do not print credential values.
