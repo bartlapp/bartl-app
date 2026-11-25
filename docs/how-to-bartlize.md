@@ -52,6 +52,8 @@ Exercise the actual package and administrator interface against the [contract's 
 
 Follow the documented procedure literally, including its handoffs. If a step is missing, fails or contradicts another procedure, stop the affected path and expose the defect before improvising a workaround. Correct the responsible procedure or package, then execute the corrected step and repeat the affected path. Changes to behavior, scope, failure assumptions or authorization require an explicit decision, not an editorial disguise. A successful installation achieved through undocumented intervention does not qualify the recipe.
 
+Approval to change a prerequisite does not retroactively validate the failed exercise. Re-establish the starting conditions and repeat the affected path before claiming qualification.
+
 Qualify the same immutable artifacts operators obtain. Source-tested code does not qualify a published package. Keep repeatable checks in source, raw output outside Git, and exact artifact identities, observed results and consequential limits in the release/integration description. Do not create per-session evidence files or qualification reports. Keep historical limits attached to their exact releases, outside current instructions.
 
 Test the claimed failure boundary: another namespace does not establish survival of host or provider loss. Renew affected evidence when the package changes.
