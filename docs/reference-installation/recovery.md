@@ -84,16 +84,9 @@ In each source application terminal, follow its **Apply changes to a running dep
 
 In the Restic shell, [resume](https://github.com/bartlapp/bartl-restic/blob/main/README.md#resume-an-existing-deployment) `restic` and execute only the stop half of [Stop and start](https://github.com/bartlapp/bartl-restic/blob/main/README.md#stop-and-start). Require current-generation Stopped and no serving/lifecycle/copy Pods. Keep A itself and its test client running.
 
-In the Keycloak shell, run its [native restart](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#restart-keycloak). Restart the existing Forgejo application Deployment, not its controller or lifecycle intent:
+In each selected source shell, execute the package's native restart: [Keycloak](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#restart-keycloak), [Forgejo](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#restart) and [Paperless](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#restart). Do not run their persistent stop/start procedures. Verify the existing library and [Paperless retained-data checks](verification.md#paperless-retained-data-checks) while Restic is unavailable.
 
-```bash
-kubectl --kubeconfig "$KB" -n forgejo rollout restart deployment/forgejo
-kubectl --kubeconfig "$KB" -n forgejo rollout status deployment/forgejo --timeout=10m
-```
-
-In the selected Paperless source shell, execute only the native restart commands in [Stop, start and restart](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#stop-start-and-restart), not its persistent stop/start blocks. Verify the existing library and [Paperless retained-data checks](verification.md#paperless-retained-data-checks) while Restic is unavailable.
-
-Require retained realm/user/client identities, native Keycloak login, Forgejo native login and useful HTTP/SSH reads from A while Restic is stopped. Neither service may initialize or restore. The Forgejo README describes ordinary restart semantics but does not supply a dedicated restart command; the commands above are Kubernetes' native Deployment restart, not a recovery workflow.
+Require retained realm/user/client identities, native Keycloak login, Forgejo native login and useful HTTP/SSH reads from A while Restic is stopped. Neither service may initialize or restore.
 
 In the Restic shell, complete its start half and require current-generation Ready, trusted HTTPS and authenticated access to all three histories. This checks existing-state startup without backup access, not recovery without independent inputs.
 

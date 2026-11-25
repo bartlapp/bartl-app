@@ -6,7 +6,8 @@ Prepare the common tools for the selected package procedure, then add only the t
 
 | Tool | Purpose | Requirement |
 | --- | --- | --- |
-| Git and OpenSSH | Clone and synchronize configuration and encrypted stores; access hosts | Authorized SSH identity |
+| Git | Obtain source or clone/synchronize configuration and encrypted stores | Only for Git-backed operations |
+| OpenSSH | Access hosts or SSH Git remotes | Only for those connections, with an authorized identity |
 | GitHub CLI (`gh`) | Create private repositories and inspect access and repository rules | Required for GitHub; authenticated as the authorized operator |
 | Bash and standard Unix utilities | Run explicit access preparation and commissioning commands | Bash, including when the interactive shell is Zsh |
 | direnv | Select Base's cluster-local working context | Required for the Base recipe; [hook into Bash](https://direnv.net/docs/hook.html) |
@@ -20,8 +21,6 @@ Prepare the common tools for the selected package procedure, then add only the t
 | hcloud | Hetzner project operations | Only when creating or administering Hetzner resources |
 | curl and dig | HTTPS client calls and DNS checks | Common package procedures; DNS administration uses the selected provider's interface |
 
-Ruby and MessagePack are not required. Installing these tools does not install customer workloads on the workstation.
-
 Helm 4.3.0 is the recorded tested baseline for the current journey and reference installation. It is our minimum supported recipe version, not a demonstrated technical minimum of Keycloak or K3s. The recipes use Helm 4's `--wait=legacy` syntax; Helm 3's boolean `--wait` is not compatible with these commands. Selecting a newer Helm version does not extend the existing qualification evidence: record the actual version and exercised path when verifying an installation.
 
 ## Install and configure
@@ -31,12 +30,12 @@ Agree new or replacement workstation dependencies with the affected operators be
 Use the platform package manager or the tools' official distributions. On macOS with Homebrew, install missing tools rather than upgrading an existing qualified toolchain blindly:
 
 ```bash
-brew install git bash direnv yq jq kubernetes-cli
+brew install bash direnv yq jq kubernetes-cli
 ```
 
 This command does not pin versions. Select [Helm 4.3.2](https://github.com/helm/helm/releases/tag/v4.3.2) and a [kubectl version compatible with the target cluster](https://kubernetes.io/docs/tasks/tools/) explicitly. macOS supplies SSH, curl, dig and LibreSSL. On Linux, use distribution packages where they meet the requirements, otherwise use official release binaries.
 
-For Hetzner resource operations, also install `hcloud` (`brew install hcloud`). For a `pass` store, install `pass`, GnuPG and a usable pinentry (`brew install pass gnupg pinentry-mac` on macOS).
+For Git-backed operations, install Git (`brew install git`) and check `git --version`; for SSH connections, check `ssh -V`. For Hetzner resource operations, install `hcloud` (`brew install hcloud`). For a `pass` store, install `pass`, GnuPG and a usable pinentry (`brew install pass gnupg pinentry-mac` on macOS).
 
 For GitHub, install `gh` if missing (`brew install gh` on macOS). Supply `GH_TOKEN`/`GITHUB_TOKEN`, or authenticate with `gh auth login --hostname github.com`.
 
@@ -136,7 +135,7 @@ For already prepared access, enter its retained cluster directory and run those 
 Run the common check below, then only the additional checks applicable to the operation. Standalone package use with supplied cluster access and credentials needs neither the Hetzner nor encrypted-store check. Do not print credential values.
 
 ```bash
-for tool in git ssh bash direnv jq yq kubectl helm openssl curl dig; do
+for tool in bash direnv jq yq kubectl helm openssl curl dig; do
   command -v "$tool" || exit 1
 done
 yq --version
@@ -149,7 +148,7 @@ printf 'name: workstation-check\n' | yq -o=json '.' | jq -e '.name == "workstati
 printf 'synthetic-check\n' | openssl passwd -apr1 -stdin >/dev/null
 ```
 
-Verify the displayed yq implementation and major version, Helm version and kubectl compatibility against the table. These checks establish executable availability and parser/hash behavior, not provider authentication. A global Ruby installation or its gems have no role in the checks.
+Verify the displayed yq implementation and major version, Helm version and kubectl compatibility against the table. These checks establish executable availability and parser/hash behavior, not provider authentication.
 
 ### Hetzner operations
 

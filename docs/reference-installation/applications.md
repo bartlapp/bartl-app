@@ -159,7 +159,7 @@ Return to the paused Keycloak terminal when the handoff is complete; no nested n
 
 The handoff copies the retained encryption key, scoped reader/writer usernames and transport passwords, and validating CA into Keycloak's `repository/reader/` and `repository/writer/`. It does not hand off repository-admin authority. On resumption, retain these files rather than recopying or regenerating them. The composed URL already comes from Restic's declaration; do not execute the handoff prose's alternative direct-URL assignment.
 
-Return to Keycloak's **Install and inspect** in the still-selected deployment. Refresh declarations, create namespace `keycloak`, native credential Secrets and backup reader/writer Secrets, then perform the ordinary install and TLS/current-generation readiness checks. Complete **Verify Keycloak** and **Retain operating and recovery inputs**, including the current backed-up master-realm administrator at `INSTALL_DIR/recovery-admin/`. Verify fresh administration through `https://$KC_HOST/admin/`, then install Paperless below.
+Return to Keycloak's **Install and inspect** in the still-selected deployment. Refresh declarations, create namespace `keycloak`, native credential Secrets and backup reader/writer Secrets, then perform the ordinary install and TLS/current-generation readiness checks. Complete **Verify Keycloak** and **Retain operating and recovery inputs**. This synthetic exercise keeps its initial administrator unchanged; retain the existing `credentials/bootstrap/` inputs and verify fresh administration through `https://$KC_HOST/admin/` before installing consumers.
 
 ## Install Paperless on B
 
@@ -181,19 +181,13 @@ yq -i '.services.paperless.version = "3.3.0" |
 
 This deliberately exercises the supported 3.3.0 → 3.3.1 replacement later. Continue declaration rendering and four-claim creation, using the approved capacities. At **DNS and external TLS**, source `operations/workstation.env` and use the [DNS checkpoint](#dns-checkpoint) with `HOST="$PAPERLESS_HOST"` and `IP="$B_IP"`, then resume Paperless's TLS procedure.
 
-At **Compose with an existing Keycloak**, choose `KC_DEPLOYMENT=keycloak` and `KC_CONNECTIONS="$WORK_DIR/clusters/cluster-2/applications/keycloak/connections.yaml"`. Supply the retained current recovery-admin username/password from that Keycloak directory as Paperless's `protected/keycloak-admin/{username,password}`. Complete the package-owned realm/client preparation; do not create a second identity provider or select a direct issuer as well.
+At **Compose with an existing Keycloak**, choose `KC_DEPLOYMENT=keycloak` and `KC_CONNECTIONS="$WORK_DIR/clusters/cluster-2/applications/keycloak/connections.yaml"`. Supply the current administrator username/password as Paperless's `protected/keycloak-admin/{username,password}`. In this synthetic exercise these are the unchanged Keycloak `credentials/bootstrap/` files, not a separate recovery directory. Complete the package-owned realm/client preparation; do not create a second identity provider or select a direct issuer as well.
 
-At **External backup inputs**, pause the Paperless terminal. In the separate Restic terminal, resume its selected deployment and use **Connect an application** with `REPOSITORY=paperless` and `CONSUMER_DIR="$WORK_DIR/clusters/cluster-2/applications/paperless"`. Its output is the scoped reader/writer directories, not administrative access.
+At **External backup inputs**, use **Select a composed Restic repository** with `RESTIC_DEPLOYMENT=restic`, `RESTIC_CONNECTIONS="$WORK_DIR/clusters/cluster-1/applications/restic/restic-connections.yaml"` and `REPOSITORY_NAME=paperless`. Do not execute the alternative direct-URL block.
 
-Back in the Paperless terminal, read the actual URL for its direct-repository input:
+At **Supply repository credentials**, pause the Paperless terminal. In the separate Restic terminal, resume its selected deployment and use **Connect an application** with `REPOSITORY=paperless` and `CONSUMER_DIR="$WORK_DIR/clusters/cluster-2/applications/paperless"`. Its output is the scoped reader/writer directories, not administrative access. Return to Paperless and create its credential Secrets through the remainder of **Supply repository credentials**.
 
-```bash
-export REPOSITORY_URL
-REPOSITORY_URL=$(yq -er '.backup.providers.restic.repositories.paperless.repository' \
-  "$WORK_DIR/clusters/cluster-1/applications/restic/restic-connections.yaml")
-```
-
-Run the remainder of **External backup inputs** with that value instead of its example URL. Before **Prepare application credentials and configuration**, copy the [test client CA bundle](README.md#prepare-test-client-trust) to Paperless's retained input and complete its **Custom client CA trust** handoff. Then complete configuration and **Install and verify**. Preserve the independent Paperless key and OIDC client secret. Require current-generation Ready, native 3.3.0, trusted HTTPS and fresh native administrator login. Keep ordinary capture/ingestion semantics unchanged; the cross-service document and permission fixtures are in [service acceptance](verification.md#paperless-source-acceptance).
+Before **Render configuration**, copy the [test client CA bundle](README.md#prepare-test-client-trust) to Paperless's retained input and complete its **Custom client CA trust** handoff. Then complete configuration and **Install and verify**. Preserve the independent Paperless key and OIDC client secret. Require current-generation Ready, native 3.3.0, trusted HTTPS and fresh native administrator login. Keep ordinary capture/ingestion semantics unchanged; the cross-service document and permission fixtures are in [service acceptance](verification.md#paperless-source-acceptance).
 
 Continue with [Forgejo integration](forgejo.md), then exercise all source applications before retirement.
 
