@@ -10,6 +10,8 @@ cd "$WORK_DIR/clusters/cluster-2"
 
 At the next prompt follow the [Forgejo README](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#supported-profile-and-release) from latest-stable acquisition. Keep the existing `WORK_DIR` and `VALUES`, not its sample paths. In **Configure a new deployment**, choose `DEPLOYMENT=forgejo`, `INSTANCE=forgejo`, `NS=forgejo`, `RELEASE=forgejo` and `PACKAGE=forgejo`. After the grouped creation block enters its directory, wait for the next prompt.
 
+Run [Select the test issuer](README.md#test-tls-profile) in the selected Forgejo deployment directory before rendering its declarations.
+
 Before the next declaration-rendering block, record the source native version and composition choices:
 
 ```bash

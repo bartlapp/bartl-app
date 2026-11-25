@@ -35,6 +35,8 @@ cd "$WORK_DIR/clusters/cluster-1"
 
 At the next prompt follow the [Restic README](https://github.com/bartlapp/bartl-restic/blob/main/README.md#prerequisites-and-release) from latest-stable acquisition through **Configure a new endpoint**, keeping this selected cluster. In its creation block choose `DEPLOYMENT=restic`, `INSTANCE=restic`, `NS=backup`, `RELEASE=backup`, `PACKAGE=restic`, `REPOSITORY=keycloak` and `CAPACITY=25Gi`. Capacity is a synthetic exercise choice: verify that the selected histories fit before provisioning. The grouped block enters Restic's deployment directory; wait for its next prompt before rendering.
 
+After that prompt, run [Select the test issuer](README.md#test-tls-profile) before declaration rendering. For `acme.fke.systems`, continue with managed staging issuance and the independently prepared test CA trust.
+
 Continue through declaration rendering and storage creation. At **Prepare DNS, TLS and repository credentials**, use the [DNS checkpoint](#dns-checkpoint) below with `HOST="$RESTIC_HOST"` and `IP="$A_IP"`, then resume the package's TLS and credential preparation. Retain its repository encryption key, distinct reader/writer/admin transport passwords, `htpasswd` and validating CA independently. Use managed TLS or explicitly retained external TLS, never competing certificate owners.
 
 Complete the workstation-side **Install and verify** checks, then use [Verify a repository from A](#verify-a-repository-from-a) below for `REPOSITORY=keycloak`. Follow [Add a repository](https://github.com/bartlapp/bartl-restic/blob/main/README.md#add-a-repository) separately for `REPOSITORY=forgejo` and `REPOSITORY=paperless`, repeating that A-client round-trip for each. Preserve the existing repository list and credentials. Native package admission initializes genuinely new repositories; never run `restic init` separately.
@@ -48,7 +50,7 @@ done
 current_condition "$KA" backup resticapplication/backup-restic Ready
 ```
 
-Require trusted public HTTPS and authenticated reader access through the package's procedure. Readers may manage native locks but not mutate backup content; writers are append-only; maintenance authority stays separate. A survives this exercise but is not an independent secondary backup: its loss is outside the claim.
+Require certificate-verified HTTPS under the selected test trust and authenticated reader access through the package's procedure. Readers may manage native locks but not mutate backup content; writers are append-only; maintenance authority stays separate. A survives this exercise but is not an independent secondary backup: its loss is outside the claim.
 
 
 ## Verify a repository from A
@@ -96,6 +98,8 @@ cd "$WORK_DIR/clusters/cluster-2"
 Follow the [Keycloak new-deployment procedure](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#install-a-new-deployment), starting at **Obtain the release**. In **Configure the installation**, choose `DEPLOYMENT=keycloak`, `INSTANCE=keycloak`, `NS=keycloak`, `RELEASE=keycloak` and `PACKAGE=keycloak`; Base has selected `CLUSTER_ID=cluster-2`.
 
 Run the complete Configure creation block and wait for the next prompt in its deployment directory. It creates an empty `services.keycloak` entry. Only **after that block**, and before its declaration rendering or installation, supply the composition choices:
+
+First run [Select the test issuer](README.md#test-tls-profile) in the selected Keycloak deployment directory, then apply the composition settings below.
 
 ```bash
 yq -i '.services.keycloak.backup.endpoint = "restic" |
@@ -150,6 +154,8 @@ cd "$WORK_DIR/clusters/cluster-2"
 ```
 
 At the next prompt follow the [Paperless README](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#select-cluster-access-and-obtain-the-release) from chart acquisition. In **Configure a new deployment**, choose `DEPLOYMENT=paperless`, `INSTANCE=paperless`, `NS=paperless`, `RELEASE=paperless` and `PACKAGE=paperless`. After the grouped creation block and next prompt, select the source native version and capture schedule before declaration rendering:
+
+Run [Select the test issuer](README.md#test-tls-profile) in the selected Paperless deployment directory before continuing.
 
 ```bash
 yq -i '.services.paperless.version = "3.3.0" |

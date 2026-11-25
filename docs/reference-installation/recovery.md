@@ -4,7 +4,7 @@ Complete [source acceptance](verification.md). A (`cluster-1`) keeps Restic and 
 
 This chapter coordinates the [Keycloak recovery runbook](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md), [Forgejo replacement](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#replacement-upgrade-and-promotion), [Paperless recovery](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#recovery-and-replacement-upgrade) and [Restic lifecycle](https://github.com/bartlapp/bartl-restic/blob/main/README.md#stop-and-start). Package procedures own capture, stop, restore, migration, scheduling and activation. All now select deployment context and recorded disposable chart caches; their Helm interfaces remain package-specific.
 
-Use the exercised artifacts and boundaries recorded in [Qualification](README.md#qualification). A different selected release must supply these documented interfaces and have the affected behavior qualified; historical evidence does not qualify an unexercised composition.
+Use the [test TLS profile and trust prerequisites](README.md#test-tls-profile) before provisioning. The production-CA result in [Qualification](README.md#qualification) does not qualify this staging sequence. A selected release must supply the documented interfaces and the required client trust; do not substitute production issuance when staging trust is unavailable.
 
 ## Retain the coordination inputs
 
@@ -156,41 +156,6 @@ Verify effective scheduling, then remove only this completed operation's tempora
 rm "$CAPTURE_SETTINGS"
 ```
 
-## Retain managed TLS before interruption
-
-Application backups do not contain cert-manager's TLS Secrets. Fresh issuance after retirement can fail because of CA availability or certificate limits. For this unchanged-hostname replacement, retain the issued certificates and private keys independently before withdrawing B. Keep managed renewal enabled on C; transfer only the TLS data and issuer annotations, not source resource identities or owner references. Target creation below adds cert-manager's [filtered-cache label](https://github.com/cert-manager/cert-manager/issues/6494), avoiding a cache-membership transition that can spuriously trigger issuance.
-
-In the infrastructure shell:
-
-```bash
-source "$WORK_DIR/operations/workstation.env"
-umask 077
-for service in keycloak paperless forgejo; do
-  SOURCE_INPUTS="$WORK_DIR/clusters/cluster-2/applications/$service"
-  case "$service" in
-    keycloak) DECLARATION="$SOURCE_INPUTS/connections.yaml" ;;
-    *) DECLARATION="$SOURCE_INPUTS/$service-connections.yaml" ;;
-  esac
-  SOURCE_NAMESPACE=$(SERVICE="$service" yq -er '.deployments[strenv(SERVICE)].namespace' "$VALUES")
-  TLS_SECRET=$(SERVICE="$service" yq -er '.credentials.bindings[strenv(SERVICE)].tls.secretName' "$DECLARATION")
-  TLS_DIR="$SOURCE_INPUTS/tls"
-  mkdir -p "$TLS_DIR"
-  test ! -e "$TLS_DIR/managed-secret.json"
-  kubectl --kubeconfig "$KB" -n "$SOURCE_NAMESPACE" get secret "$TLS_SECRET" -o json |
-    jq '{apiVersion,kind,type,
-      metadata:{name:.metadata.name,annotations:(.metadata.annotations // {} |
-        with_entries(select(.key | startswith("cert-manager.io/"))))},
-      data:{"tls.crt":.data["tls.crt"],"tls.key":.data["tls.key"]}}' \
-    > "$TLS_DIR/managed-secret.json"
-  jq -er '.data["tls.crt"]' "$TLS_DIR/managed-secret.json" |
-    openssl base64 -d -A > "$TLS_DIR/certificate.pem"
-  openssl x509 -in "$TLS_DIR/certificate.pem" -noout -subject -issuer -dates -checkend 0
-  openssl verify -untrusted "$TLS_DIR/certificate.pem" "$TLS_DIR/certificate.pem"
-done
-```
-
-Confirm that validity covers the planned recovery window and that each certificate covers its unchanged declared hostname. The target must retain the same certificate and issuer names. Changed names, expired material or missing independent keys require usable replacement TLS before interruption, not disabled verification or an assumed future issuance. Keep these plaintext Secrets with protected recovery inputs, outside Git. On resumption, verify retained files rather than overwriting them.
-
 ## Prepare the Keycloak target without changing the source
 
 In the Keycloak shell execute [RECOVERY step 1](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#1-retain-source-inputs-and-choose-the-target), using the mapping above. This retains source inputs and acquires the current target package before interruption; it prepares the selector but does not enter C or install the application. Leave B selected for final capture. Retain its recovered-realm administrator and repository credentials independently.
@@ -245,7 +210,7 @@ hcloud firewall delete-rule "$B_FIREWALL" --direction in --protocol tcp --port 3
 hcloud firewall describe "$B_FIREWALL" --output json
 ```
 
-If an inspected rule differs or is already absent, reconcile that exact rule instead of blindly repeating deletion. TLS material is already retained; no source HTTP-01 issuance is needed during retirement. Removing firewall admission does not prove that established connections ended: confirm clients disconnected, then require the package's drained source and no remaining writer before accepting the final boundary. Failed stop/drain blocks replacement.
+If an inspected rule differs or is already absent, reconcile that exact rule instead of blindly repeating deletion. Removing firewall admission does not prove that established connections ended: confirm clients disconnected, then require the package's drained source and no remaining writer before accepting the final boundary. Failed stop/drain blocks replacement.
 
 1. In the Forgejo shell, resume `forgejo` and execute **all** of [Capture final writes before source stop](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#capture-final-writes-before-source-stop). Keep its writer running for the capture; do not stop it first. Require successful final publication, then current-generation Stopped/drain, CR finalization and Helm removal while its controller is available. Confirm retired HTTP and SSH routing objects are gone. Preserve package-specific handoff:
 
@@ -287,7 +252,7 @@ Keep B off and disable unauthorized restart for the rest of the run. Retained st
 
 ## Restrict C before moving application hostnames
 
-HTTP, HTTPS and direct SSH must admit only acceptance sources. An Ingress with TLS can still serve application requests on port 80, so restricting only 443 leaves a bypass. Retained valid certificates cover this private phase; public HTTP-01 issuance resumes at activation. In the infrastructure shell inspect the dedicated firewall and live attachments:
+Keep HTTPS and direct SSH restricted to acceptance sources. Port 80 must initially remain public for fresh HTTP-01 issuance, with application ingress disabled. After each target's certificate is Ready, restrict port 80 before enabling its acceptance route. An Ingress with TLS can also serve application requests on port 80; TLS alone is not an access restriction.
 
 ```bash
 C_FIREWALL=$(yq -er '.clusters."cluster-3".observed.firewalls.admin.id' "$VALUES")
@@ -296,14 +261,12 @@ hcloud server describe "$C_SERVER" --output json
 hcloud firewall describe "$C_FIREWALL" --output json
 ```
 
-Require the recorded provider/managed ownership and attachment to C, with no other attached firewall exposing these ports. For the untouched Base firewall, restrict both web ports and add restricted Forgejo SSH:
+Require the recorded provider/managed ownership and attachment to C, with no other attached firewall exposing these ports. For the untouched Base firewall, restrict HTTPS and add restricted Forgejo SSH, leaving port 80 public for the first certificate:
 
 ```bash
-for port in 80 443; do
-  hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port "$port" --source-ips 0.0.0.0/0,::/0
-  hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port "$port" \
-    --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
-done
+hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 --source-ips 0.0.0.0/0,::/0
+hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 443 \
+  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
 hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 30222 \
   --source-ips "$ADMIN_IP/32,$A_IP/32"
 hcloud firewall describe "$C_FIREWALL" --output json > "$WORK_DIR/evidence/c-restricted-firewall.json"
@@ -311,20 +274,55 @@ hcloud firewall describe "$C_FIREWALL" --output json > "$WORK_DIR/evidence/c-res
 
 On resumption, inspect/verify already matching rules rather than adding duplicates. Keep SSH/API administrator rules intact. Correct conflicting AAAA/alternate routes; IPv4 restrictions are insufficient if IPv6 bypasses them. Require allowed and independent denied-source tests once routes exist. A changed firewall alone is not useful-service acceptance.
 
-## Recover Keycloak to restricted acceptance
+### Open challenge access
 
-In the original Keycloak shell, continue at [RECOVERY step 3](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#3-prepare-independent-target-access-storage-and-credentials), then step 4 and [restricted acceptance step 5](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#5-accept-under-restricted-access). For a fresh shell, restore the retained source/target variables from step 1 and the recorded target package/version; skip creation and all source API calls. `SOURCE_DIR` is `$KC_SOURCE_DIR`, `TARGET_DIR` is `$KC_TARGET_DIR`, and the expected final point comes from `evidence/keycloak-final-backup.json`. Restore that unchanged receipt to the source directory only if the retained copy is missing; never replace it with a newer target receipt.
+Use this checkpoint before each target's certificate-dependent installation. All ordinary application routes must remain disabled. An already accepted Keycloak route must still enforce maintenance; Paperless's review route must remain HTTPS-only. Forgejo's application ingress stays disabled until its own certificate is Ready and port 80 is restricted again. Inspect C's Ingresses before reopening HTTP; stop if another application route would admit ordinary requests.
 
-After step 3 has created the target namespace, and before step 4 installs the package, supply the independently retained managed certificate:
+The first target already has public port 80. For later targets, inspect the live firewall and replace only the previous acceptance-only HTTP rule:
 
 ```bash
-jq '.metadata.labels["controller.cert-manager.io/fao"] = "true"' "$KC_SOURCE_DIR/tls/managed-secret.json" |
-  kubectl --context "$KUBE_CONTEXT" -n "$NS" create -f -
+source "$WORK_DIR/operations/workstation.env"
+C_FIREWALL=$(yq -er '.clusters."cluster-3".observed.firewalls.admin.id' "$VALUES")
+kubectl --kubeconfig "$KC" get ingress,middleware --all-namespaces -o yaml
+hcloud firewall describe "$C_FIREWALL" --output json
 ```
 
-The package's managed Certificate remains responsible for readiness and renewal. Require its normal Ready check; supplying a Secret is not acceptance.
+If port 80 is already public, verify it and skip the mutation. If it has the previous acceptance-only rule and the application routes remain protected, replace that rule:
+
+```bash
+hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port 80 \
+  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
+hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 80 --source-ips 0.0.0.0/0,::/0
+```
+
+### Close challenge access
+
+After the package's certificate Ready check passes, and before enabling its acceptance route, inspect port 80 in the infrastructure shell. If it is already restricted to the intended sources, verify it and continue. Otherwise replace the public rule:
+
+```bash
+source "$WORK_DIR/operations/workstation.env"
+C_FIREWALL=$(yq -er '.clusters."cluster-3".observed.firewalls.admin.id' "$VALUES")
+hcloud firewall describe "$C_FIREWALL" --output json
+```
+
+For the inspected public rule:
+
+```bash
+hcloud firewall delete-rule "$C_FIREWALL" --direction in --protocol tcp --port 80 --source-ips 0.0.0.0/0,::/0
+hcloud firewall add-rule "$C_FIREWALL" --direction in --protocol tcp --port 80 \
+  --source-ips "$ADMIN_IP/32,$A_IP/32,$C_IP/32"
+hcloud firewall describe "$C_FIREWALL" --output json > "$WORK_DIR/evidence/c-restricted-firewall.json"
+```
+
+Keep this acceptance window within the issued certificate's validity. Normal public HTTP-01 reachability returns at activation; do not turn a prolonged private exercise into an assumption that renewal can reach the target.
+
+## Recover Keycloak to restricted acceptance
+
+In the original Keycloak shell, continue at [RECOVERY step 3](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#3-prepare-independent-target-access-storage-and-credentials), then step 4, pausing before [restricted acceptance step 5](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#5-accept-under-restricted-access) for the firewall checkpoint below. For a fresh shell, restore the retained source/target variables from step 1 and the recorded target package/version; skip creation and all source API calls. `SOURCE_DIR` is `$KC_SOURCE_DIR`, `TARGET_DIR` is `$KC_TARGET_DIR`, and the expected final point comes from `evidence/keycloak-final-backup.json`. Restore that unchanged receipt to the source directory only if the retained copy is missing; never replace it with a newer target receipt.
 
 The package owns Keycloak DNS read/update and authoritative/public checks. Use this installation's `DNS_ZONE`; move only its inspected Keycloak record from B to C. Do not update it again with a generic hostname loop. Complete DNS convergence **before** certificate-dependent installation waits. Require automatic reconstruction of the exact final point, current-generation Ready, independent PVC UIDs/backing volumes, retained issuer/realm/client/user identity, trusted TLS and the package's restricted browser/write/read checks. Preserve new target database passwords independently; retain native recovery administrator and repository keys, not new bootstrap identity.
+
+Keep ingress disabled through step 4 and its fresh managed-certificate Ready check. Then [close challenge access](#close-challenge-access) in the infrastructure shell before step 5 enables Keycloak's maintenance route. Do not copy source TLS Secrets or change the retained staging issuer.
 
 After the package's DNS checks, record the verified address for later owned-record disposal; this does not issue another DNS update:
 
@@ -371,14 +369,7 @@ yq -i '.services.paperless.version = "3.3.1"' "$VALUES"
 
 Run **Prepare the independent target** using the table's C choices. Restore the original Paperless key and OIDC client input; supply the existing A repository's reader/writer files, not newly generated keys.
 
-After target namespace/input preparation and before reconstruction, supply the retained managed certificate:
-
-```bash
-jq '.metadata.labels["controller.cert-manager.io/fao"] = "true"' "$PL_SOURCE_DIR/tls/managed-secret.json" |
-  kubectl --context "$KUBE_CONTEXT" -n "$NS" create -f -
-```
-
-At the package's DNS boundary, follow [Move a consumer hostname](#move-a-consumer-hostname) with `HOST="$PAPERLESS_HOST"`. Then execute **Reconstruct, review and activate** only through creation of the restricted review route, stopping before new-work capture and ordinary activation.
+At the package's DNS boundary, follow [Move a consumer hostname](#move-a-consumer-hostname) with `HOST="$PAPERLESS_HOST"`. Before installation, [open challenge access](#open-challenge-access), keeping Keycloak in maintenance and Paperless's ordinary ingress disabled. Execute **Reconstruct, review and activate** through its certificate/current-generation Ready checks and PVC inspection, then pause. [Close challenge access](#close-challenge-access) before creating the restricted review route. Stop before new-work capture and ordinary activation.
 
 Require the final source receipt's repository/full `.status.backup.snapshotID`, native 3.3.1, independent claims and current-generation Ready. Set the package's `REVIEW_CIDR` to `"$ADMIN_IP/32"` before creating its review Middleware. Initially only the administrator is admitted.
 
@@ -447,18 +438,27 @@ export SOURCE_DEPLOYMENT=forgejo SOURCE_DIR="$FJ_SOURCE_DIR"
 export SOURCE_HOST="$(cat "$WORK_DIR/evidence/forgejo-source-host")"
 ```
 
-Use the table's replacement choices **inside** the package creation block. It records a new package entry and target selector and projects native version/hostname intent explicitly; the chart still does not accept Keycloak's deployment flag. The saved original schedule remains in `"$FJ_SOURCE_DIR/backup-schedule-before-operation"`. Prepare independent claims, retained identity/configuration and repository Secrets; never regenerate keys, bootstrap users or native OIDC records.
+Use the table's replacement choices **inside** the package creation block. It records a new package entry and target selector and projects native version/hostname intent explicitly; the chart still does not accept Keycloak's deployment flag. The saved original schedule remains in `"$FJ_SOURCE_DIR/backup-schedule-before-operation"`.
 
-Before reconstruction, supply the retained managed certificate in the prepared target namespace:
+Immediately after the grouped target-creation block and directory activation, before its next rendering/resource-preparation block, select disabled application ingress:
 
 ```bash
-jq '.metadata.labels["controller.cert-manager.io/fao"] = "true"' "$FJ_SOURCE_DIR/tls/managed-secret.json" |
-  kubectl --context "$KUBE_CONTEXT" -n "$NS" create -f -
+yq -i '.operations.deployments[strenv(DEPLOYMENT)].ingressEnabled = false' "$VALUES"
 ```
+
+Continue the package's resource-preparation block, which reads this intent before rendering. Prepare independent claims, retained identity/configuration and repository Secrets; never regenerate keys, bootstrap users or native OIDC records. Managed Certificate preparation remains enabled; no package default or controller-owned Ingress is patched.
 
 At Forgejo's DNS boundary, before **Reconstruct and accept**, follow [Move a consumer hostname](#move-a-consumer-hostname) in the infrastructure terminal with `HOST="$FORGEJO_HOST"`. Handle a separately selected SSH hostname as its own authorized record; this reference uses the same hostname. Keep Restic on A.
 
-Back in the Forgejo shell execute [Reconstruct and accept](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#reconstruct-and-accept). Require the exact `.status.backup.snapshot` from `evidence/forgejo-final-backup.json`, native 17.0.1, independent claims/backing storage, current-generation Ready, TLS and preserved SSH host key. **Stop before [Activate the replacement](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#activate-the-replacement).** Do not restore its schedule or remove firewall restrictions yet.
+Before installation, [open challenge access](#open-challenge-access), preserving Keycloak maintenance and Paperless's HTTPS-only review route. In the Forgejo shell execute [Reconstruct and accept](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#reconstruct-and-accept) only through certificate/current-generation Ready checks and PVC inspection; stop before its final HTTPS probe. Require the exact `.status.backup.snapshot` from `evidence/forgejo-final-backup.json`, native 17.0.1 and independent storage.
+
+Then [close challenge access](#close-challenge-access). In the selected Forgejo target directory, enable its acceptance route:
+
+```bash
+yq -i '.operations.deployments[strenv(DEPLOYMENT)].ingressEnabled = true' "$VALUES"
+```
+
+Run the package's **Load retained context** and **Apply changes to a running deployment** procedures so `HELM_INTENT` is refreshed, then perform its HTTPS probe and acceptance checks, including the preserved SSH host key. **Stop before Activate the replacement.** Keep schedules suspended and the provider firewall restricted.
 
 Before data checks, verify the provider boundary without another client host. Pause A's acceptance requests, confirm all three ports are reachable from A, temporarily withdraw A, require connection timeouts, then restore only its acceptance rules:
 

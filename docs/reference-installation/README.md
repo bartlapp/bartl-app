@@ -10,6 +10,8 @@ Use the [operator workstation](../operator-workstation.md), compatible kubectl, 
 
 The administrator and A must have distinct, verified public source addresses. A first acts as the denied Paperless client, then becomes an allowed acceptance client; no fourth host or additional client location is required. During the denial test A reaches C through the existing firewall rule but must receive HTTP 403 from the application allowlist. Confirm released artifacts, protected input custody, capacity and the agreed spending/lifetime/teardown scope before provisioning; no local source candidate substitutes for a selected public release.
 
+Before provisioning, establish the [test TLS profile and client trust](#test-tls-profile). The staging OIDC trust gap described there blocks a live run with the currently listed artifacts; changing the issuer URL alone does not satisfy this prerequisite.
+
 ```bash
 set -euo pipefail
 set +x
@@ -73,6 +75,32 @@ direnv exec "$WORK_DIR/clusters/cluster-3" kubectl get namespaces,pvc --all-name
 ```
 
 Require three distinct `kube-system` UIDs, one Ready node per cluster, usable CoreDNS/local-path/Traefik/cert-manager, enforced NetworkPolicy and empty application state on C. Restrict SSH/API to the administrator; allow required HTTPS and Git SSH paths deliberately.
+
+## Test TLS profile
+
+Runs under `acme.fke.systems` and its subdomains use [Let's Encrypt staging](https://letsencrypt.org/docs/staging-environment/). Use managed issuance and renewal, not copied certificates from a previous run. This is an installation-level test choice; package production defaults remain unchanged.
+
+After each package's new-deployment configuration block and directory activation, but before declaration rendering or installation, select the test issuer:
+
+```bash
+case "$(yq -er '(.services[strenv(INSTANCE)].hostname // .dns.root) | downcase' "$VALUES")" in
+  acme.fke.systems|*.acme.fke.systems)
+    yq -i '.services[strenv(INSTANCE)].tls.acmeServer =
+      "https://acme-staging-v02.api.letsencrypt.org/directory"' "$VALUES"
+    ;;
+esac
+```
+
+Run this handoff for Restic, Keycloak, Paperless and Forgejo. Creation initializes the service entry, so setting it earlier would be overwritten. Replacement retains the service's selected issuer. Other domains retain their selected CA configuration; this block does not change them.
+
+Staging certificates are not publicly trusted. Keep certificate and hostname verification enabled and supply staging roots only to isolated test clients, never ordinary workstation/browser trust. Client trust must cover the operator's curl calls, A's curl/Git/Restic calls, the browser and server-side OIDC clients.
+
+| Client path | Existing interface and prerequisite |
+| --- | --- |
+| Backup operations | Repository credential directories support `ca.crt`; native Restic supports `--cacert`. Supply the test CA bundle through that existing handoff. |
+| Operator and A | curl supports `CURL_CA_BUNDLE`/`--cacert`, Git supports `GIT_SSL_CAINFO`, and Restic supports `--cacert`. Keep this configuration scoped to the isolated test environment. |
+| Browser | Use an isolated browser trust store with staging roots, not certificate-error bypasses. A new profile is insufficient if it still shares ordinary OS trust. |
+| Paperless and Forgejo OIDC | The published 0.2.0 and 0.2.2 interfaces expose issuer/client configuration but no complete documented CA-bundle delivery path to their OIDC processes. Backup `ca.crt` is not OIDC trust. Resolve and qualify that package/interface gap before provisioning; do not patch generated workloads, disable verification or silently select production issuance. |
 
 ## Package handoffs
 
@@ -186,7 +214,7 @@ Then select each cluster's separate Hetzner machine context for `cluster-2`, `cl
 
 ## Qualification
 
-The corrected four-service path passed on 2026-11-24 using three independent Debian 13 amd64/K3s `v1.36.5+k3s1` hosts, cert-manager `v1.21.3` and Helm `v4.3.2`. The operated chart caches matched fresh anonymous downloads of these OCI artifacts under `ghcr.io/bartlapp/bartl-<package>`:
+The production-CA procedure at [revision 893817b](https://github.com/bartlapp/bartl-app/tree/893817bc0be5629a81a53d0986b7ae787c2b574d/docs/reference-installation) passed on 2026-11-24 using three independent Debian 13 amd64/K3s `v1.36.5+k3s1` hosts, cert-manager `v1.21.3` and Helm `v4.3.2`. That run did not use LE staging and does not qualify the current staging profile. The operated chart caches matched fresh anonymous downloads of these OCI artifacts under `ghcr.io/bartlapp/bartl-<package>`:
 
 | Package | Chart | Native path | OCI chart manifest SHA-256 |
 | --- | --- | --- | --- |
@@ -199,7 +227,7 @@ Source installation, native/OIDC/MFA access, useful data and permissions, manual
 
 With B retired and powered off, C reconstructed the exact final application points on independent claims. Restricted acceptance preserved identities, SSH host keys, Git/LFS/issue/PR/attachment/package/release content, document bytes and grants. New application work survived subsequent backup readback; Forgejo also passed retained-state reinstall, fresh OIDC access and new Git work in another verified point. Ordinary activation and successful scheduled captures passed for all three consumers. Application finalization, VM/firewall/IP disposal and authoritative absence of all run-owned DNS records were verified; the shared zone and operator identity were retained.
 
-This run included corrective repeats of the TLS, DNS and access handoffs now documented in [recovery](recovery.md), not an uninterrupted production-RTO measurement. It establishes planned B→C retirement with A available, not backup-provider loss or source-independent fencing. Authentication and authorization changes after the selected backup remain outside the recovery point. Raw output and protected inputs remain in private custody; this is the selected integration record, not renewed standalone qualification for every package.
+That run included corrective repeats of the TLS, DNS and access handoffs recorded in that revision, not an uninterrupted production-RTO measurement. It establishes planned B→C retirement with A available, not backup-provider loss or source-independent fencing. Authentication and authorization changes after the selected backup remain outside the recovery point. Raw output and protected inputs remain in private custody; this is the selected integration record, not renewed standalone qualification for every package.
 
 ## Historical version evidence
 
