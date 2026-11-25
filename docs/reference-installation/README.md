@@ -152,6 +152,26 @@ printf '%s\n' 'user_pref("security.enterprise_roots.enabled", false);' \
 
 On Linux use the installed `firefox` binary with the same arguments. In this profile's **Privacy & Security → Certificates → View Certificates → Authorities → Import**, import `x1.pem`, `x2.pem`, `ye.pem` and `yr.pem` from this run's `test-trust` directory, granting website identification trust. Open `https://valid.x1.staging-test-certs.letsencrypt.org/` and require normal verified access without a warning exception. Reuse only this profile for the exercise; do not import into the ordinary browser or OS trust store. On resumption reopen the existing profile rather than recreating it. Close the test browser and dedicated shells after the exercise.
 
+Chrome 134 or newer is an alternative when its [Certificate Manager](https://chromium.googlesource.com/chromium/src.git/+/refs/heads/main/net/data/ssl/chrome_root_store/faq.md#whats-the-chrome-certificate-manager) offers profile-local **Installed by you** certificates. Use an isolated test/automation profile with no unrelated users or sessions; verify its actual **Profile Path** at `chrome://version`. In `chrome://certificate-manager`, disable **Use imported local certificates from your operating system**. Open **Installed by you → Import to Trusted certificates** and import the same four staging roots. Do not use **Manage imported certificates from MacOS**, which changes operating-system trust. Keep automation's HTTPS-error bypass disabled and require the staging test page to render normally. At cleanup remove the four imported roots and dispose of the test profile; never modify the ordinary browser profile.
+
+For headless Linux Chrome where the native import dialog is unavailable, use Chromium's [documented NSS command-line procedure](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/linux/cert_management.md) in a dedicated disposable OS account, never the operator's ordinary home. Install `chromium` and `libnss3-tools` through the host package manager. Copy the four roots into that account's `test-trust/` directory. In its shell, for a fresh NSS database:
+
+```bash
+umask 077
+mkdir -p "$HOME/.local/share/pki/nssdb"
+certutil -N --empty-password -d "sql:$HOME/.local/share/pki/nssdb"
+for root in x1 x2 ye yr; do
+  certutil -A -d "sql:$HOME/.local/share/pki/nssdb" -t "C,," \
+    -n "ACME staging $root" -i "$HOME/test-trust/$root.pem"
+done
+certutil -L -d "sql:$HOME/.local/share/pki/nssdb"
+chromium --headless --user-data-dir="$HOME/chrome-profile" \
+  --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 \
+  --no-first-run --disable-sync about:blank
+```
+
+Keep Chrome's sandbox enabled. Connect existing browser automation to this loopback CDP endpoint through the host's verified SSH connection; do not expose the debugging port publicly. This path uses only the dedicated account's NSS trust; leave imported-local-certificate use enabled in that isolated Linux profile. Require normal staging-page rendering with HTTPS-error bypass disabled. Use the browser host's actual source address wherever acceptance access is restricted, retain separate allowed/denied probes, and do not rely on a source-host browser after retiring that host. Remove the disposable account/profile at teardown.
+
 
 ## Package handoffs
 
