@@ -36,9 +36,9 @@ Review the first complete path before extending it. Existing code and passing te
 
 ## Deliver a usable package
 
-Write a direct operator walkthrough for a competent administrator, separate from implementation reasoning. State the supported starting conditions, then give visible native commands in execution order and the useful result to check. Keep consequential safeguards; do not turn the recipe into a defensive provisioning program or hide it behind a management wrapper.
+Write a direct operator walkthrough for a competent administrator. Organize each procedure around one operator task and its starting conditions, with visible native commands in execution order and the useful result to check. Keep ordinary operation separate from first-time preparation, migration and repair. Present exceptions where they apply, without making their machinery part of the normal path. Keep implementation explanations only where they change an operator's choice, action or interpretation of the result. Keep consequential safeguards; do not turn the recipe into a defensive provisioning program or hide it behind a management wrapper.
 
-Select genuine operator choices once, derive the remaining values and read retained choices when resuming. Separate creation, resumption and changes; creation is not a repair path. Name the shell and working directory, including remote-shell exits and prompt boundaries needed for context activation. Preserve unrelated installation entries.
+Select genuine operator choices once, derive the remaining values and read retained choices when resuming. Creation is not a repair path. Name the shell and working directory, including remote-shell exits and prompt boundaries needed for context activation. Preserve unrelated installation entries.
 
 Each operation has one owning procedure. Link shared prerequisites rather than duplicate them. A handoff names its entry point, required inputs, expected outputs and continuation; the operator must not assemble fragments from unrelated sections. Package recipes remain usable without the company Customer Journey. Release, installation identity, effective configuration and protected-input references must suffice to invoke the ordinary interface.
 
