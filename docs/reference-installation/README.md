@@ -191,7 +191,9 @@ ssh -F "$WORK_DIR/clusters/$BROWSER_CLUSTER/base/ssh.config" \
   "$BROWSER_CLUSTER-node1"
 ```
 
-Connect existing browser automation to `http://127.0.0.1:29222`; neither the debugging endpoint nor the SOCKS listener is public. In the browser, require `https://api.ipify.org` to show the workstation's `ADMIN_IP`, normal rendering of the staging test page, and rejection of `https://wrong.host.badssl.com/` for its hostname mismatch. Then repeat the package's allowed, independent denied, and forged-forwarding-header admission probes. The failed direct same-host probe is not successful acceptance. Keep the forward running while using this browser. Close it and remove the disposable account/profile at teardown.
+Connect existing browser automation to `http://127.0.0.1:29222`; neither the debugging endpoint nor the SOCKS listener is public. In the browser, require `https://api.ipify.org` to show the workstation's `ADMIN_IP`, normal rendering of the staging test page, and rejection of `https://wrong.host.badssl.com/` for its hostname mismatch. Then repeat the package's allowed, independent denied, and forged-forwarding-header admission probes. The failed direct same-host probe is not successful acceptance. Keep the forward running while using this browser.
+
+At teardown, close the browser through CDP or terminate only its verified main process/profile, then close the SSH forward and remove the owned profile/trust files. Never terminate processes by account UID on a Kubernetes host: unrelated containers can use that same numeric UID. A disposable VM's account disappears with the VM; do not force account removal while other processes use its UID.
 
 
 ## Package handoffs
