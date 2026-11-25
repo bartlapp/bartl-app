@@ -458,7 +458,7 @@ Then [close challenge access](#close-challenge-access). In the selected Forgejo 
 yq -i '.operations.deployments[strenv(DEPLOYMENT)].ingressEnabled = true' "$VALUES"
 ```
 
-Run the package's **Load retained context** and **Apply changes to a running deployment** procedures so `HELM_INTENT` is refreshed, then perform its HTTPS probe and acceptance checks, including the preserved SSH host key. **Stop before Activate the replacement.** Keep schedules suspended and the provider firewall restricted.
+Run the package's **Load retained context** and **Apply changes to a running deployment** procedures so declarations and runtime resources use the selected deployment's recorded intent, then perform its HTTPS probe and acceptance checks, including the preserved SSH host key. **Stop before Activate the replacement.** Keep schedules suspended and the provider firewall restricted.
 
 Before data checks, verify the provider boundary without another client host. Pause A's acceptance requests, confirm all three ports are reachable from A, temporarily withdraw A, require connection timeouts, then restore only its acceptance rules:
 

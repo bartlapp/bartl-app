@@ -113,7 +113,9 @@ Create deployments only through their package's new-installation procedure: Rest
 | Forgejo | `forgejo` | `cluster-2` | `forgejo` | `forgejo` |
 | Paperless | `paperless` | `cluster-2` | `paperless` | `paperless` |
 
-The current procedures use directory selectors and normalized disposable chart caches. Fresh installation and replacement resolve a stable public package; resumption reacquires its recorded version. Native application versions remain separate choices. The package procedures own Helm projections and operation-intent precedence; a shell selector does not imply that every chart accepts Keycloak's `deployment` flag.
+The current procedures use directory selectors and normalized disposable chart caches. Fresh installation and replacement resolve a stable public package; resumption reacquires its recorded version. Native application versions remain separate choices. Pass the selected `deployment` to the package chart; chart-owned selection applies operation-intent precedence to both declarations and runtime manifests.
+
+This path requires Keycloak 0.8.0 and the selected-deployment interface in Restic 0.3.1, Paperless 0.2.1 and Forgejo 0.2.3. The latter three are local candidates, not published or live-qualified releases. Qualify and publish those exact artifacts before executing this public-package walkthrough; a latest-stable download currently does not supply the new interfaces.
 
 See [Qualification](#qualification) for the exercised immutable artifacts, outcomes and limits.
 
