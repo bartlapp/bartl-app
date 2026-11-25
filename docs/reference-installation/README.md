@@ -167,10 +167,33 @@ done
 certutil -L -d "sql:$HOME/.local/share/pki/nssdb"
 chromium --headless --user-data-dir="$HOME/chrome-profile" \
   --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 \
+  --proxy-server=socks5://127.0.0.1:1080 \
   --no-first-run --disable-sync about:blank
 ```
 
-Keep Chrome's sandbox enabled. Connect existing browser automation to this loopback CDP endpoint through the host's verified SSH connection; do not expose the debugging port publicly. This path uses only the dedicated account's NSS trust; leave imported-local-certificate use enabled in that isolated Linux profile. Require normal staging-page rendering with HTTPS-error bypass disabled. Use the browser host's actual source address wherever acceptance access is restricted, retain separate allowed/denied probes, and do not rely on a source-host browser after retiring that host. Remove the disposable account/profile at teardown.
+Keep Chrome's sandbox enabled. This path uses only the dedicated account's NSS trust; leave imported-local-certificate use enabled in that isolated Linux profile. Keep automation's HTTPS-error bypass disabled.
+
+A browser on an application host can reach its own ingress through cluster masquerading: its public egress address is then not the address the ingress sees. Do not admit the cluster bridge or widen the review CIDR to accommodate this. Route the isolated browser through the operator workstation, retaining the administrator's public address as the review source. Restrict the reverse SOCKS forward to the selected public service endpoints; an unrestricted reverse proxy would expose other workstation-reachable destinations.
+
+In a dedicated workstation terminal, use the retained installation's environment and the endpoint variables from [Prepare workstation commands](#prepare-workstation-commands). Select C for this walkthrough so the browser survives B's retirement. For standalone package qualification, select the already approved qualification cluster instead. Start this forward after the relevant service connections exist; when another endpoint becomes available, reread the endpoint variables and restart the forward with the updated list:
+
+```bash
+export BROWSER_CLUSTER=cluster-3
+BROWSER_VM=$(yq -o=json '.clusters[strenv(BROWSER_CLUSTER)].nodes' "$VALUES" |
+  jq -er 'if length == 1 and (to_entries[0].value.role == "server") then keys[0] else error("Expected one browser host") end')
+BROWSER_DESTINATIONS="api.ipify.org:443 valid.x1.staging-test-certs.letsencrypt.org:443 wrong.host.badssl.com:443"
+for hostname in "${KC_HOST:-}" "${FORGEJO_HOST:-}" "${PAPERLESS_HOST:-}"; do
+  if [ -n "$hostname" ]; then
+    BROWSER_DESTINATIONS="$BROWSER_DESTINATIONS $hostname:443"
+  fi
+done
+ssh -F "$WORK_DIR/clusters/$BROWSER_CLUSTER/base/ssh.config" \
+  -N -L 127.0.0.1:29222:127.0.0.1:9222 -R 127.0.0.1:1080 \
+  -o ExitOnForwardFailure=yes -o "PermitRemoteOpen=$BROWSER_DESTINATIONS" \
+  "$BROWSER_VM"
+```
+
+Connect existing browser automation to `http://127.0.0.1:29222`; neither the debugging endpoint nor the SOCKS listener is public. In the browser, require `https://api.ipify.org` to show the workstation's `ADMIN_IP`, normal rendering of the staging test page, and rejection of `https://wrong.host.badssl.com/` for its hostname mismatch. Then repeat the package's allowed, independent denied, and forged-forwarding-header admission probes. The failed direct same-host probe is not successful acceptance. Keep the forward running while using this browser. Close it and remove the disposable account/profile at teardown.
 
 
 ## Package handoffs
