@@ -12,7 +12,7 @@ Run the workstation's [common check](../operator-workstation.md#check-the-workst
 
 The administrator and A must have distinct, verified public source addresses. A first acts as the denied Paperless client, then becomes an allowed acceptance client; no fourth host or additional client location is required. During the denial test A reaches C through the existing firewall rule but must receive HTTP 403 from the application allowlist. Confirm released artifacts, protected input custody, capacity and the agreed spending/lifetime/teardown scope before provisioning; no local source candidate substitutes for a selected public release.
 
-After initializing the working directory below, prepare the [test CA bundle](#prepare-test-client-trust) before provisioning. The selected Paperless and Forgejo artifacts must implement the linked native trust handoffs; the previously published images do not. Changing the issuer URL alone does not satisfy this prerequisite.
+After initializing the working directory below, prepare the [test CA bundle](#prepare-test-client-trust) before provisioning. Paperless 0.2.1 and Forgejo 0.2.3 pin the rebuilt images implementing the linked native trust handoffs; Paperless 0.2.0 and Forgejo 0.2.2 do not. Changing the issuer URL alone does not satisfy this prerequisite.
 
 ```bash
 set -euo pipefail
@@ -209,7 +209,7 @@ Create deployments only through their package's new-installation procedure: Rest
 
 The current procedures use directory selectors and normalized disposable chart caches. Fresh installation and replacement resolve a stable public package; resumption reacquires its recorded version. Native application versions remain separate choices. Pass the selected `deployment` to the package chart; chart-owned selection applies operation-intent precedence to both declarations and runtime manifests.
 
-This path requires Keycloak 0.8.0 and the selected-deployment interface in Restic 0.3.1, Paperless 0.2.1 and Forgejo 0.2.3. The latter three are local candidates, not published or live-qualified releases. Qualify and publish those exact artifacts before executing this public-package walkthrough; a latest-stable download currently does not supply the new interfaces.
+This path requires Keycloak 0.8.0 and the selected-deployment interface in Restic 0.3.1, Paperless 0.2.1 and Forgejo 0.2.3. The latter three passed exact-candidate qualification and were published unchanged on 2026-11-25. Fresh anonymous chart downloads matched the qualified archives, and published image manifests matched the retained digests. Obtain these released packages through their documented download procedures; candidate checks do not replace this four-service walkthrough.
 
 See [Qualification](#qualification) for the exercised immutable artifacts, outcomes and limits.
 
@@ -309,6 +309,12 @@ After an interrupted DNS loop, inspect the live RRset collection and continue on
 Then select each cluster's separate Hetzner machine context for `cluster-2`, `cluster-3`, and finally `cluster-1`, and follow Base's [Remove the selected cluster](https://github.com/bartlapp/base-k3s/blob/main/README.md#remove-the-selected-cluster). Inspect remaining consumers and compare live resources with retained observations before authorizing deletion. Base removes cluster/VM and retired deployment records only after resource absence is verified. For interrupted provisioning/deletion, reconcile the provider inventory and remove only remaining owned resources instead of replaying the normal recipe. Deleting A destroys the synthetic backup history. Confirm no run-owned provider allocations remain. Local deletion is a separate authorized retention decision.
 
 ## Qualification
+
+### Current staging profile
+
+Standalone candidate qualification and unchanged publication are complete for [Restic 0.3.1](https://github.com/bartlapp/bartl-restic/releases/tag/v0.3.1), [Paperless 0.2.1](https://github.com/bartlapp/bartl-paperless/releases/tag/v0.2.1) and [Forgejo 0.2.3](https://github.com/bartlapp/bartl-forgejo/releases/tag/v0.2.3). Their release records retain exact build sources, chart/image identities, exercised cases and limits. Paperless and Forgejo passed fresh native-client-CA OIDC/TOTP against published Keycloak 0.8.0. These checks used one host with independent application storage; the current three-host released-package staging walkthrough and final resource disposal remain outstanding.
+
+### Prior production-CA run
 
 The production-CA procedure at [revision 893817b](https://github.com/bartlapp/bartl-app/tree/893817bc0be5629a81a53d0986b7ae787c2b574d/docs/reference-installation) passed on 2026-11-24 using three independent Debian 13 amd64/K3s `v1.36.5+k3s1` hosts, cert-manager `v1.21.3` and Helm `v4.3.2`. That run did not use LE staging and does not qualify the current staging profile. The operated chart caches matched fresh anonymous downloads of these OCI artifacts under `ghcr.io/bartlapp/bartl-<package>`:
 
