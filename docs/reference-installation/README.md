@@ -179,8 +179,6 @@ In a dedicated workstation terminal, use the retained installation's environment
 
 ```bash
 export BROWSER_CLUSTER=cluster-3
-BROWSER_VM=$(yq -o=json '.clusters[strenv(BROWSER_CLUSTER)].nodes' "$VALUES" |
-  jq -er 'if length == 1 and (to_entries[0].value.role == "server") then keys[0] else error("Expected one browser host") end')
 BROWSER_DESTINATIONS="api.ipify.org:443 valid.x1.staging-test-certs.letsencrypt.org:443 wrong.host.badssl.com:443"
 for hostname in "${KC_HOST:-}" "${FORGEJO_HOST:-}" "${PAPERLESS_HOST:-}"; do
   if [ -n "$hostname" ]; then
@@ -190,7 +188,7 @@ done
 ssh -F "$WORK_DIR/clusters/$BROWSER_CLUSTER/base/ssh.config" \
   -N -L 127.0.0.1:29222:127.0.0.1:9222 -R 127.0.0.1:1080 \
   -o ExitOnForwardFailure=yes -o "PermitRemoteOpen=$BROWSER_DESTINATIONS" \
-  "$BROWSER_VM"
+  "$BROWSER_CLUSTER-node1"
 ```
 
 Connect existing browser automation to `http://127.0.0.1:29222`; neither the debugging endpoint nor the SOCKS listener is public. In the browser, require `https://api.ipify.org` to show the workstation's `ADMIN_IP`, normal rendering of the staging test page, and rejection of `https://wrong.host.badssl.com/` for its hostname mismatch. Then repeat the package's allowed, independent denied, and forged-forwarding-header admission probes. The failed direct same-host probe is not successful acceptance. Keep the forward running while using this browser. Close it and remove the disposable account/profile at teardown.
