@@ -42,7 +42,7 @@ Before the composed-backup block creates runtime Secrets, supply its repository 
 
 Run Forgejo's provider-declaration binding and **Provision the native Keycloak client** procedure. Supply the current Keycloak administrator in `"$INSTALL_DIR/protected/keycloak-admin/username"` and `password`; for this exercise copy the retained current files from `"$WORK_DIR/clusters/cluster-2/applications/keycloak/recovery-admin/"` into that new directory. These credentials are preparation-only. The package reads the advertised realm, creates an absent authorized realm/client and retains the actual client secret. Do not hardcode another issuer or rotate a retained secret.
 
-Continue **Prepare native identity and configuration**. In its fresh-bootstrap block choose `ADMIN_USER=reference-admin` and `ADMIN_EMAIL=reference-admin@example.invalid` before generating the account. Preserve all native identity keys. Complete **Install and observe** and **Register Forgejo's native authentication source**, then the SSH and browser checks below. Keep local administration usable independently of Keycloak.
+Before **Prepare native identity and configuration**, copy the [test client CA bundle](README.md#prepare-test-client-trust) to Forgejo's retained input and complete its **Custom client CA trust** handoff. In its fresh-bootstrap block choose `ADMIN_USER=reference-admin` and `ADMIN_EMAIL=reference-admin@example.invalid` before generating the account. Preserve all native identity keys. Complete **Install and observe** and **Register Forgejo's native authentication source**, then the SSH and browser checks below.
 
 ## Provide actual SSH reachability
 
@@ -94,6 +94,7 @@ source "$WORK_DIR/operations/workstation.env"
   printf 'FORGEJO_HOST=%q\n' "$FORGEJO_HOST"
   printf 'PAPERLESS_HOST=%q\n' "$PAPERLESS_HOST"
   printf 'INSTALLATION_ID=%q\n' "$(yq -er '.installation' "$VALUES")"
+  printf '%s\n' 'export CURL_CA_BUNDLE=/root/bartl-reference/ca-bundle.pem GIT_SSL_CAINFO=/root/bartl-reference/ca-bundle.pem RESTIC_CACERT=/root/bartl-reference/ca-bundle.pem'
 } | ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
   'umask 077; mkdir -p /root/bartl-reference; cat > /root/bartl-reference/installation.env'
 ```

@@ -23,6 +23,14 @@ chmod 700 restic
 REMOTE
 ```
 
+Copy this run's complete CA bundle without modifying A's system trust:
+
+```bash
+ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
+  'umask 077; cat > /root/bartl-reference/ca-bundle.pem' \
+  < "$WORK_DIR/test-trust/ca-bundle.pem"
+```
+
 On resumption, keep the existing verified binary and check its version instead of downloading over it. Later Forgejo and Paperless readback checks reuse this client. Workstation Restic and its cache are not needed. A's continued availability is part of this B→C exercise, not evidence of backup-host-loss recovery.
 
 ## Install the backup endpoint on A
@@ -38,6 +46,13 @@ At the next prompt follow the [Restic README](https://github.com/bartlapp/bartl-
 After that prompt, run [Select the test issuer](README.md#test-tls-profile) before declaration rendering. For `acme.fke.systems`, continue with managed staging issuance and the independently prepared test CA trust.
 
 Continue through declaration rendering and storage creation. At **Prepare DNS, TLS and repository credentials**, use the [DNS checkpoint](#dns-checkpoint) below with `HOST="$RESTIC_HOST"` and `IP="$A_IP"`, then resume the package's TLS and credential preparation. Retain its repository encryption key, distinct reader/writer/admin transport passwords, `htpasswd` and validating CA independently. Use managed TLS or explicitly retained external TLS, never competing certificate owners.
+
+At the package's **validating CA bundle** input, supply the prepared test bundle before creating any repository credential Secrets:
+
+```bash
+mkdir -p "$INSTALL_DIR/protected"
+cp "$WORK_DIR/test-trust/ca-bundle.pem" "$INSTALL_DIR/protected/ca.crt"
+```
 
 Complete the workstation-side **Install and verify** checks, then use [Verify a repository from A](#verify-a-repository-from-a) below for `REPOSITORY=keycloak`. Follow [Add a repository](https://github.com/bartlapp/bartl-restic/blob/main/README.md#add-a-repository) separately for `REPOSITORY=forgejo` and `REPOSITORY=paperless`, repeating that A-client round-trip for each. Preserve the existing repository list and credentials. Native package admission initializes genuinely new repositories; never run `restic init` separately.
 
@@ -73,6 +88,7 @@ ssh -F "$CLIENT_SSH" cluster-1-node1 "umask 077; cat > '$CLIENT_DIR/ca.crt'" \
 {
   printf 'export REPOSITORY_URL=%q\nexport REPOSITORY_INPUTS=%q\n' "$REPOSITORY_URL" "$CLIENT_DIR"
   printf '%s\n' 'export PATH="/root/bartl-reference:$PATH"'
+  printf '%s\n' 'export CURL_CA_BUNDLE=/root/bartl-reference/ca-bundle.pem GIT_SSL_CAINFO=/root/bartl-reference/ca-bundle.pem RESTIC_CACERT=/root/bartl-reference/ca-bundle.pem'
 } | ssh -F "$CLIENT_SSH" cluster-1-node1 "umask 077; cat > '$CLIENT_DIR/client.env'"
 ssh -F "$CLIENT_SSH" -t cluster-1-node1 "cd '$CLIENT_DIR' && exec bash"
 ```
@@ -177,7 +193,7 @@ REPOSITORY_URL=$(yq -er '.backup.providers.restic.repositories.paperless.reposit
   "$WORK_DIR/clusters/cluster-1/applications/restic/restic-connections.yaml")
 ```
 
-Run the remainder of **External backup inputs** with that value instead of its example URL. Complete **Prepare application credentials and configuration** and **Install and verify**. Preserve the independent Paperless key and OIDC client secret. Require current-generation Ready, native 3.3.0, trusted HTTPS and fresh native administrator login. Keep ordinary capture/ingestion semantics unchanged; the cross-service document and permission fixtures are in [service acceptance](verification.md#paperless-source-acceptance).
+Run the remainder of **External backup inputs** with that value instead of its example URL. Before **Prepare application credentials and configuration**, copy the [test client CA bundle](README.md#prepare-test-client-trust) to Paperless's retained input and complete its **Custom client CA trust** handoff. Then complete configuration and **Install and verify**. Preserve the independent Paperless key and OIDC client secret. Require current-generation Ready, native 3.3.0, trusted HTTPS and fresh native administrator login. Keep ordinary capture/ingestion semantics unchanged; the cross-service document and permission fixtures are in [service acceptance](verification.md#paperless-source-acceptance).
 
 Continue with [Forgejo integration](forgejo.md), then exercise all source applications before retirement.
 

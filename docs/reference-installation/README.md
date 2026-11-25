@@ -12,7 +12,7 @@ Run the workstation's [common check](../operator-workstation.md#check-the-workst
 
 The administrator and A must have distinct, verified public source addresses. A first acts as the denied Paperless client, then becomes an allowed acceptance client; no fourth host or additional client location is required. During the denial test A reaches C through the existing firewall rule but must receive HTTP 403 from the application allowlist. Confirm released artifacts, protected input custody, capacity and the agreed spending/lifetime/teardown scope before provisioning; no local source candidate substitutes for a selected public release.
 
-Before provisioning, establish the [test TLS profile and client trust](#test-tls-profile). The staging OIDC trust gap described there blocks a live run with the currently listed artifacts; changing the issuer URL alone does not satisfy this prerequisite.
+After initializing the working directory below, prepare the [test CA bundle](#prepare-test-client-trust) before provisioning. The selected Paperless and Forgejo artifacts must implement the linked native trust handoffs; the previously published images do not. Changing the issuer URL alone does not satisfy this prerequisite.
 
 ```bash
 set -euo pipefail
@@ -102,7 +102,56 @@ Staging certificates are not publicly trusted. Keep certificate and hostname ver
 | Backup operations | Repository credential directories support `ca.crt`; native Restic supports `--cacert`. Supply the test CA bundle through that existing handoff. |
 | Operator and A | curl supports `CURL_CA_BUNDLE`/`--cacert`, Git supports `GIT_SSL_CAINFO`, and Restic supports `--cacert`. Keep this configuration scoped to the isolated test environment. |
 | Browser | Use an isolated browser trust store with staging roots, not certificate-error bypasses. A new profile is insufficient if it still shares ordinary OS trust. |
-| Paperless and Forgejo OIDC | The published 0.2.0 and 0.2.2 interfaces expose issuer/client configuration but no complete documented CA-bundle delivery path to their OIDC processes. Backup `ca.crt` is not OIDC trust. Resolve and qualify that package/interface gap before provisioning; do not patch generated workloads, disable verification or silently select production issuance. |
+| Paperless and Forgejo OIDC | Supply the complete test CA bundle through [Paperless's native client trust](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#custom-client-ca-trust) and [Forgejo's native client trust](https://github.com/bartlapp/bartl-forgejo/blob/main/README.md#custom-client-ca-trust) before creating their configuration Secrets. These handoffs require the new controller/worker builds, not merely a newer chart. Qualify those exact artifacts before provisioning this released-package exercise. |
+
+### Prepare test client trust
+
+Use a dedicated test shell. After the initial working-directory block and before creating the bases, obtain the [Mozilla public roots distributed by curl](https://curl.se/docs/caextract.html) and the four roots linked by [LE's staging documentation](https://letsencrypt.org/docs/staging-environment/#root-cas). Fetch with ordinary verified HTTPS before selecting test trust:
+
+```bash
+TRUST_DIR="$WORK_DIR/test-trust"
+mkdir "$TRUST_DIR"
+curl --fail --silent --show-error https://curl.se/ca/cacert.pem -o "$TRUST_DIR/public.pem"
+curl --fail --silent --show-error https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem -o "$TRUST_DIR/x1.pem"
+curl --fail --silent --show-error https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x2.pem -o "$TRUST_DIR/x2.pem"
+curl --fail --silent --show-error https://letsencrypt.org/certs/staging/gen-y/root-ye.pem -o "$TRUST_DIR/ye.pem"
+curl --fail --silent --show-error https://letsencrypt.org/certs/staging/gen-y/root-yr.pem -o "$TRUST_DIR/yr.pem"
+for root in x1 x2 ye yr; do
+  openssl x509 -in "$TRUST_DIR/$root.pem" -noout -subject -dates
+done
+cat "$TRUST_DIR/public.pem" "$TRUST_DIR/x1.pem" "$TRUST_DIR/x2.pem" \
+  "$TRUST_DIR/ye.pem" "$TRUST_DIR/yr.pem" > "$TRUST_DIR/ca-bundle.pem"
+```
+
+On resumption reuse this run's bundle. Select it in each dedicated workstation test terminal; public roots remain included for provider APIs and artifact downloads:
+
+```bash
+export TEST_CA_BUNDLE="$WORK_DIR/test-trust/ca-bundle.pem"
+export CURL_CA_BUNDLE="$TEST_CA_BUNDLE" GIT_SSL_CAINFO="$TEST_CA_BUNDLE"
+curl --fail --silent --show-error https://valid.x1.staging-test-certs.letsencrypt.org/ --output /dev/null
+```
+
+Before **Prepare application credentials and configuration** for Paperless or **Prepare native identity and configuration** for Forgejo, place the same bundle at the package's retained input path:
+
+```bash
+mkdir -p "$INSTALL_DIR/protected/client-ca"
+cp "$WORK_DIR/test-trust/ca-bundle.pem" "$INSTALL_DIR/protected/client-ca/ca-bundle.pem"
+```
+
+Complete each package's native trust handoff, including Forgejo's `SSL_CERT_FILE` marker, before creating the configuration Secret. Replacements retain these inputs through the package recovery procedure. This does not configure backup trust: supply the bundle as each repository reader/writer's `ca.crt` through the existing backup handoff. Copy it to A's isolated client directory and select `CURL_CA_BUNDLE` and `GIT_SSL_CAINFO` there as well; use the same file with native Restic's `--cacert`.
+
+Use a dedicated Firefox profile for browser acceptance, with [automatic OS-root import disabled](https://support.mozilla.org/en-US/kb/how-disable-enterprise-roots-preference). On macOS:
+
+```bash
+mkdir "$WORK_DIR/test-trust/firefox-profile"
+printf '%s\n' 'user_pref("security.enterprise_roots.enabled", false);' \
+  > "$WORK_DIR/test-trust/firefox-profile/user.js"
+"/Applications/Firefox.app/Contents/MacOS/firefox" --new-instance \
+  --profile "$WORK_DIR/test-trust/firefox-profile" about:preferences#privacy
+```
+
+On Linux use the installed `firefox` binary with the same arguments. In this profile's **Privacy & Security → Certificates → View Certificates → Authorities → Import**, import `x1.pem`, `x2.pem`, `ye.pem` and `yr.pem` from this run's `test-trust` directory, granting website identification trust. Open `https://valid.x1.staging-test-certs.letsencrypt.org/` and require normal verified access without a warning exception. Reuse only this profile for the exercise; do not import into the ordinary browser or OS trust store. On resumption reopen the existing profile rather than recreating it. Close the test browser and dedicated shells after the exercise.
+
 
 ## Package handoffs
 
