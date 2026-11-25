@@ -35,7 +35,7 @@ Keep the same installation root and `VALUES` when a package example selects its 
 | Paperless, replacement acquisition / Prepare the independent target | `SOURCE_DEPLOYMENT=paperless`, `SOURCE_DIR=$PL_SOURCE_DIR` | `TARGET_PACKAGE=paperless-replacement`, `DEPLOYMENT=paperless-replacement`, `TARGET_CLUSTER=cluster-3`, `TARGET_NAMESPACE=paperless-green`; select native 3.3.1 only after source retirement |
 | Restic, Resume an existing deployment | Enter `$RESTIC_DIR`, then resume | No replacement; retain the recorded package, claim, repositories and credentials |
 
-Choose/check unused target keys **at the package's creation step**. Do not precreate deployment/package entries and then rerun that creation block. On resumption after successful preparation, use recorded entries and resume at the next unfinished step; namespace/Secret/claim creation is not a retry interface.
+Choose/check unused deployment keys **at the package's creation step**. The table's package names are fallback keys for a different artifact; keep the package procedure's resolved existing key when the chart and version already match. Do not precreate deployment/package entries and then rerun that creation block. On resumption after successful preparation, use recorded entries and resume at the next unfinished step; namespace/Secret/claim creation is not a retry interface.
 
 Use separate direnv-hooked Bash terminals for Keycloak, Forgejo, Paperless, Restic and infrastructure. Enter each recorded deployment directory and wait for the next prompt before running its resumption procedure. Do not use no-hook child shells or manually export a deployment key. Preserve source/target pointers through package pauses; Forgejo/Paperless retain their original schedules in source-directory operation files, which must remain available until activation.
 
@@ -153,7 +153,7 @@ rm "$CAPTURE_SETTINGS"
 
 In the Keycloak shell execute [RECOVERY step 1](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#1-retain-source-inputs-and-choose-the-target), using the mapping above. This retains source inputs and acquires the current target package before interruption; it prepares the selector but does not enter C or install the application. Leave B selected for final capture. Retain its recovered-realm administrator and repository credentials independently.
 
-In the still-selected Forgejo and Paperless source terminals, execute only their replacement-chart acquisition blocks now, with the table's new package keys. Keep their `TARGET_STAGE` and resolved target package versions in those shells. Acquisition must succeed before interruption; target creation and native-version changes wait for retirement.
+In the still-selected Forgejo and Paperless source terminals, execute only their replacement-chart acquisition blocks now. Supply the table's fallback package names, then keep any matching existing package key resolved by those procedures. Keep their `TARGET_STAGE` and resolved target package versions in those shells. Acquisition must succeed before interruption; target creation and native-version changes wait for retirement.
 
 The runbook's single administrator CIDR is insufficient for this composition. Initially allow the actual administrator/browser, C's public IPv4 and C's allocated pod subnet. Same-node consumer-to-ingress traffic in this K3s profile retains pod addresses rather than C's public IP. C is dedicated to this installation; a shared or untrusted pod network requires a narrower separately verified policy. Keep A excluded for the independent denial check, then admit it at the acceptance checkpoint below:
 
@@ -431,7 +431,7 @@ export SOURCE_DEPLOYMENT=forgejo SOURCE_DIR="$FJ_SOURCE_DIR"
 export SOURCE_HOST="$(cat "$WORK_DIR/evidence/forgejo-source-host")"
 ```
 
-Use the table's replacement choices **inside** the package creation block. It records a new package entry and target selector and projects native version/hostname intent explicitly; the chart still does not accept Keycloak's deployment flag. The saved original schedule remains in `"$FJ_SOURCE_DIR/backup-schedule-before-operation"`.
+Use the table's deployment/cluster/namespace choices **inside** the package creation block, preserving the package key resolved during acquisition. It retains the matching artifact entry, records the target selector and declares target-specific native version/hostname intent consumed by the chart's deployment interface. The saved original schedule remains in `"$FJ_SOURCE_DIR/backup-schedule-before-operation"`.
 
 Immediately after the grouped target-creation block and directory activation, before its next rendering/resource-preparation block, select disabled application ingress:
 
