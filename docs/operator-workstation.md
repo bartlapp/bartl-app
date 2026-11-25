@@ -1,6 +1,6 @@
 # Operator workstation
 
-Prepare this workstation before using an installation checkout or the [reference installation](reference-installation/README.md). Installation repositories link here and specify their actual providers, credentials, cluster versions and any deviations. Application packages retain their own supported deployment and recovery requirements.
+Prepare the common tools for the selected package procedure, then add only the tools needed for its provider, repository administration and credential storage. Supplied cluster access and protected credential files do not require Hetzner tools or a `pass` store. Installation records identify the actual providers and access arrangements; application packages retain their own supported deployment and recovery requirements.
 
 ## Tools
 
@@ -10,15 +10,15 @@ Prepare this workstation before using an installation checkout or the [reference
 | GitHub CLI (`gh`) | Create private repositories and inspect access and repository rules | Required for GitHub; authenticated as the authorized operator |
 | Bash and standard Unix utilities | Run explicit access preparation and commissioning commands | Bash, including when the interactive shell is Zsh |
 | direnv | Select Base's cluster-local working context | Required for the Base recipe; [hook into Bash](https://direnv.net/docs/hook.html) |
-| pass | Read, generate and update encrypted credentials | GnuPG-backed password store |
-| GnuPG, gpg-agent and pinentry | Encrypt/decrypt entries and unlock the operator key | Working local passphrase prompt |
+| pass | Read, generate and update encrypted credentials | Only when using a `pass` store |
+| GnuPG, gpg-agent and pinentry | Encrypt/decrypt entries and unlock the operator key | Only for GPG-backed custody; usable private key and local prompt |
 | [Mike Farah yq](https://github.com/mikefarah/yq#install) | Read YAML inventory as JSON | Go-based yq v4, not the Python tool of the same name |
 | jq | Query JSON and check operation results | jq 1.6 or later |
 | kubectl | Prepare access files and operate Kubernetes | Within one minor version of the target API server |
 | Helm | Install and operate application packages | Helm 4.x, minimum supported version 4.3.0; select 4.3.2 for new workstation installations |
 | OpenSSL / LibreSSL | Generate credentials and backup endpoint password hashes | `rand -hex` and `passwd -apr1 -stdin` |
-| hcloud | Hetzner project operations | Required for the Hetzner profile |
-| curl and dig | DNS API requests and authoritative/public DNS checks | Required for the deSEC profile |
+| hcloud | Hetzner project operations | Only when creating or administering Hetzner resources |
+| curl and dig | HTTPS client calls and DNS checks | Common package procedures; DNS administration uses the selected provider's interface |
 
 Ruby and MessagePack are not required. Installing these tools does not install customer workloads on the workstation.
 
@@ -31,10 +31,12 @@ Agree new or replacement workstation dependencies with the affected operators be
 Use the platform package manager or the tools' official distributions. On macOS with Homebrew, install missing tools rather than upgrading an existing qualified toolchain blindly:
 
 ```bash
-brew install git bash direnv pass gnupg pinentry-mac yq jq kubernetes-cli hcloud
+brew install git bash direnv yq jq kubernetes-cli
 ```
 
-This command does not pin versions. Select [Helm 4.3.2](https://github.com/helm/helm/releases/tag/v4.3.2) and a [kubectl version compatible with the target cluster](https://kubernetes.io/docs/tasks/tools/) explicitly. macOS supplies SSH, curl, dig and LibreSSL. On Linux, use distribution packages where they meet the requirements, otherwise use official release binaries. `pass`'s package supplies its platform dependencies.
+This command does not pin versions. Select [Helm 4.3.2](https://github.com/helm/helm/releases/tag/v4.3.2) and a [kubectl version compatible with the target cluster](https://kubernetes.io/docs/tasks/tools/) explicitly. macOS supplies SSH, curl, dig and LibreSSL. On Linux, use distribution packages where they meet the requirements, otherwise use official release binaries.
+
+For Hetzner resource operations, also install `hcloud` (`brew install hcloud`). For a `pass` store, install `pass`, GnuPG and a usable pinentry (`brew install pass gnupg pinentry-mac` on macOS).
 
 For GitHub, install `gh` if missing (`brew install gh` on macOS). Supply `GH_TOKEN`/`GITHUB_TOKEN`, or authenticate with `gh auth login --hostname github.com`.
 
@@ -53,13 +55,13 @@ Manual repository inspection or file recovery requires native Restic on the sele
 
 ### Select the operating identity
 
-Base uses direnv to select its cluster-local access definition; application packages also accept explicitly supplied external cluster access without a directory hook. Use a dedicated shell without inherited provider tokens, Helm target overrides or personal Kubernetes configuration. Explicitly select the customer's password store, provider credentials and cluster context before operating. Until selection succeeds, disable implicit access (for example `PASSWORD_STORE_DIR=/dev/null`, `HCLOUD_CONFIG=/dev/null` and `KUBECONFIG=/dev/null` in a clean environment). A missing store or failed decryption must stop the operation, not select a personal default. Leaving a direnv scope restores the previous environment, not necessarily an empty one.
+Base and the package recipes use direnv to select retained cluster and deployment context, including for externally supplied clusters. Use a dedicated shell without inherited provider tokens, Helm target overrides or personal Kubernetes configuration. Select the intended cluster context and the credentials required by the operation; supplied credential files need no password-store setup. Until cluster selection succeeds, use `KUBECONFIG=/dev/null`. For Hetzner operations, select the intended provider token and use `HCLOUD_CONFIG=/dev/null` to avoid a personal default. Leaving a direnv scope restores the previous environment, not necessarily an empty one.
 
-Use your own GPG identity and explicitly select its keyring. Each authorized operator needs the recipient public keys and their own usable private key; never share private keys. On macOS, a terminal-independent prompt can be selected with `pinentry-program /usr/local/bin/pinentry-mac` in the relevant keyring's `gpg-agent.conf` (use the actual installed path, commonly `/opt/homebrew/bin/pinentry-mac` on Apple Silicon). Reload that dedicated agent after configuration changes. An execution environment with a sandbox needs access to its own keyring and agent sockets, not another operator's personal keyring.
+When using a `pass` store, select `PASSWORD_STORE_DIR` explicitly (use `/dev/null` until selection succeeds). A missing store or failed decryption must stop the operation, not select a personal default. Use your own GPG identity and explicitly select its keyring. Each authorized operator needs the recipient public keys and their own usable private key; never share private keys. On macOS, a terminal-independent prompt can be selected with `pinentry-program /usr/local/bin/pinentry-mac` in the relevant keyring's `gpg-agent.conf` (use the actual installed path, commonly `/opt/homebrew/bin/pinentry-mac` on Apple Silicon). Reload that dedicated agent after configuration changes. An execution environment with a sandbox needs access to its own keyring and agent sockets, not another operator's personal keyring.
 
 ### Verify recipient identities
 
-Use the selected `GNUPGHOME` and the approved `RECIPIENT_FILE`; for an existing password store, use its `.gpg-id`. Select your own certification key:
+Only for GPG-backed custody: use the selected `GNUPGHOME` and approved `RECIPIENT_FILE`; for an existing password store, use its `.gpg-id`. Select your own certification key:
 
 ```bash
 gpg --list-secret-keys --keyid-format long
@@ -85,10 +87,10 @@ These certifications stay in the operator's keyring and are non-exportable. They
 
 ## Check the workstation
 
-Run before commissioning; do not print credential values:
+Run the common check below, then only the additional checks applicable to the operation. Standalone package use with supplied cluster access and credentials needs neither the Hetzner nor encrypted-store check. Do not print credential values.
 
 ```bash
-for tool in git ssh bash direnv pass gpg gpg-agent jq yq kubectl helm openssl hcloud curl dig; do
+for tool in git ssh bash direnv jq yq kubectl helm openssl curl dig; do
   command -v "$tool" || exit 1
 done
 yq --version
@@ -103,13 +105,36 @@ printf 'synthetic-check\n' | openssl passwd -apr1 -stdin >/dev/null
 
 Verify the displayed yq implementation and major version, Helm version and kubectl compatibility against the table. These checks establish executable availability and parser/hash behavior, not provider authentication. A global Ruby installation or its gems have no role in the checks.
 
-For GitHub:
+### Hetzner operations
+
+Before creating or administering Hetzner resources:
+
+```bash
+command -v hcloud || exit 1
+hcloud version
+```
+
+### Encrypted pass store
+
+Only when retaining or retrieving credentials through `pass`:
+
+```bash
+for tool in pass gpg gpg-agent; do
+  command -v "$tool" || exit 1
+done
+```
+
+Select the authorized store and keyring as above. Verify actual decryption through the installation's access procedure; binary availability does not prove access to the private key or a working pinentry.
+
+### GitHub repository administration
+
+Only when creating or administering GitHub repositories (not for anonymous chart downloads):
 
 ```bash
 gh --version
 gh api user --jq .login
 ```
 
-Clone the installation and its encrypted store, follow its explicit access-selection procedure, then use its documented read-only provider and cluster checks. Access requires repository permissions, an authorized GPG key with verified decryption, existing provider tokens and reachable endpoints. Cluster access cannot exist before the cluster credentials have been issued. With multiple clusters, select the target explicitly; never merge with personal kubeconfigs.
+For supplied cluster access and protected credential files, continue directly with the selected package's access procedure. For a Git-backed installation with an encrypted store, clone both repositories and follow its access-selection and decryption procedure. Then use the read-only provider or cluster checks required by the operation. Cluster access cannot exist before its credentials have been issued. With multiple clusters, select the target explicitly; never merge with personal kubeconfigs.
 
 Application tokens and kubeconfigs must never enter Git in plaintext. Access preparation may materialize restricted-permission credentials in ignored runtime storage. Ending the session does not erase these files; retain independently needed inputs before any authorized disposal. Credential creation, infrastructure provisioning and rotation are explicit operating steps, never side effects of directory entry.
