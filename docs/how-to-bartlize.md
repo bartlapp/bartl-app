@@ -42,6 +42,8 @@ Select genuine operator choices once, derive the remaining values and read retai
 
 Each operation has one owning procedure. Link shared prerequisites rather than duplicate them. A handoff names its entry point, required inputs, expected outputs and continuation; the operator must not assemble fragments from unrelated sections. Package recipes remain usable without the company Customer Journey. Release, installation identity, effective configuration and protected-input references must suffice to invoke the ordinary interface.
 
+Review the necessity of those prerequisites and steps recursively through linked procedures, for the selected operation and intended administrator. Delegation does not justify an otherwise unnecessary requirement. Successful execution establishes that the path works, not that every imposed step belongs in it; a deliberately broad qualification exercise is not excessive merely because it covers many cases.
+
 Define stop and removal alongside installation. If removal retains state for reuse, exercise authorized reinstall without admitting a competing predecessor. Retained data alone does not establish that procedure. Keep the coordination needed to finish removal available until its work is done.
 
 For replacement, translate the [service-authority requirements](https://github.com/bartlapp/bartl-app/blob/main/docs/application-contract.md#service-authority-and-promotion) into concrete source retirement, final-write handling and activation steps. Preparing a candidate and promoting it are different operations.
@@ -55,6 +57,8 @@ Follow the documented procedure literally, including its handoffs. If a step is 
 Approval to change a prerequisite does not retroactively validate the failed exercise. Re-establish the starting conditions and repeat the affected path before claiming qualification.
 
 Qualify the same immutable artifacts operators obtain. Source-tested code does not qualify a published package. Keep repeatable checks in source, raw output outside Git, and exact artifact identities, observed results and consequential limits in the release/integration description. Do not create per-session evidence files or qualification reports. Keep historical limits attached to their exact releases, outside current instructions.
+
+Preserve exact candidates until qualification and verified durable publication. Once artifact identities, selected results and material limits are retained in the existing release/integration record and the artifacts are durably published, dispose of superseded binaries, downloaded tools, lab credentials and raw working output within the agreed cleanup scope, unless a specific continuing obligation requires them. Calling material “evidence” is not itself a retention reason.
 
 Test the claimed failure boundary: another namespace does not establish survival of host or provider loss. Renew affected evidence when the package changes.
 
