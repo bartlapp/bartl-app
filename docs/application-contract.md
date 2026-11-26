@@ -10,6 +10,8 @@ People authorize the outcome and accepted risks. The application executes its in
 
 The contract applies to a logical application instance, not independently to each process or replica. It prescribes no Kubernetes dependency, shared runtime, controller or sidecar. Preserve native scaling, restart and update capabilities; declare product limitations and justify package restrictions within the supported profile.
 
+These are governing requirements, not a claim that every released package already implements them. Package release evidence identifies the behavior actually available and any remaining gaps.
+
 ### Standalone operation
 
 Each package MUST provide a complete standalone operating procedure through its README and explicitly linked public instructions. Given the documented target prerequisites and operator-supplied inputs, that procedure MUST support installation, operation, backup, reconstruction and supported upgrades without company-specific onboarding or orchestration tooling, an installation repository, or other Bartl packages where compatible external services satisfy the declared dependencies. Application-internal initialization, restore and migration remain automatic.
@@ -58,6 +60,12 @@ The application or its maintained operating package owns consistent capture, rec
 
 Assign each state-changing step one owner and exclude conflicting execution. Additional replicas join through native state-sharing or replication; they do not independently initialize or restore shared state. Components may cooperate through an entrypoint or explicit protocol, but completion signals must identify the current installation and operation. Restart, queued work and completion cannot override intentional stop or reopen access through stale results.
 
+Runtime intent has one durable owner, separate from release and static configuration. Defaults initialize a new instance only; configuration updates, package upgrades and coordinator or component restarts MUST NOT reset an intentional stop or a selected replica count. Restarting one component MUST remain native and MUST NOT require restarting its companion components or awaken a stopped application.
+
+Ordinary stop, start, status and supported component restart operations MUST NOT require reacquiring the package or reconstructing installation inputs. A whole-application stop preserves persistent data and configuration; lifecycle management remains available to accept a subsequent start.
+
+A whole-application stop MUST safely drain or end owned background work and stop all dedicated components, including its owned database. External or shared databases remain outside that stop boundary. Whole-application stop takes precedence over every component's replica count. Conversely, reducing only the application-serving component to zero while the whole application remains enabled MUST leave its dedicated database available. A requested stop is complete only after the owned work and components have actually stopped.
+
 Admission, continued operation and withdrawal of authority are distinct decisions. Loss of observation alone does not revoke an already-running application's authority. Each package declares its continued-operation and stop behavior during unavailable observation, including availability and safety limits. An unconfirmed stop request is not proof that execution ended. Continuous schema policing is not required.
 
 Report failure at the affected operation's boundary. If only publication of a complete consistent capture fails, report a failed backup and protect the capture for retry. Resume an otherwise healthy application when state and current running authority permit it; publication failure alone must not keep it stopped. Failed capture, uncertain state or unresolved authority does not permit resumption.
@@ -91,6 +99,7 @@ Start with one justified configuration. Record supported releases and transition
 | Standalone procedure | Qualification MUST exercise the README procedure for installation, operation, backup, reconstruction and supported upgrades using the exact released artifacts, with company-specific repositories and tooling unavailable. For a package supporting external backup, the exercise MUST use an operator-supplied compatible repository and independently retained credentials and keys. |
 | First initialization | Usable vanilla installation on empty owned state, both without a configured store and with a store containing no backup. |
 | Normal restart | Existing state and identity survive without backup access, reinitialization or unnecessary restore. |
+| Durable runtime intent | An intentional whole-application stop and selected replica counts survive configuration updates, package upgrades and coordinator restarts. Whole-application stop dominates component counts, stops the dedicated database and owned background work safely, and does not stop external/shared services. Scaling only the serving component to zero leaves its dedicated database available while the application remains enabled. Independent native component restarts neither require tandem restarts nor awaken a stopped application. |
 | Source-independent restore | Create a point through the package, restore it on an empty target without the source or a second technical release command, verify data, identity and useful behavior, perform new work, then produce another usable recovery point. |
 | Supported release transition | Native migration succeeds; unsupported transitions and downgrades are refused without destructive fallback. |
 | Failed transition and retry | Failure stays visible and stopped across restarts; ordinary retry on an independent target succeeds within the accepted data-loss boundary. Conflicting execution, stale completion and work overriding stop are excluded. |
@@ -107,6 +116,8 @@ Application reconstruction needs a usable environment, access paths and enforced
 ### Inputs and authorization
 
 Identify the installation, exact releases and effective configuration, a complete verified recovery point or authorized selection policy, protected credentials and keys, and the target profile. Record permitted interruption, data loss and treatment of the old installation's write authority. A changed target or risk outside that authorization requires a new decision. Decision time counts towards end-to-end interruption.
+
+A replacement target receives explicitly selected new runtime intent; it does not blindly inherit the source's stop or replica settings. Preparing or starting that target does not retire the source or authorize production activation. Source retirement remains a separate enforced step.
 
 ### Target and provider boundary
 
