@@ -313,7 +313,32 @@ Then select each cluster's separate Hetzner machine context for `cluster-2`, `cl
 
 ### Current staging profile
 
-Standalone candidate qualification and unchanged publication are complete for [Restic 0.3.1](https://github.com/bartlapp/bartl-restic/releases/tag/v0.3.1), [Paperless 0.2.1](https://github.com/bartlapp/bartl-paperless/releases/tag/v0.2.1) and [Forgejo 0.2.3](https://github.com/bartlapp/bartl-forgejo/releases/tag/v0.2.3). Their release records retain exact build sources, chart/image identities, exercised cases and limits. Paperless and Forgejo passed fresh native-client-CA OIDC/TOTP against published Keycloak 0.8.0. These checks used one host with independent application storage; the current three-host released-package staging walkthrough and final resource disposal remain outstanding.
+Standalone candidate qualification and unchanged publication completed on 2026-11-25 for [Restic 0.3.1](https://github.com/bartlapp/bartl-restic/releases/tag/v0.3.1), [Paperless 0.2.1](https://github.com/bartlapp/bartl-paperless/releases/tag/v0.2.1) and [Forgejo 0.2.3](https://github.com/bartlapp/bartl-forgejo/releases/tag/v0.2.3). Their release records retain exact build sources, chart/image identities, exercised cases and limits. These candidate checks used one host with independent application storage; they are distinct from the released-package acceptance below.
+
+The three-host LE-staging walkthrough passed on 2026-11-25–26 using Debian 13 amd64, K3s `v1.36.5+k3s1`, cert-manager `v1.21.3` and Helm `v4.3.2`. Fresh public downloads, not substituted local build outputs, supplied these OCI charts under `ghcr.io/bartlapp/bartl-<package>`. Running container identities matched the released pins.
+
+| Package | Chart | Native path | OCI chart manifest SHA-256 |
+| --- | --- | --- | --- |
+| Restic | 0.3.1 | Restic 0.19.1; retained endpoint on A | `9bd0f7c6464ca731e0c54180fa4dad5d68a1964e25dac4836077dd21fb2a2849` |
+| Keycloak | 0.8.0 | Keycloak 26.6.2 reconstruction | `8e345cc00442470da72e2369e27cdd777a4d1a52a6a71bc9f607ed6d211357d8` |
+| Paperless | 0.2.1 | 3.3.0 → 3.3.1 replacement | `41cf9289d420101a03bda22c5d7b41692023eafcf9e6cf1b57d34695f7f40e7d` |
+| Forgejo | 0.2.3 | 16.0.7 → 17.0.1 replacement | `a7b2a36e553397ff034d8bd3427e062ab5fa2ed1a5a4e1d9449cceea59d20e60` |
+
+Source operation passed native/OIDC/TOTP login, useful data and permission checks, capture, backup-independent restart and persistent stop/start. Restic retained its PVC and all three repository identities through finalization/uninstall/reinstall; native reader restores and new writer/reader round trips passed on A. Independently cloned private retention supplied decryptable original inputs and new target database credentials without revealing them.
+
+After final captures, B was confirmed powered off and remained off. Independent C reconstructed the exact selected points, preserved Keycloak realm/user/client IDs and TOTP, Forgejo SSH identity and read-only collaboration, and Paperless users, document grants and original bytes. Fresh browser OIDC/TOTP passed through both rebuilt native client-CA images. Independent ordinary and forged-forwarding denial checks passed for Keycloak and Paperless; withdrawing A's provider rules produced TCP timeouts on all three Forgejo-facing ports before readmission.
+
+| Application | Final source snapshot | Accepted subsequent snapshot |
+| --- | --- | --- |
+| Keycloak | `ccff524c64faa6ec40f5e49ce8e0dd0685d8e090a62d411bcd866dc2d7872884` | `79d510b66833a674b280dbf67297e838a798facb976708d2e8f1d1820066718a` |
+| Paperless | `56944c0229ec51e65b0996c9b6b354e2f8d5f9bbcc45737efc25ad8f84ce5591` | `6c323aaca15336963ca4f3ba592cbc75e6f928618ed1b20158dbae8e9613f5f9` |
+| Forgejo | `42f72124cb1c4301e63d9cc8e21f04bebd4fa835f82753d4f5e843d299d23c36` | `015becfd5741fb91f0a09b1ddc1e9fcee74d672787ed92870066d4d1b8494388` |
+
+Paperless processed new work whose exported title and original PDF bytes passed independent subsequent-backup readback. Forgejo preserved Git/LFS, issue/PR, attachment, package and release content, then passed retained-state reinstall with unchanged PVCs, fresh OIDC access and new SSH writes. Its post-reinstall point passed Git readback, every manifest checksum, native SQLite integrity and exact new issue/package checks on A. Keycloak accepted creation/read/deletion of a synthetic user and another native backup. Dependency-first ordinary activation, renewed useful access and successful resumed scheduled captures passed for all three consumers.
+
+The run required corrected procedure handoffs: source capture admission during acceptance, isolated browser transport and role state, target-specific Paperless version selection, staging trust in independent probes, and current-generation readiness after Paperless activation. Failed probes were not counted as acceptance; affected checks were repeated after diagnosis. This is not an uninterrupted RTO measurement, production-scale qualification, provider-loss recovery or source-independent fencing. A and the provider remained available. The synthetic records review had no unrecorded later business decisions; real records and post-backup authority changes require their own review.
+
+Final authorized resource and temporary-state disposal remains outstanding.
 
 ### Prior production-CA run
 
