@@ -187,6 +187,7 @@ for hostname in "${KC_HOST:-}" "${FORGEJO_HOST:-}" "${PAPERLESS_HOST:-}"; do
 done
 ssh -F "$WORK_DIR/clusters/$BROWSER_CLUSTER/base/ssh.config" \
   -N -L 127.0.0.1:29222:127.0.0.1:9222 -R 127.0.0.1:1080 \
+  -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
   -o ExitOnForwardFailure=yes -o "PermitRemoteOpen=$BROWSER_DESTINATIONS" \
   "$BROWSER_CLUSTER-node1"
 ```
