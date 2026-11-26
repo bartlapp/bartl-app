@@ -103,6 +103,8 @@ This remote file is derived test input only. Configuration, placement, package s
 
 ## Verify browser access
 
+First [pause source captures for acceptance](verification.md#pause-source-captures-for-acceptance). Keep those schedules paused through browser and service-data checks; restore them at the coordinator's source schedule checkpoint. Scheduled capture interruption is not a reason to replay an uncertain mutation.
+
 In the provider realm selected by Keycloak's declaration, create a synthetic enabled user `reference-user` with verified email `reference-user@example.invalid`, a retained password and no pending required action. Use native Keycloak administration, not consumer-side email linking. Retain the realm/user/client IDs as temporary comparison inputs; they must survive recovery.
 
 Open `https://$FORGEJO_HOST`, choose “Sign in with keycloak”, authenticate as that user and verify a distinct Forgejo `reference-user` account. Check logout and new login through the real HTTPS endpoint. Do not grant this user administration. Verify local `reference-admin` login separately. Keep comparison IDs under the exercise's ignored `evidence/` directory, without passwords or tokens.

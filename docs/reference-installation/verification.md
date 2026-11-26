@@ -6,7 +6,40 @@ On the workstation, load the [variables and helpers](README.md#prepare-workstati
 source "${WORK_DIR:?}/operations/workstation.env"
 ```
 
-Keep synthetic working copies and payloads on A under `/root/bartl-reference/forgejo` and `/root/bartl-reference/paperless`, not on the workstation. Complete the [Forgejo browser checks](forgejo.md#verify-browser-access) first. Temporary comparison records exist only for this exercise.
+Pause source captures below, then complete the [Forgejo browser checks](forgejo.md#verify-browser-access) before creating service data. Keep synthetic working copies and payloads on A under `/root/bartl-reference/forgejo` and `/root/bartl-reference/paperless`, not on the workstation. Temporary comparison records exist only for this exercise.
+
+## Pause source captures for acceptance
+
+Forgejo and Paperless captures interrupt intake. Their five-minute test schedules must not race browser administration, Git pushes or API mutations. On the workstation, after both sources are installed and any admitted capture/publication has finished, retain their actual schedules and pause new scheduled admission. Do not cancel active work or retry an uncertain write:
+
+```bash
+for app in forgejo paperless; do
+  direnv exec "$WORK_DIR/clusters/cluster-2/applications/$app" bash --noprofile --norc -s <<'SH'
+set -euo pipefail
+umask 077
+test -d "$CHART"
+kubectl --context "$KUBE_CONTEXT" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o json |
+  jq -e '.metadata.generation as $g | .status.observedGeneration == $g and
+    any(.status.conditions[]; .type == "Ready" and .status == "True" and .observedGeneration == $g) and
+    .status.operation.phase == "Succeeded" and
+    (.status.backup.phase == null or .status.backup.phase == "Published") and
+    all(.status.conditions[]; .type != "BackupFailed" or .status != "True")'
+if [ ! -e "$INSTALL_DIR/backup-schedule-before-acceptance" ]; then
+  (set -o noclobber; yq -r '.services[strenv(INSTANCE)].backup.schedule // ""' "$VALUES" \
+    > "$INSTALL_DIR/backup-schedule-before-acceptance")
+fi
+yq -i '.services[strenv(INSTANCE)].backup.schedule = ""' "$VALUES"
+helm upgrade "$RELEASE" "$CHART" --kube-context "$KUBE_CONTEXT" -n "$NS" \
+  --reset-values -f "$VALUES" --set-string deployment="$DEPLOYMENT" --wait=legacy --timeout=5m
+kubectl --context "$KUBE_CONTEXT" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=condition=Ready --timeout=5m
+kubectl --context "$KUBE_CONTEXT" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o json |
+  jq -e '.metadata.generation as $g | .status.observedGeneration == $g and
+    any(.status.conditions[]; .type == "Ready" and .status == "True" and .observedGeneration == $g)'
+SH
+done
+```
+
+If the precondition fails, inspect and finish the admitted operation through its package procedure before returning here. If a prior write failed, inspect its native result before deciding whether any write remains necessary. Keep these temporary schedule inputs until source acceptance is complete; restore them at [the source schedule checkpoint](#restore-source-schedules-after-acceptance). This coordinates admission, not a change to native capture or ingestion semantics.
 
 ## Prepare the remote test client
 
@@ -181,6 +214,8 @@ Exit the SSH session and resume [Lifecycle and recovery](recovery.md) on the wor
 
 In the administrator's browser, log in to `https://$PAPERLESS_HOST` through Keycloak as the synthetic `reference-user`. In native Paperless administration select the resulting account; do not link accounts merely by matching email. Grant the [package's native reader permissions](https://github.com/bartlapp/bartl-paperless/blob/main/README.md#oidc-mfa-and-token-recovery), without staff/superuser status or document-change permission. Create a second synthetic active account `reference-denied` with the same model-level reader permissions but no document grants. The document grant below distinguishes the two.
 
+Use a clean browser profile when changing test roles, or close prior pages and clear all origin storage before the next login. Clearing cookies alone can leave the previous reader's open-document titles in client state; that is not evidence from a fresh denied-user session.
+
 On the workstation select their actual native usernames. The administrator name comes from the retained bootstrap input:
 
 ```bash
@@ -317,7 +352,33 @@ paperless_api admin "$PAPERLESS_URL/api/documents/$DOC_ID/" |
   jq -e '.title=="Synthetic Baseline"'
 ```
 
-In a fresh browser session verify reader OIDC login, visible baseline content, search and original download without document modification or administrator access. Confirm the denied account cannot see the document. Exit the SSH session. Before source retirement continue with [Lifecycle and recovery](recovery.md); after reconstruction return to its Paperless checkpoint.
+In a fresh browser session verify reader OIDC login, visible baseline content, search and original download without document modification or administrator access. Confirm the denied account cannot see the document. Exit the SSH session. Before source retirement, restore source schedules below and continue with [Lifecycle and recovery](recovery.md). After reconstruction, return directly to its Paperless checkpoint; do not restore source schedules on behalf of a restricted replacement.
+
+### Restore source schedules after acceptance
+
+Only after all source browser, data and permission checks pass, return to the workstation and restore the retained schedules:
+
+```bash
+for app in forgejo paperless; do
+  direnv exec "$WORK_DIR/clusters/cluster-2/applications/$app" bash --noprofile --norc -s <<'SH'
+set -euo pipefail
+export BACKUP_SCHEDULE
+BACKUP_SCHEDULE=$(cat "$INSTALL_DIR/backup-schedule-before-acceptance")
+yq -i '.services[strenv(INSTANCE)].backup.schedule = strenv(BACKUP_SCHEDULE)' "$VALUES"
+helm upgrade "$RELEASE" "$CHART" --kube-context "$KUBE_CONTEXT" -n "$NS" \
+  --reset-values -f "$VALUES" --set-string deployment="$DEPLOYMENT" --wait=legacy --timeout=5m
+kubectl --context "$KUBE_CONTEXT" -n "$NS" wait "${INSTANCE}application/$INSTANCE" --for=condition=Ready --timeout=5m
+kubectl --context "$KUBE_CONTEXT" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o json |
+  jq -e '.metadata.generation as $g | .status.observedGeneration == $g and
+    any(.status.conditions[]; .type == "Ready" and .status == "True" and .observedGeneration == $g)'
+test "$(kubectl --context "$KUBE_CONTEXT" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o jsonpath='{.spec.backup.schedule}')" = "$BACKUP_SCHEDULE"
+kubectl --context "$KUBE_CONTEXT" -n "$NS" get "${INSTANCE}application/$INSTANCE" -o json |
+  jq '.status.backup' > "$INSTALL_DIR/backup-before-schedule-resume.json"
+SH
+done
+```
+
+Observe a subsequent successful scheduled capture for each source through its package status commands, with a new request and full snapshot identity compared with `backup-before-schedule-resume.json`. Then remove those two temporary inputs from each source directory. Do not treat the restored schedule field or an earlier completed capture as proof that scheduling resumed.
 
 ### Paperless new work after recovery
 

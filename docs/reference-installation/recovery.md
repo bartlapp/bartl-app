@@ -329,6 +329,7 @@ At step 5's restricted-route checkpoint, A is admitted by C's provider firewall 
 test "$A_IP" != "$ADMIN_IP"
 ssh -F "$CLIENT_SSH" cluster-1-node1 bash -s -- "$KC_HOST" "$ADMIN_IP" <<'CHECK'
 set -euo pipefail
+source /root/bartl-reference/installation.env
 host=$1; administrator=$2
 for path in /realms/acme/account/ /admin/master/console/; do
   code=$(curl --silent --show-error -o /dev/null -w '%{http_code}' "https://$host$path")
@@ -354,13 +355,13 @@ In the selected Keycloak target terminal, run **Apply changes to a running deplo
 
 ## Recover Paperless before Forgejo
 
-In the Paperless terminal, keep `SOURCE_DEPLOYMENT=paperless`, `SOURCE_DIR=$PL_SOURCE_DIR` and the package acquisition variables. After B is confirmed off, select the supported native target:
+In the Paperless terminal, keep `SOURCE_DEPLOYMENT=paperless`, `SOURCE_DIR=$PL_SOURCE_DIR` and the package acquisition variables. After B is confirmed off, run **Prepare the independent target** using the table's C choices. Once its creation block has entered the target deployment directory and direnv has selected that target, choose the supported native version before target declaration rendering:
 
 ```bash
-yq -i '.services.paperless.version = "3.3.1"' "$VALUES"
+yq -i '.operations.deployments[strenv(DEPLOYMENT)].version = "3.3.1"' "$VALUES"
 ```
 
-Run **Prepare the independent target** using the table's C choices. Restore the original Paperless key and OIDC client input; supply the existing A repository's reader/writer files, not newly generated keys.
+Keep the source's service version unchanged. Restore the original Paperless key and OIDC client input; supply the existing A repository's reader/writer files, not newly generated keys.
 
 At the package's DNS boundary, follow [Move a consumer hostname](#move-a-consumer-hostname) with `HOST="$PAPERLESS_HOST"`. Before installation, [open challenge access](#open-challenge-access), keeping Keycloak in maintenance and Paperless's ordinary ingress disabled. Execute **Reconstruct, review and activate** through its certificate/current-generation Ready checks and PVC inspection, then pause. [Close challenge access](#close-challenge-access) before creating the restricted review route. Stop before new-work capture and ordinary activation.
 
@@ -373,6 +374,7 @@ test "$A_IP" != "$ADMIN_IP"
 ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
   bash -s -- "$PAPERLESS_HOST" "$ADMIN_IP" <<'CHECK'
 set -euo pipefail
+source /root/bartl-reference/installation.env
 PAPERLESS_URL="https://$1"
 ADMIN_IP=$2
 test "$(curl --silent --show-error -o /dev/null -w '%{http_code}' "$PAPERLESS_URL")" = 403
@@ -388,7 +390,8 @@ kubectl --kubeconfig "$KC" -n paperless-green patch middleware paperless-review 
   -p "$(jq -nc --arg admin "$ADMIN_IP/32" --arg client "$A_IP/32" \
     '{spec:{ipAllowList:{sourceRange:[$admin,$client]}}}')"
 ssh -F "$WORK_DIR/clusters/cluster-1/base/ssh.config" cluster-1-node1 \
-  curl --fail --silent --show-error --output /dev/null "https://$PAPERLESS_HOST"
+  curl --cacert /root/bartl-reference/ca-bundle.pem --fail --silent --show-error --output /dev/null \
+    --max-time 10 --retry 10 --retry-all-errors --retry-delay 2 --retry-max-time 60 "https://$PAPERLESS_HOST"
 ```
 
 Require the post-change request to succeed. The firewall remains restricted throughout; no temporary ordinary-client exception is introduced. On resumption, inspect whether the deny/admit transition already completed before replaying it. A source mismatch or inability to establish both outcomes stops activation.
