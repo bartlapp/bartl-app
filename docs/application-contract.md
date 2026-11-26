@@ -4,17 +4,17 @@
 
 The [philosophy](https://github.com/bartlapp/bartl-app/blob/main/docs/philosophy.md) explains why Bartl connects applications, infrastructure and operating responsibility. This contract defines their required contributions. [How to bartlize](https://github.com/bartlapp/bartl-app/blob/main/docs/how-to-bartlize.md) explains the implementation method. The website renders this document; application packages own their supported configuration, procedures and evidence.
 
-People authorize the outcome and accepted risks. The application executes its internal procedures without manual technical intervention. An installation administrator may operate the complete customer installation by executing documented commands with its versioned configuration and checking the results. They must not have to invent missing application machinery. Installation-wide automation is a separate, longer-term goal.
+People authorize the outcome and accepted risks. The application executes its internal procedures without manual technical intervention. An installation administrator operates the complete customer installation by executing documented commands with its versioned configuration, checking results and controlling source withdrawal and production activation. They must not have to invent missing application machinery. Installation-wide automation is a separate, longer-term goal.
 
 ## Application contract and qualification
 
-The contract applies to a logical application instance, not independently to each process or replica. It prescribes no Kubernetes dependency, shared runtime, controller or sidecar. Preserve native scaling, restart and update capabilities; declare product limitations and justify package restrictions within the supported profile.
+The contract applies to a logical application instance, not independently to each process or replica. It prescribes no Kubernetes dependency, shared runtime, controller or sidecar. Preserve native scaling and independent component restarts, and use native data migration within the supported profile. Replacement on an independent target is the required update path; this contract does not require in-place package updates or migration of old management resources or controller state. Declare product limitations and justify package restrictions.
 
 These are governing requirements, not a claim that every released package already implements them. Package release evidence identifies the behavior actually available and any remaining gaps.
 
 ### Standalone operation
 
-Each package MUST provide a complete standalone operating procedure through its README and explicitly linked public instructions. Given the documented target prerequisites and operator-supplied inputs, that procedure MUST support installation, operation, backup, reconstruction and supported upgrades without company-specific onboarding or orchestration tooling, an installation repository, or other Bartl packages where compatible external services satisfy the declared dependencies. Application-internal initialization, restore and migration remain automatic.
+Each package MUST provide a complete standalone operating procedure through its README and explicitly linked public instructions. Given the documented target prerequisites and operator-supplied inputs, that procedure MUST support installation, operation, backup, reconstruction and replacement upgrades without company-specific onboarding or orchestration tooling, an installation repository, or other Bartl packages where compatible external services satisfy the declared dependencies. It MUST identify obtainable immutable release artifacts and how to supply a compatible external backup repository, credentials and keys where backup is supported. Application-internal initialization, restore and migration remain automatic.
 
 ### How the application starts
 
@@ -27,7 +27,7 @@ You install or start the application. It works out what needs doing:
 
 You do not have to choose or manually perform those internal steps. You supply the release and installation configuration, not an initialization permission, recovery mode or second command to release successful reconstruction.
 
-For a replacement upgrade, the newer installation restores the backup and updates the data through this same procedure. The upgrade therefore also exercises recovery. Choosing its version and destination remains an operating decision; switching the service follows the activation requirements below.
+For a replacement upgrade, the destination installation restores the backup and updates the data through this same recovery procedure. The operator selects the destination release, not migration hops. The package MUST declare supported source backup/data versions, automatically run any necessary intermediate native versions, and make their immutable artifacts independently available. Failed intermediate work remains isolated from the source and cannot expose an incomplete destination. Choosing the destination and switching the service remain operating decisions governed by the activation requirements below.
 
 ### Startup decision
 
@@ -48,7 +48,7 @@ Only absent local state requires `observe_backup()`. It returns the latest compl
 
 `restore()` uses the supported native procedure; incomplete reconstruction cannot become the usable target. `native_start()` performs native initialization or supported migration as needed. Unsupported transitions and downgrades must not destructively change state. Use native safeguards and supplement only demonstrated gaps.
 
-`await_native_success()` checks the native transition result and normal readiness. The application may run internally while ordinary access is withheld; `serving()` opens access after success. An ordinary process or Kubernetes restart remains native startup, not a recovery workflow or privileged acceptance ceremony.
+`await_native_success()` checks the native transition result and normal readiness. The application may run internally while ordinary access is withheld; `serving()` opens its application access after success. This internal completion neither changes production routing nor transfers production authority; the operator activates the destination through the service procedure, without a second technical restore-release command. An ordinary component restart remains native startup, not a recovery workflow or privileged acceptance ceremony.
 
 Failed initialization, reconstruction or migration remains visibly stopped across restarts. Replacing the failed target and retrying ordinary installation is acceptable only when independently preserved inputs recover the required state within the accepted data-loss boundary. Automatic repair, replay or reconstruction of ambiguous progress is not required.
 
@@ -60,7 +60,7 @@ The application or its maintained operating package owns consistent capture, rec
 
 Assign each state-changing step one owner and exclude conflicting execution. Additional replicas join through native state-sharing or replication; they do not independently initialize or restore shared state. Components may cooperate through an entrypoint or explicit protocol, but completion signals must identify the current installation and operation. Restart, queued work and completion cannot override intentional stop or reopen access through stale results.
 
-Runtime intent has one durable owner, separate from release and static configuration. Defaults initialize a new instance only; configuration updates, package upgrades and coordinator or component restarts MUST NOT reset an intentional stop or a selected replica count. Restarting one component MUST remain native and MUST NOT require restarting its companion components or awaken a stopped application.
+Runtime intent has one durable owner, separate from release and static configuration. Defaults initialize a new instance only; same-installation configuration changes and coordinator or component restarts MUST NOT reset an intentional stop or a selected replica count. Restarting one component MUST remain native and MUST NOT require restarting its companion components or awaken a stopped application. Replacement creates new target runtime intent as specified below; no in-place package-compatibility promise follows.
 
 Ordinary stop, start, status and supported component restart operations MUST NOT require reacquiring the package or reconstructing installation inputs. A whole-application stop preserves persistent data and configuration; lifecycle management remains available to accept a subsequent start.
 
@@ -96,16 +96,16 @@ Start with one justified configuration. Record supported releases and transition
 
 | Case | Required evidence |
 | --- | --- |
-| Standalone procedure | Qualification MUST exercise the README procedure for installation, operation, backup, reconstruction and supported upgrades using the exact released artifacts, with company-specific repositories and tooling unavailable. For a package supporting external backup, the exercise MUST use an operator-supplied compatible repository and independently retained credentials and keys. |
+| Standalone procedure | Qualification MUST exercise the README procedure for installation, operation, backup, reconstruction and replacement upgrades using the exact released artifacts, with company-specific repositories and tooling unavailable. For a package supporting external backup, the exercise MUST use an operator-supplied compatible repository and independently retained credentials and keys. |
 | First initialization | Usable vanilla installation on empty owned state, both without a configured store and with a store containing no backup. |
 | Normal restart | Existing state and identity survive without backup access, reinitialization or unnecessary restore. |
-| Durable runtime intent | An intentional whole-application stop and selected replica counts survive configuration updates, package upgrades and coordinator restarts. Whole-application stop dominates component counts, stops the dedicated database and owned background work safely, and does not stop external/shared services. Scaling only the serving component to zero leaves its dedicated database available while the application remains enabled. Independent native component restarts neither require tandem restarts nor awaken a stopped application. |
+| Durable runtime intent | An intentional whole-application stop and selected replica counts survive same-installation configuration changes and coordinator restarts. Whole-application stop dominates component counts, stops the dedicated database and owned background work safely, and does not stop external/shared services. Scaling only the serving component to zero leaves its dedicated database available while the application remains enabled. Independent native component restarts neither require tandem restarts nor awaken a stopped application. Replacement uses explicitly selected target intent rather than copying source runtime state. |
 | Source-independent restore | Create a point through the package, restore it on an empty target without the source or a second technical release command, verify data, identity and useful behavior, perform new work, then produce another usable recovery point. |
-| Supported release transition | Native migration succeeds; unsupported transitions and downgrades are refused without destructive fallback. |
+| Supported release transition | Replacement restores each declared supported source backup/data version and automatically completes the necessary native migrations, including intermediate versions where required. Their exact artifacts are available; failed hops cannot affect the source or expose an incomplete target. Unsupported transitions and downgrades are refused without destructive fallback. |
 | Failed transition and retry | Failure stays visible and stopped across restarts; ordinary retry on an independent target succeeds within the accepted data-loss boundary. Conflicting execution, stale completion and work overriding stop are excluded. |
 | Observation and operation failures | Failed observation, configured-store lookup, damaged backups and native failures do not fall through to initialization. Publication failure is separate from application health and respects stop. Established operation follows the declared observation-loss policy. |
 | Foreign state boundary | Application failure does not reset shared or externally owned state. |
-| Application acceptance | Agreed useful behavior is checked after every supported transition; container or Job success alone is insufficient. |
+| Application acceptance | Agreed useful behavior is checked after every supported transition; process or native-operation success alone is insufficient. |
 
 These cases prescribe no universal test runner. Reuse implementations where responsibilities actually coincide. An isolated passing case does not qualify the whole contract; evidence states which service-recovery conditions below were exercised.
 
@@ -117,7 +117,7 @@ Application reconstruction needs a usable environment, access paths and enforced
 
 Identify the installation, exact releases and effective configuration, a complete verified recovery point or authorized selection policy, protected credentials and keys, and the target profile. Record permitted interruption, data loss and treatment of the old installation's write authority. A changed target or risk outside that authorization requires a new decision. Decision time counts towards end-to-end interruption.
 
-A replacement target receives explicitly selected new runtime intent; it does not blindly inherit the source's stop or replica settings. Preparing or starting that target does not retire the source or authorize production activation. Source retirement remains a separate enforced step.
+A replacement target receives explicitly selected new runtime intent; it does not blindly inherit the source's stop or replica settings. Its installation and reconstruction MUST work without discovering, contacting or retiring a predecessor. The operator owns source withdrawal, production activation and retirement through separately documented interfaces; preparing or starting the target does not perform or authorize those steps.
 
 ### Target and provider boundary
 
@@ -127,7 +127,9 @@ The target contract declares runtime and versions, compute and temporary reconst
 
 Recovery procedures and any coordinator, bootstrap, artifacts, state, credentials and keys must survive the source failure or administrative domain being excluded. The executor cannot exist only inside the environment it must reconstruct. Normal service must not depend on its continuous availability.
 
-After authorization, check inputs and target capabilities, establish the environment, restore and migrate in dependency order, validate applications, enforce write-authority transfer and activate access. Success means users can perform the agreed service with the required data and dependencies within authorized limits. Record actual recovery time, selected point, acceptance results and active resource identities.
+For planned replacement, the operator checks inputs and target capabilities, withdraws source writes, creates and verifies a final consistent backup, installs the destination with the selected release, checks useful application behavior and then activates production access. Final retirement follows once acceptance permits it, or occurs earlier where necessary to exclude concurrent writers. Capture requires the database and any other native backup prerequisites to remain available: stopping the complete stack is not a backup procedure. New work and a subsequent usable backup confirm continuing operation on the destination.
+
+For source-loss recovery, the operator uses independently preserved inputs and the selected verified point, establishes the environment, restores and migrates in dependency order, validates applications, enforces write-authority transfer without relying on the unavailable source and activates access. Success means users can perform the agreed service with the required data and dependencies within authorized limits. Record actual recovery time, selected point, acceptance results and active resource identities. Human execution does not weaken any authority or evidence requirement below.
 
 ### Service authority and promotion
 
