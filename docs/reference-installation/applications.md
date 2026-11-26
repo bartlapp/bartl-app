@@ -111,7 +111,7 @@ Enter B and wait for the next prompt:
 cd "$WORK_DIR/clusters/cluster-2"
 ```
 
-Follow the [Keycloak new-deployment procedure](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#install-a-new-deployment), starting at **Obtain the release**. In **Configure the installation**, choose `DEPLOYMENT=keycloak`, `INSTANCE=keycloak`, `NS=keycloak`, `RELEASE=keycloak` and `PACKAGE=keycloak`; Base has selected `CLUSTER_ID=cluster-2`.
+Follow the [Keycloak new-deployment procedure](https://github.com/bartlapp/bartl-keycloak/blob/main/README.md#install-a-new-deployment), starting at **Obtain the release**, only with the exact v1alpha2 artifact required by this walkthrough's availability gate. In **Configure the installation**, choose `DEPLOYMENT=keycloak`, `INSTANCE=keycloak`, `NS=keycloak-blue`, `RELEASE=keycloak` and `PACKAGE=keycloak`; Base has selected `CLUSTER_ID=cluster-2`.
 
 Run the complete Configure creation block and wait for the next prompt in its deployment directory. It creates an empty `services.keycloak` entry. Only **after that block**, and before its declaration rendering or installation, supply the composition choices:
 
@@ -159,7 +159,7 @@ Return to the paused Keycloak terminal when the handoff is complete; no nested n
 
 The handoff copies the retained encryption key, scoped reader/writer usernames and transport passwords, and validating CA into Keycloak's `repository/reader/` and `repository/writer/`. It does not hand off repository-admin authority. On resumption, retain these files rather than recopying or regenerating them. The composed URL already comes from Restic's declaration; do not execute the handoff prose's alternative direct-URL assignment.
 
-Return to Keycloak's **Install and inspect** in the still-selected deployment. Refresh declarations, create namespace `keycloak`, native credential Secrets and backup reader/writer Secrets, then perform the ordinary install and TLS/current-generation readiness checks. Complete **Verify Keycloak** and **Retain operating and recovery inputs**. This synthetic exercise keeps its initial administrator unchanged; retain the existing `credentials/bootstrap/` inputs and verify fresh administration through `https://$KC_HOST/admin/` before installing consumers.
+Return to Keycloak's **Install and inspect** in the selected deployment. Refresh declarations, create namespace `keycloak-blue`, credential/repository Secrets, then **Select initial runtime intent before controller execution** with explicitly selected running=true/replicas=1. Create the CR natively before installing its static Helm release, and complete TLS/current-generation readiness, **Verify Keycloak** and **Retain operating and recovery inputs**. This synthetic exercise retains the initial administrator in `credentials/bootstrap/`; verify fresh administration through its real HTTPS hostname. Runtime stop/start/scale later uses the CR, not Helm or local runtime values.
 
 ## Install Paperless on B
 

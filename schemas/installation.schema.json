@@ -1411,6 +1411,7 @@
           "minLength": 1
         },
         "replicas": {
+          "description": "Legacy package-owned override for packages that still consume it. Forbidden for Keycloak, whose live replica authority is its application CR.",
           "type": "integer",
           "minimum": 0
         },

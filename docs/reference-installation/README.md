@@ -204,13 +204,13 @@ Create deployments only through their package's new-installation procedure: Rest
 | Package | Deployment / instance / package key | Cluster | Namespace | Helm release |
 | --- | --- | --- | --- | --- |
 | Restic | `restic` | `cluster-1` | `backup` | `backup` |
-| Keycloak | `keycloak` | `cluster-2` | `keycloak` | `keycloak` |
+| Keycloak | `keycloak` | `cluster-2` | `keycloak-blue` | `keycloak` |
 | Forgejo | `forgejo` | `cluster-2` | `forgejo` | `forgejo` |
 | Paperless | `paperless` | `cluster-2` | `paperless` | `paperless` |
 
-The current procedures use directory selectors and normalized disposable chart caches. Fresh installation and replacement resolve a stable public package; resumption reacquires its recorded version. Native application versions remain separate choices. Pass the selected `deployment` to the package chart; chart-owned selection applies operation-intent precedence to both declarations and runtime manifests.
+The current procedures use directory selectors and normalized disposable chart caches. Fresh installation/replacement selects an exact artifact; resumption reacquires its recorded version. Native application versions remain separate choices. Pass the selected `deployment` to the package chart for placement and static declarations. For v1alpha2 Keycloak, running/replicas live only in the CR; chart selection must not project operational runtime intent.
 
-This path requires Keycloak 0.8.0 and the selected-deployment interface in Restic 0.3.1, Paperless 0.2.1 and Forgejo 0.2.3. The latter three passed exact-candidate qualification and were published unchanged on 2026-11-25. Fresh anonymous chart downloads matched the qualified archives, and published image manifests matched the retained digests. Obtain these released packages through their documented download procedures; candidate checks do not replace this four-service walkthrough.
+The current Keycloak callers target its v1alpha2 replacement/runtime procedure; this candidate is **not published or qualified**. Do not execute this coordinated walkthrough with released Keycloak 0.8.0 and the new procedure mixed together. Until an exact v1alpha2 release is supplied and qualified, retain the historical release-specific walkthrough when operating 0.8.0. Restic 0.3.1, Paperless 0.2.1 and Forgejo 0.2.3 retain their selected-deployment interfaces and 2026-11-25 publication evidence; that does not qualify the changed Keycloak path or this composition.
 
 See [Qualification](#qualification) for the exercised immutable artifacts, outcomes and limits.
 

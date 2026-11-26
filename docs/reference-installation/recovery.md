@@ -220,7 +220,7 @@ If an inspected rule differs or is already absent, reconcile that exact rule ins
    cp "$PL_SOURCE_DIR/source-pvc.json" "$WORK_DIR/evidence/paperless-source-pvc.json"
    ```
 
-3. Only after both consumers are retired, execute **all** of [Keycloak RECOVERY step 2](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#2-capture-final-writes-and-retire-a-reachable-source) in its source terminal. Keycloak stops while PostgreSQL remains available for final capture; retire controller/database only after verified publication. Preserve:
+3. Only after both consumers are retired, execute **all** of [Keycloak RECOVERY step 2](https://github.com/bartlapp/bartl-keycloak/blob/main/RECOVERY.md#2-capture-final-writes-and-retire-a-reachable-source). Set only Keycloak replicas to zero while the application remains enabled and PostgreSQL ready, verify final capture, then set whole-application running=false and confirm dedicated components/native work stopped before retiring its controller. Do not use whole-stack stop as capture preparation. Preserve:
 
    ```bash
    cp "$KC_SOURCE_DIR/backup-result.json" "$WORK_DIR/evidence/keycloak-final-backup.json"
@@ -241,7 +241,7 @@ hcloud server describe "$SOURCE_SERVER" --output json |
   > "$WORK_DIR/evidence/source-retirement.json"
 ```
 
-Keep B off and disable unauthorized restart for the rest of the run. Retained stop intent, removed Forgejo routing, retired Keycloak controller/database and withdrawn firewall admission prevent an accidental return from reclaiming production authority. Unreachability alone is not retirement. Do not automatically return to B after any consequential candidate write/effect.
+Keep B off and all restart automation disabled for the run. Durable whole-stop intent on the v1alpha2 Keycloak CR, retired controller, removed Forgejo routing and withdrawn firewall admission enforce this planned reachable-source retirement under exclusive administration. Unreachability alone is not retirement; this is not source-independent provider-loss fencing. Use Keycloak's **Interrupted cutover and a returning source** procedure after a lost acknowledgement/return, inspecting actual CR/Pod/route authority before reopening anything. Never automatically return to B after consequential candidate writes/effects.
 
 ## Restrict C before moving application hostnames
 

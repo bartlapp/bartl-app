@@ -183,6 +183,16 @@ function validateReferences(record, errors) {
     const target = JSON.stringify([deployment.cluster, deployment.namespace, deployment.release]);
     if (placements.has(target)) fail(pointer('deployments', id), `Helm target already selected by deployment ${JSON.stringify(placements.get(target))}`);
     else placements.set(target, id);
+    const selectedPackage = record.packages?.[deployment.package];
+    if (selectedPackage?.chart === 'oci://ghcr.io/bartlapp/bartl-keycloak') {
+      const service = record.services?.[deployment.instance];
+      const operation = record.operations?.deployments?.[id];
+      for (const field of ['running', 'replicas']) {
+        if (has(operation, field)) fail(pointer('operations', 'deployments', id, field), 'Keycloak runtime intent belongs to its application CR, not installation values');
+        if (has(service, field)) fail(pointer('services', deployment.instance, field), 'Keycloak runtime intent belongs to its application CR, not installation values');
+      }
+      if (has(service?.application, 'replicas')) fail(pointer('services', deployment.instance, 'application', 'replicas'), 'Keycloak replicas belong to its application CR, not installation values');
+    }
   }
   for (const deploymentId of Object.keys(record.operations?.deployments ?? {})) reference('deployments', deploymentId, pointer('operations', 'deployments', deploymentId));
   for (const [instance, points] of Object.entries(record.operations?.recovery?.points ?? {})) {
