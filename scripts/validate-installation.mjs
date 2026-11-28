@@ -184,14 +184,14 @@ function validateReferences(record, errors) {
     if (placements.has(target)) fail(pointer('deployments', id), `Helm target already selected by deployment ${JSON.stringify(placements.get(target))}`);
     else placements.set(target, id);
     const selectedPackage = record.packages?.[deployment.package];
-    if (selectedPackage?.chart === 'oci://ghcr.io/bartlapp/bartl-keycloak') {
+    if (['oci://ghcr.io/bartlapp/bartl-keycloak', 'oci://ghcr.io/bartlapp/bartl-restic'].includes(selectedPackage?.chart)) {
       const service = record.services?.[deployment.instance];
       const operation = record.operations?.deployments?.[id];
       for (const field of ['running', 'replicas']) {
-        if (has(operation, field)) fail(pointer('operations', 'deployments', id, field), 'Keycloak runtime intent belongs to its application CR, not installation values');
-        if (has(service, field)) fail(pointer('services', deployment.instance, field), 'Keycloak runtime intent belongs to its application CR, not installation values');
+        if (has(operation, field)) fail(pointer('operations', 'deployments', id, field), 'Runtime intent belongs to the application CR, not installation values');
+        if (has(service, field)) fail(pointer('services', deployment.instance, field), 'Runtime intent belongs to the application CR, not installation values');
       }
-      if (has(service?.application, 'replicas')) fail(pointer('services', deployment.instance, 'application', 'replicas'), 'Keycloak replicas belong to its application CR, not installation values');
+      if (has(service?.application, 'replicas')) fail(pointer('services', deployment.instance, 'application', 'replicas'), 'Replicas belong to the application CR, not installation values');
     }
   }
   for (const deploymentId of Object.keys(record.operations?.deployments ?? {})) reference('deployments', deploymentId, pointer('operations', 'deployments', deploymentId));

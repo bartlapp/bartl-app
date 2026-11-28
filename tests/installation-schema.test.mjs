@@ -120,31 +120,33 @@ test('accepts deployments, replacement targets and operation intent', () => {
   valid(record);
 });
 
-test('rejects Keycloak runtime values without breaking other packages replica overrides', () => {
+test('rejects CR-owned runtime values without breaking other packages replica overrides', () => {
   for (const chart of ['oci://ghcr.io/bartlapp/bartl-paperless', 'oci://ghcr.io/bartlapp/bartl-forgejo']) {
     const record = application();
     record.packages.app.chart = chart;
     record.operations = { deployments: { app: { replicas: 0 } } };
     valid(record);
   }
-  const keycloak = () => {
-    const record = application();
-    record.packages.app.chart = 'oci://ghcr.io/bartlapp/bartl-keycloak';
-    return record;
-  };
-  valid(keycloak());
-  for (const service of [{ running: false }, { replicas: 0 }, { application: { replicas: 2 } }]) {
-    const record = keycloak();
-    record.services.app = service;
-    invalid(record, 'semantic', '/services/app');
+  for (const chart of ['oci://ghcr.io/bartlapp/bartl-keycloak', 'oci://ghcr.io/bartlapp/bartl-restic']) {
+    const runtimeOwned = () => {
+      const record = application();
+      record.packages.app.chart = chart;
+      return record;
+    };
+    valid(runtimeOwned());
+    for (const service of [{ running: false }, { replicas: 0 }, { application: { replicas: 2 } }]) {
+      const record = runtimeOwned();
+      record.services.app = service;
+      invalid(record, 'semantic', '/services/app');
+    }
+    const record = runtimeOwned();
+    record.operations = { deployments: { app: { replicas: 0 } } };
+    invalid(record, 'semantic', '/operations/deployments/app/replicas');
+    record.operations.deployments.app = { ingressEnabled: false, maintenance: true, backupSuspend: true };
+    valid(record);
+    record.operations.deployments.app = { running: false };
+    invalid(record, 'schema', '/operations/deployments/app');
   }
-  const record = keycloak();
-  record.operations = { deployments: { app: { replicas: 0 } } };
-  invalid(record, 'semantic', '/operations/deployments/app/replicas');
-  record.operations.deployments.app = { ingressEnabled: false, maintenance: true, backupSuspend: true };
-  valid(record);
-  record.operations.deployments.app = { running: false };
-  invalid(record, 'schema', '/operations/deployments/app');
 });
 
 test('rejects unknown common fields, malformed observations and implicit ownership', () => {

@@ -41,7 +41,7 @@ Enter A's cluster directory and wait for the next prompt so Base selects its acc
 cd "$WORK_DIR/clusters/cluster-1"
 ```
 
-At the next prompt follow the [Restic README](https://github.com/bartlapp/bartl-restic/blob/main/README.md#prerequisites-and-release) from latest-stable acquisition through **Configure a new endpoint**, keeping this selected cluster. In its creation block choose `DEPLOYMENT=restic`, `INSTANCE=restic`, `NS=backup`, `RELEASE=backup`, `PACKAGE=restic`, `REPOSITORY=keycloak` and `CAPACITY=25Gi`. Capacity is a synthetic exercise choice: verify that the selected histories fit before provisioning. The grouped block enters Restic's deployment directory; wait for its next prompt before rendering.
+At the next prompt follow the [Restic README](https://github.com/bartlapp/bartl-restic/blob/v0.4.0-dev.2/README.md#prerequisites-and-release) from explicit-release acquisition through **Configure a new endpoint**, keeping this selected cluster. In its creation block choose `DEPLOYMENT=restic`, `INSTANCE=restic`, `NS=backup`, `RELEASE=backup`, `PACKAGE=restic`, `REPOSITORY=keycloak` and `CAPACITY=25Gi`. Capacity is a synthetic exercise choice: verify that the selected histories fit before provisioning. The grouped block enters Restic's deployment directory; wait for its next prompt before rendering.
 
 After that prompt, run [Select the test issuer](README.md#test-tls-profile) before declaration rendering. For `acme.fke.systems`, continue with managed staging issuance and the independently prepared test CA trust.
 
